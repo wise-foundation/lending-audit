@@ -184,7 +184,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         tokenIndexForApprove = _curveSwapStructToken.curveMetaPoolTokenIndexFrom;
 
         _safeApprove(
-            ICurve(curvePool).coins(tokenIndexForApprove),
+            ICurve(curveMetaPool).coins(tokenIndexForApprove),
             curveMetaPool,
             0
         );
