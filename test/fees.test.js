@@ -706,7 +706,7 @@ contract("WiseLending feeDestination", async accounts  => {
                 percent: percent
             });
 
-            const debtRatioUser = await contracts.security.getLiveDebtratioNormalPool(
+            const debtRatioUser = await contracts.security.getLiveDebtRatio(
                 2
             );
 
@@ -791,7 +791,7 @@ contract("WiseLending feeDestination", async accounts  => {
                 "true"
             );
 
-            const debtRatioUserAfter = await contracts.security.getLiveDebtratioNormalPool(
+            const debtRatioUserAfter = await contracts.security.getLiveDebtRatio(
                 2
             );
 

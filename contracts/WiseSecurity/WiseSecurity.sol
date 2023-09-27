@@ -58,7 +58,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
      * debt ratio of a postion in normal mode.
      * 1% <=> 1E16
      */
-    function getLiveDebtratioNormalPool(
+    function getLiveDebtRatio(
         uint256 _nftId
     )
         external
