@@ -468,17 +468,19 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return;
         }
 
-        uint256 diff = totalBorrow
-            - bareCollateral;
+        unchecked {
+            uint256 diff = totalBorrow
+                - bareCollateral;
 
-        FEE_MANAGER.increaseTotalBadDebtLiquidation(
-            diff
-        );
+            FEE_MANAGER.increaseTotalBadDebtLiquidation(
+                diff
+            );
 
-        FEE_MANAGER.setBadDebtUserLiquidation(
-            _nftId,
-            diff
-        );
+            FEE_MANAGER.setBadDebtUserLiquidation(
+                _nftId,
+                diff
+            );
+        }
     }
 
     /**
