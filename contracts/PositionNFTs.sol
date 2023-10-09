@@ -154,6 +154,29 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         return nftId;
     }
 
+    function isOwner(
+        uint256 _nftId,
+        address _owner
+    )
+        external
+        view
+        returns (bool)
+    {
+        if (_nftId == FEE_MANAGER_NFT) {
+            return feeManager == _owner;
+        }
+
+        if (reserved[_owner] == _nftId) {
+            return true;
+        }
+
+        if (ownerOf(_nftId) == _owner) {
+            return true;
+        }
+
+        return false;
+    }
+
     function approve(
         address _spender,
         uint256 _nftId
