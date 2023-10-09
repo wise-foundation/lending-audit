@@ -2272,7 +2272,7 @@ setUpContracts = async (inputParam = {}) => {
         wiseSecurityAddress
     );
 
-    const feeManagreAddress = await lending.FEE_MANAGER();
+    const feeManagerAddress = await lending.FEE_MANAGER();
 
     const feeManager = await feeContract.at(
         feeManagerAddress
