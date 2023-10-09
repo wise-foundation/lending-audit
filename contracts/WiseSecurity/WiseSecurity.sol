@@ -992,7 +992,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
 
     /**
      * @dev Set function for blacklisting token.
-     * Those token can not be borrowed our used as
+     * Those token can not be borrowed or used as
      * collateral anymore. Only callable by master.
      */
     function setBlacklistToken(
