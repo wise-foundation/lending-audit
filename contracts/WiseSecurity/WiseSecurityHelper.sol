@@ -919,15 +919,12 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         public
         view
     {
-        if (POSITION_NFTS.reserved(_caller) == _nftId) {
-            return;
+        if (POSITION_NFTS.isOwner(
+            _nftId,
+            _caller
+        ) == false) {
+            revert NotOwner();
         }
-
-        if (POSITION_NFTS.ownerOf(_nftId) == _caller) {
-            return;
-        }
-
-        revert NotOwner();
     }
 
     /**
