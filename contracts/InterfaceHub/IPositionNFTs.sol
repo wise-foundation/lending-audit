@@ -62,4 +62,17 @@ interface IPositionNFTs {
     )
         external
         returns (address);
+
+    function isOwner(
+        uint256 _nftId,
+        address _caller
+    )
+        external
+        view
+        returns (bool);
+
+    function FEE_MANAGER_NFT()
+        external
+        view
+        returns (uint256);
 }

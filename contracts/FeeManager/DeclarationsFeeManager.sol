@@ -25,7 +25,6 @@ error TooHighValue();
 error TooLowValue();
 error NotAllowed();
 
-
 contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
 
     constructor(
@@ -60,7 +59,7 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
             address(_positionNFTAddress)
         );
 
-        POSITION_NFTS.mintPosition();
+        FEE_MANAGER_NFT = POSITION_NFTS.FEE_MANAGER_NFT();
 
         incentiveMaster = _master;
 
@@ -142,7 +141,7 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
     mapping (address => mapping (address => uint256)) public gatheredIncentiveToken;
 
     // Position NFT id of the feeManager
-    uint256 public constant FEE_MASTER_NFT_ID = 0;
+    uint256 public immutable FEE_MANAGER_NFT;
 
     // Precision factors for computations
     uint256 constant PRECISION_FACTOR_E15 = 1E15;

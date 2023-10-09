@@ -112,14 +112,15 @@ contract("WiseLending feeDestination", async accounts  => {
 
     generateFees = async (inputParam = {}) => {
 
-            await time.increase(
-                inputParam.time
-            );
+        await time.increase(
+            inputParam.time
+        );
 
-            await contracts.lending.syncSeveralPools(
-                inputParam.poolTokens
+        for (i = 0; i < inputParam.poolTokens.length; i++) {
+            await contracts.lending.syncManually(
+                inputParam.poolTokens[i]
             );
-
+        }
     }
 
     transferToken = async (inputParam = {}) => {
@@ -388,7 +389,6 @@ contract("WiseLending feeDestination", async accounts  => {
                 }
             );
 
-
             await deposit({
                 nftId: [1],
                 depositTokens: [WETH.address],
@@ -493,7 +493,7 @@ contract("WiseLending feeDestination", async accounts  => {
                 balContract.toString(),
                 "0"
             );
-        })
+        });
 
         it("Can't withdraw with open bad debt", async () => {
 
@@ -725,11 +725,12 @@ contract("WiseLending feeDestination", async accounts  => {
 
             await takeSnapshot();
 
-            await contracts.lending.syncSeveralPools(
-                [
-                    USDC.address,
-                    WETH.address
-                ]
+            await contracts.lending.syncManually(
+                WETH.address
+            );
+
+            await contracts.lending.syncManually(
+                USDC.address
             );
 
             const paybackAmount = await contracts.lending.paybackAmount(
@@ -1020,11 +1021,12 @@ contract("WiseLending feeDestination", async accounts  => {
 
             await takeSnapshot();
 
-            await contracts.lending.syncSeveralPools(
-                [
-                    USDC.address,
-                    WETH.address
-                ]
+            await contracts.lending.syncManually(
+                WETH.address
+            );
+
+            await contracts.lending.syncManually(
+                USDC.address
             );
 
             const paybackAmount = await contracts.lending.paybackAmount(
@@ -1251,6 +1253,10 @@ contract("WiseLending feeDestination", async accounts  => {
             const secondRoundDeposit = toWei("1");
 
             const smallTime = 1000;
+            const EXPECTED_ADMIN_NFT_ID = 0;
+
+            const adminNFT = await contracts.nft.FEE_MANAGER_NFT();
+            const aliceNFT = await contracts.nft.getNextExpectedId();
 
             await contracts.nft.mintPosition(
                 {
@@ -1259,11 +1265,14 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             await setLastUpdateGlobal(
-                [chainlinkUSDC, chainlinkWETH]
+                [
+                    chainlinkUSDC,
+                    chainlinkWETH
+                ]
             );
 
             await contracts.lending.depositExactAmount(
-                1,
+                aliceNFT,
                 WETH.address,
                 depositAmount,
                 {
@@ -1272,7 +1281,7 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             await contracts.lending.collateralizeDeposit(
-                1,
+                aliceNFT,
                 WETH.address,
                 {
                     from: alice
@@ -1280,7 +1289,7 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             await contracts.lending.borrowExactAmount(
-                1,
+                aliceNFT,
                 WETH.address,
                 borrowAmount,
                 {
@@ -1293,7 +1302,7 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             await contracts.lending.depositExactAmount(
-                1,
+                aliceNFT,
                 WETH.address,
                 depositAmount,
                 {
@@ -1305,17 +1314,39 @@ contract("WiseLending feeDestination", async accounts  => {
                 contracts.feeManager.address
             );
 
+            const adminLendingShares = await contracts.lending.getPositionLendingShares(
+                adminNFT,
+                WETH.address
+            );
+
+            assert.equal(
+                adminNFT.toString(),
+                EXPECTED_ADMIN_NFT_ID
+            );
+
+            await expectRevert(
+                contracts.lending.withdrawExactShares(
+                    adminNFT,
+                    WETH.address,
+                    adminLendingShares,
+                    {
+                        from: alice
+                    }
+                ),
+                "NotOwner()"
+            );
+
             await contracts.feeManager.claimWiseFees(
                 WETH.address
             );
 
             userShares = await contracts.lending.getPositionLendingShares(
-                1,
+                aliceNFT,
                 WETH.address
             );
 
             adminShares = await contracts.lending.getPositionLendingShares(
-                0,
+                adminNFT,
                 WETH.address
             );
 
@@ -1329,12 +1360,12 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             const borrowSharesUser = await contracts.lending.getPositionBorrowShares(
-                1,
+                aliceNFT,
                 WETH.address
             );
 
             await contracts.lending.paybackExactShares(
-                1,
+                aliceNFT,
                 WETH.address,
                 borrowSharesUser,
                 {
@@ -1343,12 +1374,12 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             const lendingSharesUser = await contracts.lending.getPositionLendingShares(
-                1,
+                aliceNFT,
                 WETH.address
             );
 
             await contracts.lending.withdrawExactShares(
-                1,
+                aliceNFT,
                 WETH.address,
                 lendingSharesUser,
                 {
@@ -1357,12 +1388,12 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             userShares = await contracts.lending.getPositionLendingShares(
-                1,
+                aliceNFT,
                 WETH.address
             );
 
             adminShares = await contracts.lending.getPositionLendingShares(
-                0,
+                adminNFT,
                 WETH.address
             );
 
@@ -1398,7 +1429,7 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             let userBorrowShares = await contracts.lending.getPositionBorrowShares(
-                1,
+                aliceNFT,
                 WETH.address
             );
 
@@ -1408,7 +1439,7 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             await contracts.lending.depositExactAmount(
-                1,
+                aliceNFT,
                 WETH.address,
                 secondRoundDeposit,
                 {
@@ -1417,12 +1448,12 @@ contract("WiseLending feeDestination", async accounts  => {
             );
 
             const sharesRound2 = await contracts.lending.getPositionLendingShares(
-                1,
+                aliceNFT,
                 WETH.address
             );
 
             await contracts.lending.withdrawExactShares(
-                1,
+                aliceNFT,
                 WETH.address,
                 sharesRound2,
                 {

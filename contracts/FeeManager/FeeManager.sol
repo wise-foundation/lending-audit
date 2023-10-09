@@ -432,7 +432,7 @@ contract FeeManager is FeeManagerHelper {
         address underlyingTokenAddress = _poolToken;
 
         uint256 shares = WISE_LENDING.getPositionLendingShares(
-            FEE_MASTER_NFT_ID,
+            FEE_MANAGER_NFT,
             _poolToken
         );
 
@@ -441,7 +441,7 @@ contract FeeManager is FeeManagerHelper {
         }
 
         uint256 tokenAmount = WISE_LENDING.withdrawExactShares(
-            FEE_MASTER_NFT_ID,
+            FEE_MANAGER_NFT,
             _poolToken,
             shares
         );
