@@ -62,7 +62,7 @@ interface IWiseSecurity {
         view
         returns (uint256);
 
-    function getLiveDebtratioNormalPool(
+    function getLiveDebtRatio(
         uint256 _nftId
     )
         external

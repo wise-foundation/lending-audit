@@ -1974,7 +1974,7 @@ liquidateNormal = async (_liquidationData = {}) => {
         liquidator
     );
 
-    const debtBefore = await wiseSecurityContract.getLiveDebtratioNormalPool(
+    const debtBefore = await wiseSecurityContract.getLiveDebtRatio(
         nftIdUser
     );
 
@@ -2007,7 +2007,7 @@ liquidateNormal = async (_liquidationData = {}) => {
         balLiquidatorAfter
     );
 
-    const debtAfter = await wiseSecurityContract.getLiveDebtratioNormalPool(
+    const debtAfter = await wiseSecurityContract.getLiveDebtRatio(
         user
     );
 
@@ -2105,7 +2105,7 @@ liqudateIsolationPool = async (inputParam = {}) => {
         );
     }
 
-    const debtBefore = await wiseSecurityContract.getLiveDebtratioNormalPool(
+    const debtBefore = await wiseSecurityContract.getLiveDebtRatio(
         inputParam.user
     );
 
@@ -2127,7 +2127,7 @@ liqudateIsolationPool = async (inputParam = {}) => {
         }
     );
 
-    const debtAfter = await wiseSecurityContract.getLiveDebtratioNormalPool(
+    const debtAfter = await wiseSecurityContract.getLiveDebtRatio(
         inputParam.user
     );
 

@@ -706,7 +706,6 @@ contract("WiseLending feeDestination", async accounts  => {
                 percent: percent
             });
 
-            // console.log(contracts.security, 'contracts.security');
             const debtRatioUser = await contracts.security.getLiveDebtRatio(
                 2
             );

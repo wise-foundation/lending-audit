@@ -452,7 +452,7 @@ abstract contract LiquidationResolver is OpsTaskCreator {
         uint256 receiveUSD;
         uint256 shareUSD;
 
-        uint256 debtRatio = WISE_SECURITY.getLiveDebtratioNormalPool(
+        uint256 debtRatio = WISE_SECURITY.getLiveDebtRatio(
             _nftId
         );
 

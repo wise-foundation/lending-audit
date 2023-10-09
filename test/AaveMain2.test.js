@@ -2428,7 +2428,7 @@ contract("Aave second layer", async accounts => {
                 pow8(1.1)
             );
 
-            const debtratio = await contracts.security.getLiveDebtratioNormalPool(
+            const debtratio = await contracts.security.getLiveDebtRatio(
                 NFT_ID
             );
 
@@ -2452,7 +2452,7 @@ contract("Aave second layer", async accounts => {
                 }
             );
 
-            const debtratioEnd = await contracts.security.getLiveDebtratioNormalPool(
+            const debtratioEnd = await contracts.security.getLiveDebtRatio(
                 NFT_ID
             );
 
@@ -2593,7 +2593,7 @@ contract("Aave second layer", async accounts => {
                 pow8(0.85)
             );
 
-            const debtratio = await contracts.security.getLiveDebtratioNormalPool(
+            const debtratio = await contracts.security.getLiveDebtRatio(
                 NFT_ID
             );
 
@@ -2651,7 +2651,7 @@ contract("Aave second layer", async accounts => {
                 }
             );
 
-            const debtratioEnd = await contracts.security.getLiveDebtratioNormalPool(
+            const debtratioEnd = await contracts.security.getLiveDebtRatio(
                 NFT_ID
             );
 
