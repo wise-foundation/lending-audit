@@ -175,7 +175,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             )
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return usdCollateral;
         }
 
@@ -187,9 +187,9 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
 
     /**
      * @dev Wrapper function checking if a supplied
-     * fund is decollateralized.
+     * fund is uncollateralized.
      */
-    function _isDecollateralized(
+    function _isUncollateralized(
         uint256 _nftId,
         address _poolToken
     )
@@ -197,7 +197,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (bool)
     {
-        return WISE_LENDING.isDecollteralized(
+        return WISE_LENDING.isUncollateralized(
             _nftId,
             _poolToken
         );
@@ -228,7 +228,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             )
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return usdCollateral;
         }
 

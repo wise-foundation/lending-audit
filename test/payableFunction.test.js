@@ -209,7 +209,7 @@ contract("Payable function tests", async accounts => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 aliceNft,
                 WETH.address,
                 {
@@ -308,7 +308,7 @@ contract("Payable function tests", async accounts => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 aliceNft,
                 WETH.address,
                 {
@@ -384,7 +384,7 @@ contract("Payable function tests", async accounts => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 aliceNft,
                 WETH.address,
                 {
@@ -459,7 +459,7 @@ contract("Payable function tests", async accounts => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 aliceNft,
                 WETH.address,
                 {
@@ -546,7 +546,7 @@ contract("Payable function tests", async accounts => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 aliceNft,
                 WETH.address,
                 {
@@ -644,7 +644,7 @@ contract("Payable function tests", async accounts => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 aliceNft,
                 WETH.address,
                 {
@@ -761,7 +761,7 @@ contract("Payable function tests", async accounts => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 aliceNft,
                 WETH.address,
                 {

@@ -792,7 +792,7 @@ contract("WiseLending", accounts => {
                 USDC.address
             );
 
-            const collatState1 = lendingData1.deCollteralized;
+            const collatState1 = lendingData1.unCollateralized;
 
             assert.equal(
                 collatState1.toString(),
@@ -813,7 +813,7 @@ contract("WiseLending", accounts => {
                 USDC.address
             );
 
-            const collatState2 = lendingData2.deCollteralized;
+            const collatState2 = lendingData2.unCollateralized;
 
             assert.equal(
                 collatState2.toString(),
@@ -834,7 +834,7 @@ contract("WiseLending", accounts => {
                 USDC.address
             );
 
-            const collatState3 = lendingData3.deCollteralized;
+            const collatState3 = lendingData3.unCollateralized;
 
             assert.equal(
                 collatState3.toString(),

@@ -274,7 +274,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftId
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return;
         }
 
@@ -387,7 +387,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftIdCaller
         );
 
-        if (_isDecollateralized(_nftIdCaller, _poolToken) == true) {
+        if (_isUncollateralized(_nftIdCaller, _poolToken) == true) {
             return;
         }
 
@@ -420,9 +420,9 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     }
 
     /**
-     * @dev Checks for de-collateralize deposit logic.
+     * @dev Checks for uncollateralized deposit logic.
      */
-    function checksDecollateralizeDeposit(
+    function checkUncollateralizedDeposit(
         uint256 _nftId,
         address _poolToken
     )
@@ -805,7 +805,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             withdrawAmount = maxAmountPool;
         }
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return withdrawAmount;
         }
 
@@ -855,7 +855,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _interval
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == false) {
+        if (_isUncollateralized(_nftId, _poolToken) == false) {
 
             if (_poolWithdrawAmount >= tokenAmount) {
                 return 0;
