@@ -149,6 +149,8 @@ contract WiseLendingDeclaration is OwnableMaster {
         POSITION_NFT = IPositionNFTs(
             _nftContract
         );
+
+        FEE_MANAGER_NFT = POSITION_NFT.FEE_MANAGER_NFT();
     }
 
     function setSecurity(
@@ -205,7 +207,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     address public immutable WETH_ADDRESS;
 
     // Nft id for feeManager
-    uint256 constant FEE_MANAGER_NFT = 0;
+    uint256 public immutable FEE_MANAGER_NFT;
 
 
     // Interfaces -----------------------------------------
