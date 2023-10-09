@@ -7,13 +7,17 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./OwnableMaster.sol";
 
 error AlreadyReserved();
+error AlreadyExecuted();
 
 contract PositionNFTs is ERC721Enumerable, OwnableMaster {
 
     string public baseURI;
     string public baseExtension = ".json";
 
+    address public feeManager;
     uint256 public totalReserved;
+    uint256 public immutable FEE_MANAGER_NFT;
+
     mapping(address => uint256) public reserved;
 
     constructor(
@@ -30,6 +34,29 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         )
     {
         baseURI = _initBaseURI;
+
+        FEE_MANAGER_NFT = _mintPositionForUser(
+            address(this)
+        );
+    }
+
+    function forwardFeeManagerNFT(
+        address _feeManagerContract
+    )
+        external
+        onlyMaster
+    {
+        if (feeManager > ZERO_ADDRESS) {
+            revert AlreadyExecuted();
+        }
+
+        feeManager = _feeManagerContract;
+
+        _transfer(
+            address(this),
+            _feeManagerContract,
+            FEE_MANAGER_NFT
+        );
     }
 
     function reservePosition()
