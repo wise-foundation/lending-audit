@@ -266,7 +266,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return;
         }
 
-        if (WISE_LENDING.veryfiedIsolationPool(_caller) == true) {
+        if (WISE_LENDING.verifiedIsolationPool(_caller) == true) {
             return;
         }
 
@@ -341,7 +341,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _poolToken
         );
 
-        if (WISE_LENDING.veryfiedIsolationPool(_caller) == true) {
+        if (WISE_LENDING.verifiedIsolationPool(_caller) == true) {
             return;
         }
 

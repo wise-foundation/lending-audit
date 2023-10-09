@@ -101,7 +101,7 @@ abstract contract PoolManager is WiseCore {
         external
         onlyMaster
     {
-        veryfiedIsolationPool[_isolationPool] = _state;
+        verifiedIsolationPool[_isolationPool] = _state;
     }
 
     function createPool(

@@ -227,7 +227,7 @@ contract("Isolation Mode", async accounts  => {
                 true
             );
 
-            const state = await contracts.lending.veryfiedIsolationPool(
+            const state = await contracts.lending.verifiedIsolationPool(
                 isolationPool.address
             );
 
