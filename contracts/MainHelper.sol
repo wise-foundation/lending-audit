@@ -426,6 +426,12 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         );
 
         if (feeAmount == 0) {
+
+            _setTimeStamp(
+                _poolToken,
+                currentTime
+            );
+
             return;
         }
 
