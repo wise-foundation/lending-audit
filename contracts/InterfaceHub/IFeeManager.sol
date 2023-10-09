@@ -15,7 +15,7 @@ interface IFeeManager {
     )
         external;
 
-    function FEE_MASTER_NFT_ID()
+    function FEE_MANAGER_NFT()
         external
         returns (uint256);
 
