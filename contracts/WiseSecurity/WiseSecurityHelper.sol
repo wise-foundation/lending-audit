@@ -5,7 +5,7 @@ import "./WiseSecurityDeclarations.sol";
 
 abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
 
-     /**
+    /**
      * @dev Read function returning weighted and
      * and unweighted total collateral of a
      * postion with {_nftId} (unweighted means
@@ -909,8 +909,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
 
     /**
      * @dev Helper function checking the owner
-     * of {_nftId}. Is skipped when aaveHub or
-     * power farm is calling the function.
+     * of {_nftId}. Reverts if owner is invalid.
      */
     function checkOwnerPosition(
         uint256 _nftId,
