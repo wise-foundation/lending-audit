@@ -94,7 +94,7 @@ abstract contract PoolManager is WiseCore {
     /**
      * @dev Allow to verify isolation pool.
      */
-    function setVeryfiedIsolationPool(
+    function setVerifiedIsolationPool(
         address _isolationPool,
         bool _state
     )

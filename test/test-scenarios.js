@@ -2272,7 +2272,7 @@ setUpContracts = async (inputParam = {}) => {
         wiseSecurityAddress
     );
 
-    const feeManagerAddress = await lending.FEE_MANAGER();
+    const feeManagreAddress = await lending.FEE_MANAGER();
 
     const feeManager = await feeContract.at(
         feeManagerAddress
@@ -2389,7 +2389,7 @@ setUpIsolationPool = async (_isolationPoolData) => {
         _isolationPoolData.weights
     );
 
-    await _isolationPoolData.lendingContract.setVeryfiedIsolationPool(
+    await _isolationPoolData.lendingContract.setVerifiedIsolationPool(
         stableIsolationPool.address,
         true
     );

@@ -123,7 +123,7 @@ contract("Isolation Mode", async accounts  => {
             ]
         );
 
-        await contracts.lending.setVeryfiedIsolationPool(
+        await contracts.lending.setVerifiedIsolationPool(
             isolationPool.address,
             true
         );
@@ -212,7 +212,7 @@ contract("Isolation Mode", async accounts  => {
         it("Isolation pool can be registerd in WISE lending contract by owner", async () => {
 
             await expectRevert(
-                contracts.lending.setVeryfiedIsolationPool(
+                contracts.lending.setVerifiedIsolationPool(
                     isolationPool.address,
                     true,
                     {
@@ -222,7 +222,7 @@ contract("Isolation Mode", async accounts  => {
                 'NotMaster()'
             );
 
-            await contracts.lending.setVeryfiedIsolationPool(
+            await contracts.lending.setVerifiedIsolationPool(
                 isolationPool.address,
                 true
             );
@@ -270,7 +270,7 @@ contract("Isolation Mode", async accounts  => {
                 'NonVerifiedPool()'
             );
 
-            await contracts.lending.setVeryfiedIsolationPool(
+            await contracts.lending.setVerifiedIsolationPool(
                 isolationPool2.address,
                 true
             );

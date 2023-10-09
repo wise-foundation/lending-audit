@@ -154,7 +154,7 @@ contract("Isolation Mode Advanced Tests", async accounts  => {
             ]
         );
 
-        await contracts.lending.setVeryfiedIsolationPool(
+        await contracts.lending.setVerifiedIsolationPool(
             isolationPool.address,
             true
         );
