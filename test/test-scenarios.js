@@ -1,3 +1,4 @@
+const { ZERO_ADDRESS } = require("@openzeppelin/test-helpers/src/constants");
 
 takeSnapshot = async (_helpers) => {
     snapshot = await _helpers.takeSnapshot();
@@ -2275,6 +2276,24 @@ setUpContracts = async (inputParam = {}) => {
 
     const feeManager = await feeContract.at(
         feeManagerAddress
+    );
+
+    await expectRevert(
+        positionNFT.forwardFeeManagerNFT(
+            ZERO_ADDRESS
+        ),
+        "ERC721: transfer to the zero address"
+    );
+
+    await positionNFT.forwardFeeManagerNFT(
+        feeManagerAddress
+    );
+
+    await expectRevert(
+        positionNFT.forwardFeeManagerNFT(
+            feeManagerAddress
+        ),
+        "AlreadyExecuted()"
     );
 
     return {
