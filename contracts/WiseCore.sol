@@ -562,9 +562,9 @@ abstract contract WiseCore is MainHelper {
         uint256 _percentLiquidation
     )
         internal
-        returns (uint256 transfereAmount)
+        returns (uint256 transferAmount)
     {
-        transfereAmount = _percentLiquidation
+        transferAmount = _percentLiquidation
             * positionPureCollateralAmount[_nftId][_poolToken]
             / PRECISION_FACTOR_E18;
 
@@ -572,12 +572,12 @@ abstract contract WiseCore is MainHelper {
             positionPureCollateralAmount,
             _nftId,
             _poolToken,
-            transfereAmount
+            transferAmount
         );
 
         _decreaseTotalBareToken(
             _poolToken,
-            transfereAmount
+            transferAmount
         );
     }
 
@@ -591,12 +591,12 @@ abstract contract WiseCore is MainHelper {
         uint256 _nftId,
         uint256 _nftIdLiquidator,
         address _poolToken,
-        uint256 _percantageWishCollat
+        uint256 _percentWishCollateral
     )
         internal
         returns (uint256)
     {
-        uint256 cashoutShares = _percantageWishCollat
+        uint256 cashoutShares = _percentWishCollateral
             * getPositionLendingShares(
                 _nftId,
                 _poolToken
