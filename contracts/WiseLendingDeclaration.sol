@@ -230,8 +230,8 @@ contract WiseLendingDeclaration is OwnableMaster {
     // Structs ------------------------------------------
 
     struct LendingEntry {
+        bool unCollateralized;
         uint256 shares;
-        bool deCollteralized;
     }
 
     struct BorrowRatesEntry {

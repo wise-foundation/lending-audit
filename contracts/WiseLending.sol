@@ -162,13 +162,13 @@ contract WiseLending is PoolManager {
             _poolToken
         );
 
-        userLendingData[_nftId][_poolToken].deCollteralized = false;
+        userLendingData[_nftId][_poolToken].unCollateralized = false;
     }
 
     /**
      * @dev Disables _poolToken to be used as a collateral.
      */
-    function deCollateralizeDeposit(
+    function unCollateralizeDeposit(
         uint256 _nftId,
         address _poolToken
     )
@@ -185,9 +185,9 @@ contract WiseLending is PoolManager {
             _poolToken
         );
 
-        userLendingData[_nftId][_poolToken].deCollteralized = true;
+        userLendingData[_nftId][_poolToken].unCollateralized = true;
 
-        WISE_SECURITY.checksDecollateralizeDeposit(
+        WISE_SECURITY.checkUncollateralizedDeposit(
             _nftId,
             _poolToken
         );

@@ -680,7 +680,7 @@ abstract contract WiseCore is MainHelper {
             _removePercentage
         );
 
-        if (isDecollteralized(_nftId, _receiveTokens) == true) {
+        if (isUncollateralized(_nftId, _receiveTokens) == true) {
             return receiveAmount;
         }
 

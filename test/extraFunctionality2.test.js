@@ -511,7 +511,7 @@ contract("extra Functionality2", async accounts  => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 1,
                 USDC.address,
                 {
@@ -658,7 +658,7 @@ contract("extra Functionality2", async accounts  => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 1,
                 WETH.address,
                 {
@@ -729,7 +729,7 @@ contract("extra Functionality2", async accounts  => {
                 alice
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 1,
                 WETH.address,
                 {
@@ -1375,7 +1375,7 @@ contract("extra Functionality2", async accounts  => {
                 }
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 1,
                 USDC.address,
                 {
@@ -2242,7 +2242,7 @@ contract("extra Functionality2", async accounts  => {
                 alice
             );
 
-            await contracts.lending.deCollateralizeDeposit(
+            await contracts.lending.unCollateralizeDeposit(
                 1,
                 USDC.address,
                 {

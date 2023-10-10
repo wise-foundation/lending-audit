@@ -81,7 +81,7 @@ interface IWiseLending {
         view
         returns (uint256);
 
-    function isDecollteralized(
+    function isUncollateralized(
         uint256 _nftId,
         address _poolToken
     )

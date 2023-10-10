@@ -1895,7 +1895,7 @@ contract("WiseLending internals test", async (accounts) => {
             await preparationSetup();
         });
 
-        it("Decollateralize works as intended", async () => {
+        it("Uncollateralize works as intended", async () => {
 
             const borrowAmount = toWei("10");
             const depositAmount = toWei("50");
@@ -1935,7 +1935,7 @@ contract("WiseLending internals test", async (accounts) => {
             );
 
             await expectRevert(
-                contracts.lending.deCollateralizeDeposit(
+                contracts.lending.unCollateralizeDeposit(
                     1,
                     WETH.address,
                     {

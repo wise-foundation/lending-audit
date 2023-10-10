@@ -632,9 +632,9 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     /**
      * @dev Internal helper function calculating
      * returning if a {_poolToken} of a {_nftId}
-     * is decollateralized.
+     * is uncollateralized.
      */
-    function isDecollteralized(
+    function isUncollateralized(
         uint256 _nftId,
         address _poolToken
     )
@@ -642,7 +642,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (bool)
     {
-        return userLendingData[_nftId][_poolToken].deCollteralized;
+        return userLendingData[_nftId][_poolToken].unCollateralized;
     }
 
     /**

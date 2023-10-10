@@ -113,7 +113,6 @@ abstract contract PoolManager is WiseCore {
         _createPool(
             _params
         );
-
     }
 
     function createCurvePool(
