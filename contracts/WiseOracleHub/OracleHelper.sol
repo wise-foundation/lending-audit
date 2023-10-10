@@ -65,11 +65,13 @@ abstract contract OracleHelper is Declarations {
             _tokenAddress
         );
 
-        upd = block.timestamp > upd
-            ? block.timestamp - upd
-            : block.timestamp;
+        unchecked {
+            upd = block.timestamp > upd
+                ? block.timestamp - upd
+                : block.timestamp;
 
-        return upd > heartBeat[_tokenAddress];
+            return upd > heartBeat[_tokenAddress];
+        }
     }
 
     /**
