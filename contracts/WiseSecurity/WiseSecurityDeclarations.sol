@@ -28,7 +28,7 @@ error LiquidationDenied();
 error TooManyShares();
 error NotRegistered();
 error Blacklisted();
-error SecuritySwapFaild();
+error SecuritySwapFailed();
 
 contract WiseSecurityDeclarations is OwnableMaster {
 

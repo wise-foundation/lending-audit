@@ -1023,7 +1023,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         pure
     {
         if (_success == false) {
-            revert SecuritySwapFaild();
+            revert SecuritySwapFailed();
         }
     }
 }
