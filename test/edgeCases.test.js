@@ -581,7 +581,7 @@ contract("Edge Cases tests", async accounts  => {
                 ]
             );
 
-            await contracts.lending.setVeryfiedIsolationPool(
+            await contracts.lending.setVerifiedIsolationPool(
                 isolationPool.address,
                 true
             );
@@ -1750,7 +1750,7 @@ contract("Edge Cases tests", async accounts  => {
                 ]
             );
 
-            await contracts.lending.setVeryfiedIsolationPool(
+            await contracts.lending.setVerifiedIsolationPool(
                 isolationPool.address,
                 true
             );

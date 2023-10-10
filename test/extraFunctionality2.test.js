@@ -2470,7 +2470,7 @@ contract("extra Functionality2", async accounts  => {
                 ]
             );
 
-            await contracts.lending.setVeryfiedIsolationPool(
+            await contracts.lending.setVerifiedIsolationPool(
                 isolationPool.address,
                 true
             );

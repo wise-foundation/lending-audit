@@ -89,7 +89,7 @@ interface IWiseLending {
         view
         returns (bool);
 
-    function veryfiedIsolationPool(
+    function verifiedIsolationPool(
         address _poolAddress
     )
         external

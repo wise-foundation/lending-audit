@@ -1344,7 +1344,7 @@ contract WiseLending is PoolManager {
         private
         view
     {
-        if (veryfiedIsolationPool[_poolAddress] == false) {
+        if (verifiedIsolationPool[_poolAddress] == false) {
             revert();
         }
     }
