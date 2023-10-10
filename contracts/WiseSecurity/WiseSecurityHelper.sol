@@ -616,11 +616,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (bool)
     {
-        if (WISE_ORACLE.chainLinkIsDead(_poolToken) == true) {
-            return false;
-        }
-
-        return true;
+        return WISE_ORACLE.chainLinkIsDead(_poolToken) == false;
     }
 
     /**
