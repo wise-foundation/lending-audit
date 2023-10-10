@@ -46,8 +46,11 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
         internal
     {
         uint256 i;
+        uint256 l = WISE_LENDING.getPositionLendingTokenLength(
+            _nftId
+        );
 
-        for (i = 0; i <  WISE_LENDING.getPositionLendingTokenLength(_nftId); ++i) {
+        for (i = 0; i < l; ++i) {
 
             address currentAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
