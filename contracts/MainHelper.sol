@@ -244,14 +244,16 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             return;
         }
 
-        uint256 diff = amountContract - (
-            totalPool + bareToken
-        );
+        unchecked {
+            uint256 diff = amountContract - (
+                totalPool + bareToken
+            );
 
-        _increaseTotalAndPseudoTotalPool(
-            _poolToken,
-            diff
-        );
+            _increaseTotalAndPseudoTotalPool(
+                _poolToken,
+                diff
+            );
+        }
     }
 
     /**
