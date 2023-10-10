@@ -152,23 +152,25 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             return;
         }
 
-        uint256 newBadDebt = currentBorrowUSD
-            - currentCollateralBareUSD;
+        unchecked {
+            uint256 newBadDebt = currentBorrowUSD
+                - currentCollateralBareUSD;
 
-        _setBadDebtPosition(
-            _nftId,
-            newBadDebt
-        );
+            _setBadDebtPosition(
+                _nftId,
+                newBadDebt
+            );
 
-        newBadDebt > currentBadDebt
-            ? _increaseTotalBadDebt(newBadDebt - currentBadDebt)
-            : _decreaseTotalBadDebt(currentBadDebt - newBadDebt);
+            newBadDebt > currentBadDebt
+                ? _increaseTotalBadDebt(newBadDebt - currentBadDebt)
+                : _decreaseTotalBadDebt(currentBadDebt - newBadDebt);
 
-        emit UpdateBadDebtPosition(
-            _nftId,
-            newBadDebt,
-            block.timestamp
-        );
+            emit UpdateBadDebtPosition(
+                _nftId,
+                newBadDebt,
+                block.timestamp
+            );
+        }
     }
 
     /**
