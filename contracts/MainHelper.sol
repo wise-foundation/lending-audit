@@ -358,7 +358,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     {
         address currentAddress;
 
-        for (uint8 i = 0; i < tokens.length; ++i) {
+        for (uint256 i = 0; i < tokens.length; ++i) {
 
             currentAddress = tokens[i];
 
