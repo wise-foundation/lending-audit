@@ -594,7 +594,11 @@ abstract contract LiquidationResolver is OpsTaskCreator {
         view
         returns (address, uint256, uint256)
     {
-        for (uint8 i = 0; i < WISE_LENDING.getPositionBorrowTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionBorrowTokenLength(
+            _nftId
+        );
+
+        for (uint8 i = 0; i < l; ++i) {
 
             address token = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
