@@ -231,7 +231,7 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
             );
         }
 
-        for (uint8 i = 0; i < length; ++i) {
+        for (uint256 i = 0; i < length; ++i) {
 
             state = _chainLinkIsDead(
                 underlyingFeedTokens[_tokenAddress][i]
