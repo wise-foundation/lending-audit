@@ -1023,8 +1023,10 @@ contract WiseLending is PoolManager {
 
         if (msg.value > maxPaybackAmount) {
 
-            refundAmount = msg.value
-                - maxPaybackAmount;
+            unchecked {
+                refundAmount = msg.value
+                    - maxPaybackAmount;
+            }
 
             requiredAmount = requiredAmount
                 - refundAmount;
