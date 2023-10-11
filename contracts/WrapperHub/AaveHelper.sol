@@ -314,7 +314,7 @@ abstract contract AaveHelper is Declarations {
             _nftId
         );
 
-        for (i = 0; i < l; ++i) {
+        for (i; i < l;) {
 
             address currentAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -332,6 +332,10 @@ abstract contract AaveHelper is Declarations {
             WISE_LENDING.newBorrowRate(
                 _poolToken
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -346,12 +350,16 @@ abstract contract AaveHelper is Declarations {
             _nftId
         );
 
-        for (i = 0; i < l; ++i) {
+        for (i; i < l;) {
 
             address currentAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
                 i
             );
+
+            unchecked {
+                ++i;
+            }
 
             if (currentAddress == _poolToken) {
                 continue;

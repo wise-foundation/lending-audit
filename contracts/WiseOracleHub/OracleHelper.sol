@@ -115,7 +115,7 @@ abstract contract OracleHelper is Declarations {
         uint256 currentBiggest;
         uint256 currentSecondBiggest;
 
-        for (uint80 i = 1; i < iterationCount; ++i) {
+        for (uint80 i = 1; i < iterationCount;) {
 
             uint256 currentTimestamp = _getRoundTimestamp(
                 _tokenAddress,
@@ -135,6 +135,10 @@ abstract contract OracleHelper is Declarations {
 
             } else if (currentDiff > currentSecondBiggest && currentDiff < currentBiggest) {
                 currentSecondBiggest = currentDiff;
+            }
+
+            unchecked {
+                ++i;
             }
         }
 

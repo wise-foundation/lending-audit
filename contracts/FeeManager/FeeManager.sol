@@ -155,10 +155,11 @@ contract FeeManager is FeeManagerHelper {
     function claimIncentivesBulk()
         external
     {
+        uint256 i;
         address tokenAddress;
         uint256 l = getPoolTokenAddressesLength();
 
-        for (uint8 i = 0; i < l; ++i) {
+        for (i; i < l;) {
 
             tokenAddress = poolTokenAddresses[i];
 
@@ -171,6 +172,10 @@ contract FeeManager is FeeManagerHelper {
             claimIncentives(
                 tokenAddress
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -299,7 +304,9 @@ contract FeeManager is FeeManagerHelper {
         uint256 len = getPoolTokenAddressesLength();
         uint256 lastEntry = len - 1;
 
-        for (uint8 i = 0; i < len; ++i) {
+        uint256 i;
+
+        for (i; i < len; ++i) {
 
             if (_poolToken != poolTokenAddresses[i]) {
                 continue;
@@ -369,12 +376,19 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyMaster
     {
-        for (uint8 i = 0; i < _feeTokens.length; ++i) {
+        uint256 i;
+        uint256 l = _feeTokens.length;
+
+        for (i; i < l;) {
             _setAllowedTokens(
                 _user,
                 _feeTokens[i],
                 true
             );
+        }
+
+        unchecked {
+            ++i;
         }
 
         emit SetBeneficial(
@@ -395,12 +409,19 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyMaster
     {
-        for (uint8 i = 0; i < _feeTokens.length; ++i) {
+        uint256 i;
+        uint256 l = _feeTokens.length;
+
+        for (i; i < l;) {
             _setAllowedTokens(
                 _user,
                 _feeTokens[i],
                 false
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         emit RevokeBeneficial(
@@ -416,12 +437,17 @@ contract FeeManager is FeeManagerHelper {
     function claimWiseFeesBulk()
         external
     {
+        uint256 i;
         uint256 l = getPoolTokenAddressesLength();
 
-        for (uint8 i = 0; i < l; ++i) {
+        for (i; i < l;) {
             claimWiseFees(
                 poolTokenAddresses[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -690,10 +716,18 @@ contract FeeManager is FeeManagerHelper {
     function syncAllPools()
         external
     {
-        for (uint256 i = 0; i < poolTokenAddresses.length; ++i) {
+        uint256 i;
+        uint256 l = getPoolTokenAddressesLength();
+
+        for (i; i < l;) {
+
             WISE_LENDING.syncManually(
                 poolTokenAddresses[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 }

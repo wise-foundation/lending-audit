@@ -13,11 +13,18 @@ abstract contract WiseIsolationHelper is Declarations, TransferHelper {
         view
         returns (uint256 borrowUSD)
     {
-        for (uint8 i = 0; i < borrowTokenAddresses.length; ++i) {
+        uint256 i;
+        uint256 l = borrowTokenAddresses.length;
+
+        for (i; i < l;) {
             borrowUSD += getUserBorrowUSD(
                 _nftId,
                 borrowTokenAddresses[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -195,7 +202,10 @@ abstract contract WiseIsolationHelper is Declarations, TransferHelper {
             borrowTokenNumber
         );
 
-        for (uint8 i = 0; i < borrowTokenNumber; ++i) {
+        uint256 i;
+        uint256 l = borrowTokenNumber;
+
+        for (i; i < l;) {
 
             paybackAmounts[i] = getTokenAmountsFromUSD(
                 _usdAmount,
@@ -217,6 +227,10 @@ abstract contract WiseIsolationHelper is Declarations, TransferHelper {
                     paybackAmounts[i]
                 )
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         return (paybackAmounts, receivingAmount);
@@ -230,14 +244,15 @@ abstract contract WiseIsolationHelper is Declarations, TransferHelper {
         internal
         returns (uint256[] memory)
     {
-        uint8 i;
+        uint256 i;
         address borrowTokenAddress;
+        uint256 tokens = borrowTokenNumber;
 
         uint256[] memory paybackAmounts = new uint256[](
-            borrowTokenNumber
+            tokens
         );
 
-        for (i = 0; i < borrowTokenNumber; ++i) {
+        for (i; i < tokens;) {
 
             borrowTokenAddress = borrowTokenAddresses[i];
             paybackAmounts[i] = getTokenAmountsFromUSD(
@@ -258,6 +273,10 @@ abstract contract WiseIsolationHelper is Declarations, TransferHelper {
                 borrowTokenAddress,
                 paybackAmounts[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         return paybackAmounts;
@@ -271,18 +290,19 @@ abstract contract WiseIsolationHelper is Declarations, TransferHelper {
         internal
         returns (uint256[] memory)
     {
-        uint8 i;
+        uint256 i;
         address borrowTokenAddress;
+        uint256 tokens = borrowTokenNumber;
 
         uint256[] memory borrowAmounts = new uint256[](
-            borrowTokenNumber
+            tokens
         );
 
         if (checkDebtratioBorrow(_nftId, _usdAmount) == false) {
             revert("WiseIsolation: OWE_TOO_MUCH");
         }
 
-        for (i = 0; i < borrowTokenNumber; ++i) {
+        for (i; i < tokens;) {
 
             borrowTokenAddress = borrowTokenAddresses[i];
             borrowAmounts[i] = getTokenAmountsFromUSD(
@@ -302,6 +322,10 @@ abstract contract WiseIsolationHelper is Declarations, TransferHelper {
                 _caller,
                 borrowAmounts[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         return borrowAmounts;

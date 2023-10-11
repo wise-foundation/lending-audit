@@ -48,9 +48,10 @@ contract FlashBorrower is IFlashBorrower, ApprovalHelper {
             "FlashBorrower: LENGTH_MISSMATCH"
         );
 
+        uint256 i;
         uint256[] memory feeList = new uint256[] (lengthIndex);
 
-        for (uint256 i = 0; i < lengthIndex; ++i) {
+        for (i; i < lengthIndex;) {
             uint256 allowance = _flashMaker[i].allowance(
                 address(this),
                 address(lender)
@@ -68,6 +69,10 @@ contract FlashBorrower is IFlashBorrower, ApprovalHelper {
                 address(lender),
                 allowance + repayment
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         lender.flashLoan(

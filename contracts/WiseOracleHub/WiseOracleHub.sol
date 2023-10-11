@@ -182,12 +182,19 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
         external
         onlyMaster
     {
-        for (uint8 i = 0; i < _tokenAddresses.length; ++i) {
+        uint256 i;
+        uint256 l = _tokenAddresses.length;
+
+        for (i; i < l;) {
             _addOracle(
                 _tokenAddresses[i],
                 _priceFeedAddresses[i],
                 _underlyingFeedTokens[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -231,11 +238,17 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
             );
         }
 
-        for (uint256 i = 0; i < length; ++i) {
+        uint256 i;
+
+        for (i; i < length;) {
 
             state = _chainLinkIsDead(
                 underlyingFeedTokens[_tokenAddress][i]
             );
+
+            unchecked {
+                ++i;
+            }
 
             if (state == true) {
                 break;
@@ -268,10 +281,17 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
     )
         external
     {
-        for (uint256 i = 0; i < _tokenAddresses.length; ++i) {
+        uint256 i;
+        uint256 l = _tokenAddresses.length;
+
+        for (i; i < l;) {
             _recalibrate(
                 _tokenAddresses[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 }

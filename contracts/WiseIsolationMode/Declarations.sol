@@ -69,7 +69,10 @@ contract Declarations is WiseIsolationModeEvents, ApprovalHelper {
             MAX_AMOUNT
         );
 
-        for (uint8 i = 0; i < _borrowTokenAddresses.length; ++i) {
+        uint256 i;
+        uint256 l = _borrowTokenAddresses.length;
+
+        for (i; i < l;) {
 
             _safeApprove(
                 _borrowTokenAddresses[i],
@@ -82,6 +85,10 @@ contract Declarations is WiseIsolationModeEvents, ApprovalHelper {
                 _wiseLiquidationAddress,
                 MAX_AMOUNT
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 

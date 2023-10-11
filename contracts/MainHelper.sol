@@ -360,9 +360,16 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     {
         address currentAddress;
 
-        for (uint256 i = 0; i < tokens.length; ++i) {
+        uint256 i;
+        uint256 l = tokens.length;
+
+        for (i; i < l;) {
 
             currentAddress = tokens[i];
+
+            unchecked {
+                ++i;
+            }
 
             if (currentAddress == _poolToken) {
                 continue;

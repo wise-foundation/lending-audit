@@ -96,12 +96,19 @@ contract WiseIsolationMode is WiseIsolationHelper {
     function _updatePoolsBorrow()
         private
     {
-        for (uint8 i = 0; i < borrowTokenNumber; ++i) {
+        uint256 i;
+        uint256 l = borrowTokenNumber;
+
+        for (i; i < l;) {
             address currentAddress = borrowTokenAddresses[i];
 
             WISE_LENDING.preparePool(
                 currentAddress
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -314,9 +321,14 @@ contract WiseIsolationMode is WiseIsolationHelper {
         uint256 borrowShares;
         address borrowTokenAddress;
 
-        uint256[] memory paybackAmounts = new uint256[](borrowTokenNumber);
+        uint256[] memory paybackAmounts = new uint256[](
+            borrowTokenNumber
+        );
 
-        for (uint8 i = 0; i < borrowTokenNumber; ++i) {
+        uint256 i;
+        uint256 l = borrowTokenNumber;
+
+        for (i; i < l;) {
 
             borrowTokenAddress = borrowTokenAddresses[i];
             borrowTokenAddress = borrowTokenAddresses[i];
@@ -343,6 +355,10 @@ contract WiseIsolationMode is WiseIsolationHelper {
                 borrowTokenAddress,
                 borrowShares
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         emit IsPaybackIsolationPool(
@@ -387,17 +403,18 @@ contract WiseIsolationMode is WiseIsolationHelper {
         );
     }
 
-    function getLiveDebtratio(
+    function getLiveDebtRatio(
         uint256 _nftId
     )
         external
         view
         returns (uint256)
     {
-        uint256 totalCollateral = getTotalWeightedCollateralUSD(_nftId);
+        uint256 totalCollateral = getTotalWeightedCollateralUSD(
+            _nftId
+        );
 
         if (totalCollateral == 0) {
-
             return 0;
         }
 
