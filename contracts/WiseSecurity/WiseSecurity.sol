@@ -710,6 +710,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                 i
             );
 
+            unchecked {
+                ++i;
+            }
+
             if (checkHeartbeat(token) == false) {
                 continue;
             }
@@ -724,9 +728,6 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                     token
                 ) / PRECISION_FACTOR_E18;
 
-            unchecked {
-                ++i;
-            }
         }
 
         return buffer
