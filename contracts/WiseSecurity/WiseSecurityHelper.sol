@@ -23,7 +23,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         uint256 unweightedAmount;
         address tokenAddress;
 
-        uint256 = WISE_LENDING.getPositionLendingTokenLength(
+        uint256 l = WISE_LENDING.getPositionLendingTokenLength(
             _nftId
         );
 
