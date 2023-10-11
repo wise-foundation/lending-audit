@@ -321,6 +321,10 @@ abstract contract AaveHelper is Declarations {
                 i
             );
 
+            unchecked {
+                ++i;
+            }
+
             if (currentAddress == _poolToken) {
                 continue;
             }
@@ -332,10 +336,6 @@ abstract contract AaveHelper is Declarations {
             WISE_LENDING.newBorrowRate(
                 _poolToken
             );
-
-            unchecked {
-                ++i;
-            }
         }
     }
 
