@@ -286,9 +286,8 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         );
 
         uint256 i;
-        uint256 l = ownerTokenCount;
 
-        for (i; i < l;) {
+        for (i; i < ownerTokenCount;) {
             tokenIds[i] = tokenOfOwnerByIndex(
                 _owner,
                 i
