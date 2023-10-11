@@ -244,14 +244,16 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             return;
         }
 
-        uint256 diff = amountContract - (
-            totalPool + bareToken
-        );
+        unchecked {
+            uint256 diff = amountContract - (
+                totalPool + bareToken
+            );
 
-        _increaseTotalAndPseudoTotalPool(
-            _poolToken,
-            diff
-        );
+            _increaseTotalAndPseudoTotalPool(
+                _poolToken,
+                diff
+            );
+        }
     }
 
     /**
@@ -358,7 +360,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     {
         address currentAddress;
 
-        for (uint8 i = 0; i < tokens.length; ++i) {
+        for (uint256 i = 0; i < tokens.length; ++i) {
 
             currentAddress = tokens[i];
 
@@ -632,9 +634,9 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     /**
      * @dev Internal helper function calculating
      * returning if a {_poolToken} of a {_nftId}
-     * is decollateralized.
+     * is uncollateralized.
      */
-    function isDecollteralized(
+    function isUncollateralized(
         uint256 _nftId,
         address _poolToken
     )
@@ -642,7 +644,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (bool)
     {
-        return userLendingData[_nftId][_poolToken].deCollteralized;
+        return userLendingData[_nftId][_poolToken].unCollateralized;
     }
 
     /**

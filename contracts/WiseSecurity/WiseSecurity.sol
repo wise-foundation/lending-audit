@@ -266,7 +266,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return;
         }
 
-        if (WISE_LENDING.veryfiedIsolationPool(_caller) == true) {
+        if (WISE_LENDING.verifiedIsolationPool(_caller) == true) {
             return;
         }
 
@@ -274,7 +274,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftId
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return;
         }
 
@@ -341,7 +341,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _poolToken
         );
 
-        if (WISE_LENDING.veryfiedIsolationPool(_caller) == true) {
+        if (WISE_LENDING.verifiedIsolationPool(_caller) == true) {
             return;
         }
 
@@ -387,7 +387,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftIdCaller
         );
 
-        if (_isDecollateralized(_nftIdCaller, _poolToken) == true) {
+        if (_isUncollateralized(_nftIdCaller, _poolToken) == true) {
             return;
         }
 
@@ -420,9 +420,9 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     }
 
     /**
-     * @dev Checks for de-collateralize deposit logic.
+     * @dev Checks for uncollateralized deposit logic.
      */
-    function checksDecollateralizeDeposit(
+    function checkUncollateralizedDeposit(
         uint256 _nftId,
         address _poolToken
     )
@@ -468,17 +468,19 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return;
         }
 
-        uint256 diff = totalBorrow
-            - bareCollateral;
+        unchecked {
+            uint256 diff = totalBorrow
+                - bareCollateral;
 
-        FEE_MANAGER.increaseTotalBadDebtLiquidation(
-            diff
-        );
+            FEE_MANAGER.increaseTotalBadDebtLiquidation(
+                diff
+            );
 
-        FEE_MANAGER.setBadDebtUserLiquidation(
-            _nftId,
-            diff
-        );
+            FEE_MANAGER.setBadDebtUserLiquidation(
+                _nftId,
+                diff
+            );
+        }
     }
 
     /**
@@ -805,7 +807,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             withdrawAmount = maxAmountPool;
         }
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return withdrawAmount;
         }
 
@@ -855,7 +857,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _interval
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == false) {
+        if (_isUncollateralized(_nftId, _poolToken) == false) {
 
             if (_poolWithdrawAmount >= tokenAmount) {
                 return 0;
@@ -990,7 +992,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
 
     /**
      * @dev Set function for blacklisting token.
-     * Those token can not be borrowed our used as
+     * Those token can not be borrowed or used as
      * collateral anymore. Only callable by master.
      */
     function setBlacklistToken(

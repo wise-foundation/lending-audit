@@ -2389,7 +2389,7 @@ setUpIsolationPool = async (_isolationPoolData) => {
         _isolationPoolData.weights
     );
 
-    await _isolationPoolData.lendingContract.setVeryfiedIsolationPool(
+    await _isolationPoolData.lendingContract.setVerifiedIsolationPool(
         stableIsolationPool.address,
         true
     );

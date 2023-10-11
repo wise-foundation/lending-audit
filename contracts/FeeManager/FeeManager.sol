@@ -156,13 +156,16 @@ contract FeeManager is FeeManagerHelper {
         external
     {
         address tokenAddress;
+        uint256 l = getPoolTokenAddressesLength();
 
-        for (uint8 i = 0; i < getPoolTokenAddressesLength(); ++i) {
+        for (uint8 i = 0; i < l; ++i) {
 
             tokenAddress = poolTokenAddresses[i];
 
             if (isAaveToken[tokenAddress] == true) {
-                tokenAddress = underlyingToken[tokenAddress];
+                tokenAddress = underlyingToken[
+                    tokenAddress
+                ];
             }
 
             claimIncentives(
@@ -413,7 +416,9 @@ contract FeeManager is FeeManagerHelper {
     function claimWiseFeesBulk()
         external
     {
-        for (uint8 i = 0; i < getPoolTokenAddressesLength(); ++i) {
+        uint256 l = getPoolTokenAddressesLength();
+
+        for (uint8 i = 0; i < l; ++i) {
             claimWiseFees(
                 poolTokenAddresses[i]
             );

@@ -149,7 +149,7 @@ interface IWiseSecurity {
         view
         returns (uint256);
 
-    function checksDecollateralizeDeposit(
+    function checkUncollateralizedDeposit(
         uint256 _nftIdCaller,
         address _poolToken
     )

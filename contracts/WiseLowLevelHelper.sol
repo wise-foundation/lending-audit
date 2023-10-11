@@ -437,7 +437,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
             return true;
         }
 
-        if (veryfiedIsolationPool[_sender] == true) {
+        if (verifiedIsolationPool[_sender] == true) {
             return true;
         }
 

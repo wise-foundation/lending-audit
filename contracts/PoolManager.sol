@@ -36,7 +36,12 @@ abstract contract PoolManager is WiseCore {
         }
 
         parametersLocked[_poolToken] = _isFinal;
-        algorithmData[_poolToken].increasePole = _steppingDirection;
+
+        AlgorithmEntry storage algoData = algorithmData[
+            _poolToken
+        ];
+
+        algoData.increasePole = _steppingDirection;
 
         uint256 staticMinPole = _getMinPole(
             _poolMulFactor,
@@ -66,8 +71,8 @@ abstract contract PoolManager is WiseCore {
             multiplicativeFactor: _poolMulFactor
         });
 
-        algorithmData[_poolToken].bestPole = startValuePole;
-        algorithmData[_poolToken].maxValue = lendingPoolData[_poolToken].totalDepositShares;
+        algoData.bestPole = startValuePole;
+        algoData.maxValue = lendingPoolData[_poolToken].totalDepositShares;
     }
 
     function setPoolParameters(
@@ -94,14 +99,14 @@ abstract contract PoolManager is WiseCore {
     /**
      * @dev Allow to verify isolation pool.
      */
-    function setVeryfiedIsolationPool(
+    function setVerifiedIsolationPool(
         address _isolationPool,
         bool _state
     )
         external
         onlyMaster
     {
-        veryfiedIsolationPool[_isolationPool] = _state;
+        verifiedIsolationPool[_isolationPool] = _state;
     }
 
     function createPool(
@@ -113,7 +118,6 @@ abstract contract PoolManager is WiseCore {
         _createPool(
             _params
         );
-
     }
 
     function createCurvePool(

@@ -23,7 +23,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         uint256 unweightedAmount;
         address tokenAddress;
 
-        for (uint256 i = 0; i < WISE_LENDING.getPositionLendingTokenLength(_nftId); ++i) {
+        uint256 = WISE_LENDING.getPositionLendingTokenLength(
+            _nftId
+        );
+
+        for (uint256 i = 0; i < l; ++i) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -65,7 +69,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
     {
         address tokenAddress;
 
-        for (uint256 i = 0; i < WISE_LENDING.getPositionLendingTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionLendingTokenLength(
+            _nftId
+        );
+
+        for (uint256 i = 0; i < l; ++i) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -98,7 +106,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
     {
         address tokenAddress;
 
-        for (uint256 i = 0; i < WISE_LENDING.getPositionLendingTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionLendingTokenLength(
+            _nftId
+        );
+
+        for (uint256 i = 0; i < l; ++i) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -133,7 +145,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         uint256 i;
         address tokenAddress;
 
-        for (i = 0; i < WISE_LENDING.getPositionLendingTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionLendingTokenLength(
+            _nftId
+        );
+
+        for (i = 0; i < l; ++i) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -175,7 +191,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             )
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return usdCollateral;
         }
 
@@ -187,9 +203,9 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
 
     /**
      * @dev Wrapper function checking if a supplied
-     * fund is decollateralized.
+     * fund is uncollateralized.
      */
-    function _isDecollateralized(
+    function _isUncollateralized(
         uint256 _nftId,
         address _poolToken
     )
@@ -197,7 +213,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (bool)
     {
-        return WISE_LENDING.isDecollteralized(
+        return WISE_LENDING.isUncollateralized(
             _nftId,
             _poolToken
         );
@@ -228,7 +244,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             )
         );
 
-        if (_isDecollateralized(_nftId, _poolToken) == true) {
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
             return usdCollateral;
         }
 
@@ -318,7 +334,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256 buffer)
     {
-        for (uint256 i = 0; i < WISE_LENDING.getPositionBorrowTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionBorrowTokenLength(
+            _nftId
+        );
+
+        for (uint256 i = 0; i < l; ++i) {
 
             buffer += getUSDBorrow(
                 _nftId,
@@ -345,7 +365,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
     {
         address tokenAddress;
 
-        for (uint256 i = 0; i < WISE_LENDING.getPositionBorrowTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionBorrowTokenLength(
+            _nftId
+        );
+
+        for (uint256 i = 0; i < l; ++i) {
 
             tokenAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -377,7 +401,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         uint256 i;
         address tokenAddress;
 
-        for (i = 0; i < WISE_LENDING.getPositionBorrowTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionBorrowTokenLength(
+            _nftId
+        );
+
+        for (i = 0; i < l; ++i) {
 
             tokenAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -427,7 +455,11 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         uint256 i;
         address tokenAddress;
 
-        for (i = 0; i < WISE_LENDING.getPositionBorrowTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionBorrowTokenLength(
+            _nftId
+        );
+
+        for (i = 0; i < l; ++i) {
 
             tokenAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -616,11 +648,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (bool)
     {
-        if (WISE_ORACLE.chainLinkIsDead(_poolToken) == true) {
-            return false;
-        }
-
-        return true;
+        return WISE_ORACLE.chainLinkIsDead(_poolToken) == false;
     }
 
     /**
@@ -1023,7 +1051,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         pure
     {
         if (_success == false) {
-            revert SecuritySwapFaild();
+            revert SecuritySwapFailed();
         }
     }
 }

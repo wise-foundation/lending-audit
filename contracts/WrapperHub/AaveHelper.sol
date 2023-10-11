@@ -9,7 +9,7 @@ abstract contract AaveHelper is Declarations {
     modifier syncPool(
         address _underlyingToken
     ) {
-        if (WISE_LENDING.veryfiedIsolationPool(msg.sender) == false) {
+        if (WISE_LENDING.verifiedIsolationPool(msg.sender) == false) {
             WISE_LENDING.preparePool(
                 aaveTokenAddress[
                     _underlyingToken
@@ -25,7 +25,7 @@ abstract contract AaveHelper is Declarations {
     )
         private
     {
-        if (WISE_LENDING.veryfiedIsolationPool(msg.sender) == true) {
+        if (WISE_LENDING.verifiedIsolationPool(msg.sender) == true) {
             return;
         }
 

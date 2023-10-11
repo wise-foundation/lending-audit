@@ -18,7 +18,11 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
     {
         uint256 i;
 
-        for (i = 0; i < WISE_LENDING.getPositionBorrowTokenLength(_nftId); ++i) {
+        uint256 l = WISE_LENDING.getPositionBorrowTokenLength(
+            _nftId
+        );
+
+        for (i = 0; i < l; ++i) {
 
             address currentAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -42,8 +46,11 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
         internal
     {
         uint256 i;
+        uint256 l = WISE_LENDING.getPositionLendingTokenLength(
+            _nftId
+        );
 
-        for (i = 0; i <  WISE_LENDING.getPositionLendingTokenLength(_nftId); ++i) {
+        for (i = 0; i < l; ++i) {
 
             address currentAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -152,23 +159,25 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             return;
         }
 
-        uint256 newBadDebt = currentBorrowUSD
-            - currentCollateralBareUSD;
+        unchecked {
+            uint256 newBadDebt = currentBorrowUSD
+                - currentCollateralBareUSD;
 
-        _setBadDebtPosition(
-            _nftId,
-            newBadDebt
-        );
+            _setBadDebtPosition(
+                _nftId,
+                newBadDebt
+            );
 
-        newBadDebt > currentBadDebt
-            ? _increaseTotalBadDebt(newBadDebt - currentBadDebt)
-            : _decreaseTotalBadDebt(currentBadDebt - newBadDebt);
+            newBadDebt > currentBadDebt
+                ? _increaseTotalBadDebt(newBadDebt - currentBadDebt)
+                : _decreaseTotalBadDebt(currentBadDebt - newBadDebt);
 
-        emit UpdateBadDebtPosition(
-            _nftId,
-            newBadDebt,
-            block.timestamp
-        );
+            emit UpdateBadDebtPosition(
+                _nftId,
+                newBadDebt,
+                block.timestamp
+            );
+        }
     }
 
     /**

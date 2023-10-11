@@ -230,8 +230,8 @@ contract WiseLendingDeclaration is OwnableMaster {
     // Structs ------------------------------------------
 
     struct LendingEntry {
+        bool unCollateralized;
         uint256 shares;
-        bool deCollteralized;
     }
 
     struct BorrowRatesEntry {
@@ -299,7 +299,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     // Bool mappings -------------------------------------
     mapping(uint256 => bool) public positionLocked;
     mapping(address => bool) public parametersLocked;
-    mapping(address => bool) public veryfiedIsolationPool;
+    mapping(address => bool) public verifiedIsolationPool;
 
     // Hash mappings -------------------------------------
     mapping(bytes32 => bool) hashMapPositionBorrow;
