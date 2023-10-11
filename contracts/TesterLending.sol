@@ -83,7 +83,10 @@ contract TesterLending is WiseLending {
     )
         external
     {
-        for (uint i = 0; i < _pools.length; ++i) {
+        uint256 i;
+        uint256 l = _pools.length;
+
+        for (i; i < l;) {
             _cleanUp(
                 _pools[i]
             );
@@ -95,6 +98,10 @@ contract TesterLending is WiseLending {
             _newBorrowRate(
                 _pools[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 }

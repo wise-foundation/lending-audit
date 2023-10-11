@@ -502,14 +502,14 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return 0;
         }
 
-        uint8 i;
+        uint256 i;
         address token;
         uint256 amount;
         uint256 usdValue;
         uint256 overallUSD;
         uint256 weightedRate;
 
-        for (i = 0; i < len; ++i) {
+        for (i; i < len;) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -530,6 +530,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                 * getLendingRate(token);
 
             overallUSD += usdValue;
+
+            unchecked {
+                ++i;
+            }
         }
 
         return weightedRate
@@ -555,14 +559,14 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return 0;
         }
 
-        uint8 i;
+        uint256 i;
         address token;
         uint256 amount;
         uint256 usdValue;
         uint256 overallUSD;
         uint256 weightedRate;
 
-        for (i = 0; i < len; ++i) {
+        for (i; i < len;) {
 
             token = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -583,6 +587,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                 * getBorrowRate(token);
 
             overallUSD += usdValue;
+
+            unchecked {
+                ++i;
+            }
         }
 
         return weightedRate
@@ -600,7 +608,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         view
         returns (uint256, bool)
     {
-        uint8 i;
+        uint256 i;
         address token;
         uint256 usdValue;
         uint256 usdValueDebt;
@@ -617,7 +625,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftId
         );
 
-        for (i = 0; i < lenBorrow; ++i) {
+        for (i; i < lenBorrow;) {
 
             token = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -631,9 +639,13 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
 
             usdValueDebt += usdValue
                 * getBorrowRate(token);
+
+            unchecked {
+                ++i;
+            }
         }
 
-        for (i = 0; i < lenDeposit; ++i) {
+        for (i = 0; i < lenDeposit;) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -648,6 +660,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             totalUsdSupply += usdValue;
             usdValueGain += usdValue
                 * getLendingRate(token);
+
+            unchecked {
+                ++i;
+            }
         }
 
         if (usdValueGain >= usdValueDebt) {
@@ -687,12 +703,16 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         address token;
         uint256 buffer;
 
-        for (i = 0; i < len; ++i) {
+        for (i; i < len;) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
                 i
             );
+
+            unchecked {
+                ++i;
+            }
 
             if (checkHeartbeat(token) == false) {
                 continue;
@@ -707,6 +727,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                     _nftId,
                     token
                 ) / PRECISION_FACTOR_E18;
+
         }
 
         return buffer
@@ -734,7 +755,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         uint256 i;
         address token;
 
-        for (i = 0; i < len; ++i) {
+        for (i; i < len;) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -747,13 +768,17 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                     token
                 );
             }
+
+            unchecked {
+                ++i;
+            }
         }
 
         uint256 lenBorrow = WISE_LENDING.getPositionBorrowTokenLength(
             _nftId
         );
 
-        for (i = 0; i < lenBorrow; ++i) {
+        for (i = 0; i < lenBorrow;) {
 
             token = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -765,6 +790,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                     true,
                     token
                 );
+            }
+
+            unchecked {
+                ++i;
             }
         }
 

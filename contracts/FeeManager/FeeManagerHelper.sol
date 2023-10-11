@@ -17,12 +17,11 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
         internal
     {
         uint256 i;
-
         uint256 l = WISE_LENDING.getPositionBorrowTokenLength(
             _nftId
         );
 
-        for (i = 0; i < l; ++i) {
+        for (i; i < l;) {
 
             address currentAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -32,6 +31,10 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             WISE_LENDING.preparePool(
                 currentAddress
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -50,7 +53,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             _nftId
         );
 
-        for (i = 0; i < l; ++i) {
+        for (i; i < l;) {
 
             address currentAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -60,6 +63,10 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             WISE_LENDING.preparePool(
                 currentAddress
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
