@@ -690,7 +690,7 @@ contract FeeManager is FeeManagerHelper {
     function syncAllPools()
         external
     {
-        for (uint8 i = 0; i < poolTokenAddresses.length; ++i) {
+        for (uint256 i = 0; i < poolTokenAddresses.length; ++i) {
             WISE_LENDING.syncManually(
                 poolTokenAddresses[i]
             );
