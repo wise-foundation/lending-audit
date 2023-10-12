@@ -93,7 +93,7 @@ abstract contract OracleHelper is Declarations {
             latestAggregatorRoundId
         );
 
-        if (iterationCount < 2) {
+        if (iterationCount < 3) {
             revert SampleTooSmall(
                 {
                     size: iterationCount
