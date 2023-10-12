@@ -5,12 +5,9 @@ pragma solidity =0.8.21;
 import "../InterfaceHub/IERC20.sol";
 import "../InterfaceHub/IPriceFeed.sol";
 
+error OracleAlreadySet();
 error SampleTooSmall(
     uint256 size
-);
-
-error OracleAlreadySet(
-    IPriceFeed feed
 );
 
 contract Declarations {
