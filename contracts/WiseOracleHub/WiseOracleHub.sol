@@ -33,8 +33,9 @@ import "../OwnableMaster.sol";
 contract WiseOracleHub is OracleHelper, OwnableMaster {
 
     constructor()
-        Declarations()
-        OwnableMaster(msg.sender)
+        OwnableMaster(
+            msg.sender
+        )
     {}
 
     /**
