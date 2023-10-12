@@ -34,9 +34,5 @@ contract CallOptionalReturn {
         call = success
             && results
             && token.code.length > 0;
-
-        if (call == false) {
-            revert CallFailed();
-        }
     }
 }
