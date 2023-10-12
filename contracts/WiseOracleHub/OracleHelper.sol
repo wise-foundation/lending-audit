@@ -222,7 +222,7 @@ abstract contract OracleHelper is Declarations {
         returns (uint80)
     {
         return uint80(
-            uint256(_phaseId) << 64 | _aggregatorRoundId
+            (uint256(_phaseId) << 64) | _aggregatorRoundId
         );
     }
 

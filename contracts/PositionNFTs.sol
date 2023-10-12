@@ -389,7 +389,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         while (j != 0) {
             bstr[--k] = bytes1(
                 uint8(
-                    48 + j % 10
+                    48 + (j % 10)
                 )
             );
             j /= 10;
