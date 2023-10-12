@@ -312,7 +312,10 @@ contract FeeManager is FeeManagerHelper {
                 continue;
             }
 
-            poolTokenAddresses[i] = poolTokenAddresses[lastEntry];
+            if (i != lastEntry) {
+                poolTokenAddresses[i] = poolTokenAddresses[lastEntry];
+            }
+
             poolTokenAddresses.pop();
             poolTokenAdded[_poolToken] = false;
 
