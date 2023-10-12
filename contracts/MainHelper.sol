@@ -577,6 +577,15 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
 
         while (index < length) {
 
+            if (index == endPosition) {
+                _deleteLastPositionData(
+                    _nftId,
+                    _poolToken
+                );
+
+                break;
+            }
+
             if (_getPositionTokenByIndex(_nftId, index) != _poolToken) {
                 index += 1;
                 continue;
