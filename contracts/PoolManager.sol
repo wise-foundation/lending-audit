@@ -147,10 +147,6 @@ abstract contract PoolManager is WiseCore {
             revert AlreadyCreated();
         }
 
-        // Default boundary values for pool creation.
-        uint256 LOWER_BOUND_MAX_RATE = 100 * PRECISION_FACTOR_E16;
-        uint256 UPPER_BOUND_MAX_RATE = 300 * PRECISION_FACTOR_E16;
-
         // Calculating lower bound for the pole
         uint256 staticMinPole = _getMinPole(
             _params.poolMulFactor,
