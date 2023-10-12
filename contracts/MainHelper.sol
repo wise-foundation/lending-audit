@@ -435,18 +435,24 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         );
 
         if (feeAmount == 0) {
-
             _setTimeStamp(
                 _poolToken,
                 currentTime
             );
-
             return;
         }
 
         uint256 feeShares = feeAmount
             * getTotalDepositShares(_poolToken)
             / (getPseudoTotalPool(_poolToken) - feeAmount);
+
+        if (feeShares == 0) {
+            _setTimeStamp(
+                _poolToken,
+                currentTime
+            );
+            return;
+        }
 
         _increasePositionLendingDeposit(
             FEE_MANAGER_NFT,

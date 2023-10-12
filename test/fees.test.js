@@ -14,7 +14,6 @@ const SyntheticLp = artifacts.require("SyntheticLp");
 const { assert } = require("chai");
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 
-
 require("./utils");
 require("./constants");
 require("./test-scenarios");
