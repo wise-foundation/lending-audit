@@ -320,6 +320,10 @@ contract WiseLendingDeclaration is OwnableMaster {
     // within two month (if nothing changes)
     uint256 constant NORMALISATION_FACTOR = 4838400;
 
+    // Default boundary values for pool creation.
+    uint256 constant LOWER_BOUND_MAX_RATE = 100 * PRECISION_FACTOR_E16;
+    uint256 constant UPPER_BOUND_MAX_RATE = 300 * PRECISION_FACTOR_E16;
+
     // LASA CONSTANTS -------------------------
     uint256 constant THRESHOLD_SWITCH_DIRECTION = 90 * PRECISION_FACTOR_E16;
     uint256 constant THRESHOLD_RESET_RESONANCE_FACTOR = 75 * PRECISION_FACTOR_E16;
