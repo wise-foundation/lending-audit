@@ -133,7 +133,7 @@ abstract contract OracleHelper is Declarations {
                 currentSecondBiggest = currentBiggest;
                 currentBiggest = currentDiff;
 
-            } else if (currentDiff > currentSecondBiggest && currentDiff < currentBiggest) {
+            } else if (currentDiff > currentSecondBiggest) {
                 currentSecondBiggest = currentDiff;
             }
 
