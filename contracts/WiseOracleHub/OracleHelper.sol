@@ -16,23 +16,19 @@ abstract contract OracleHelper is Declarations {
     )
         internal
     {
-        if (priceFeed[_tokenAddress] == ZERO_FEED) {
-            priceFeed[_tokenAddress] = _priceFeedAddress;
-
-            _tokenDecimals[_tokenAddress] = IERC20(
-                _tokenAddress
-            ).decimals();
-
-            underlyingFeedTokens[_tokenAddress] = _underlyingFeedTokens;
-
-            return;
+        if (priceFeed[_tokenAddress] > ZERO_FEED) {
+            revert OracleAlreadySet();
         }
 
-        revert OracleAlreadySet(
-            {
-                feed: priceFeed[_tokenAddress]
-            }
-        );
+        priceFeed[_tokenAddress] = _priceFeedAddress;
+
+        _tokenDecimals[_tokenAddress] = IERC20(
+            _tokenAddress
+        ).decimals();
+
+        underlyingFeedTokens[_tokenAddress] = _underlyingFeedTokens;
+
+        return;
     }
 
     /**
