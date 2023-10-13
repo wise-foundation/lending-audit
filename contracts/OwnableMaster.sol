@@ -48,6 +48,9 @@ contract OwnableMaster {
     constructor(
         address _master
     ) {
+        if (_master == ZERO_ADDRESS) {
+            revert NoValue();
+        }
         master = _master;
     }
 
