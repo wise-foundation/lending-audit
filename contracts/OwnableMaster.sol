@@ -11,7 +11,7 @@ contract OwnableMaster {
     address public master;
     address public proposedMaster;
 
-    address constant ZERO_ADDRESS = address(0x0);
+    address internal constant ZERO_ADDRESS = address(0x0);
 
     modifier onlyProposed() {
         _onlyProposed();
