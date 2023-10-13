@@ -2,6 +2,7 @@
 
 pragma solidity =0.8.21;
 
+error NoValue();
 error NotMaster();
 error NotProposed();
 
@@ -10,7 +11,7 @@ contract OwnableMaster {
     address public master;
     address public proposedMaster;
 
-    address constant ZERO_ADDRESS = address(0x0);
+    address internal constant ZERO_ADDRESS = address(0x0);
 
     modifier onlyProposed() {
         _onlyProposed();
@@ -44,9 +45,26 @@ contract OwnableMaster {
         revert NotProposed();
     }
 
+    event MasterProposed(
+        address indexed proposer,
+        address indexed proposedMaster
+    );
+
+    event ClaimedOwnership(
+        address indexed newMaster,
+        address indexed previousMaster
+    );
+
+    event RenouncedOwnership(
+        address indexed previousMaster
+    );
+
     constructor(
         address _master
     ) {
+        if (_master == ZERO_ADDRESS) {
+            revert NoValue();
+        }
         master = _master;
     }
 
@@ -60,7 +78,16 @@ contract OwnableMaster {
         external
         onlyMaster
     {
+        if (_proposedOwner == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         proposedMaster = _proposedOwner;
+
+        emit MasterProposed(
+            msg.sender,
+            _proposedOwner
+        );
     }
 
     /**
@@ -72,6 +99,11 @@ contract OwnableMaster {
         onlyProposed
     {
         master = proposedMaster;
+
+        emit ClaimedOwnership(
+            master,
+            msg.sender
+        );
     }
 
     /**
@@ -84,5 +116,9 @@ contract OwnableMaster {
     {
         master = ZERO_ADDRESS;
         proposedMaster = ZERO_ADDRESS;
+
+        emit RenouncedOwnership(
+            msg.sender
+        );
     }
 }
