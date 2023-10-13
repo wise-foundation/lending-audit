@@ -45,6 +45,20 @@ contract OwnableMaster {
         revert NotProposed();
     }
 
+    event MasterProposed(
+        address indexed proposer,
+        address indexed proposedMaster
+    );
+
+    event ClaimedOwnership(
+        address indexed newMaster,
+        address indexed previousMaster
+    );
+
+    event RenouncedOwnership(
+        address indexed previousMaster
+    );
+
     constructor(
         address _master
     ) {
@@ -69,6 +83,11 @@ contract OwnableMaster {
         }
 
         proposedMaster = _proposedOwner;
+
+        emit MasterProposed(
+            msg.sender,
+            _proposedOwner
+        );
     }
 
     /**
@@ -80,6 +99,11 @@ contract OwnableMaster {
         onlyProposed
     {
         master = proposedMaster;
+
+        emit ClaimedOwnership(
+            master,
+            msg.sender
+        );
     }
 
     /**
@@ -92,5 +116,9 @@ contract OwnableMaster {
     {
         master = ZERO_ADDRESS;
         proposedMaster = ZERO_ADDRESS;
+
+        emit RenouncedOwnership(
+            msg.sender
+        );
     }
 }
