@@ -495,7 +495,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
 
     /**
      * @dev Allows to payback ETH token for
-     * any postion. Takes token amount as argument.
+     * any postion. Takes {_nftId} as argument.
      */
     function paybackExactAmountETH(
         uint256 _nftId
@@ -513,32 +513,13 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             WETH_ADDRESS
         ];
 
-        uint256 userBorrowShares = WISE_LENDING.getPositionBorrowShares(
-            _nftId,
-            aaveWrappedETH
-        );
-
-        uint256 maxPaybackAmount = WISE_LENDING.paybackAmount(
-            aaveWrappedETH,
-            userBorrowShares
-        );
-
-        (
-            uint256 paybackAmount,
-            uint256 ethRefundAmount
-
-        ) = _getInfoPayback(
-            msg.value,
-            maxPaybackAmount
-        );
-
         _wrapETH(
-            paybackAmount
+            msg.value
         );
 
         uint256 actualAmountDeposit = _wrapAaveReturnValueDeposit(
             WETH_ADDRESS,
-            paybackAmount,
+            msg.value,
             address(this)
         );
 
@@ -547,12 +528,6 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             aaveWrappedETH,
             actualAmountDeposit
         );
-
-        if (ethRefundAmount > 0) {
-            payable(msg.sender).transfer(
-                ethRefundAmount
-            );
-        }
 
         emit IsPaybackAave(
             _nftId,

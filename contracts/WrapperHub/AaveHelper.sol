@@ -279,30 +279,6 @@ abstract contract AaveHelper is Declarations {
         );
     }
 
-    function _getInfoPayback(
-        uint256 _ethSent,
-        uint256 _maxPaybackAmount
-    )
-        internal
-        pure
-        returns (
-            uint256,
-            uint256
-        )
-    {
-        if (_ethSent > _maxPaybackAmount) {
-            return (
-                _maxPaybackAmount,
-                _ethSent - _maxPaybackAmount
-            );
-        }
-
-        return (
-            _ethSent,
-            0
-        );
-    }
-
     function _prepareCollaterals(
         uint256 _nftId,
         address _poolToken
