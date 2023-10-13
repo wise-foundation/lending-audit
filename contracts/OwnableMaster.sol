@@ -2,6 +2,7 @@
 
 pragma solidity =0.8.21;
 
+error NoValue();
 error NotMaster();
 error NotProposed();
 
