@@ -173,7 +173,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
             nftId = getNextExpectedId();
         }
 
-        _safeMint(
+        _mint(
             _user,
             nftId
         );
