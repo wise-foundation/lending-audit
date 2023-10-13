@@ -173,7 +173,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
             nftId = getNextExpectedId();
         }
 
-        _safeMint(
+        _mint(
             _user,
             nftId
         );
@@ -204,22 +204,14 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         return false;
     }
 
-    function approve(
+    function approveMint(
         address _spender,
         uint256 _nftId
     )
-        public
-        override(
-            ERC721,
-            IERC721
-        )
+        external
     {
-        if (_nftId == 0) {
-            return;
-        }
-
         if (reserved[msg.sender] == _nftId) {
-            approveNative(
+            approve(
                 _spender,
                 _mintPositionForUser(
                     msg.sender
@@ -229,31 +221,9 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
             return;
         }
 
-        approveNative(
+        approve(
             _spender,
             _nftId
-        );
-    }
-
-    function approveNative(
-        address to,
-        uint256 tokenId
-    )
-        public
-    {
-        address owner = ERC721.ownerOf(
-            tokenId
-        );
-
-        require(
-            _msgSender() == owner ||
-            isApprovedForAll(owner, _msgSender()),
-            "ERC721: INVALID_APPROVE"
-        );
-
-        _approve(
-            to,
-            tokenId
         );
     }
 
