@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./OwnableMaster.sol";
 
-error AlreadyReserved();
 error AlreadyExecuted();
 
 contract PositionNFTs is ERC721Enumerable, OwnableMaster {
@@ -86,7 +85,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         returns (uint256)
     {
         if (reserved[_user] > 0) {
-            revert AlreadyReserved();
+            return reserved[_user];
         }
 
         uint256 reservedId = getNextExpectedId();
