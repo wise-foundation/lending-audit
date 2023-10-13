@@ -64,6 +64,10 @@ contract OwnableMaster {
         external
         onlyMaster
     {
+        if (_proposedOwner == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         proposedMaster = _proposedOwner;
     }
 
