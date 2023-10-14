@@ -6,11 +6,11 @@ import "./CallOptionalReturn.sol";
 
 contract TransferHelper is CallOptionalReturn {
 
-    bytes4 constant transfer = IERC20
+    bytes4 internal constant transfer = IERC20
         .transfer
         .selector;
 
-    bytes4 constant transferFrom = IERC20
+    bytes4 internal constant transferFrom = IERC20
         .transferFrom
         .selector;
 
