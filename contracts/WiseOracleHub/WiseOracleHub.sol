@@ -158,7 +158,7 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
     function addOracle(
         address _tokenAddress,
         IPriceFeed _priceFeedAddress,
-        address[] memory _underlyingFeedTokens
+        address[] calldata _underlyingFeedTokens
     )
         external
         onlyMaster
@@ -176,9 +176,9 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
      * Master is a timelock contract.
      */
     function addOracleBulk(
-        address[] memory _tokenAddresses,
-        IPriceFeed[] memory _priceFeedAddresses,
-        address[][] memory _underlyingFeedTokens
+        address[] calldata _tokenAddresses,
+        IPriceFeed[] calldata _priceFeedAddresses,
+        address[][] calldata _underlyingFeedTokens
     )
         external
         onlyMaster
@@ -278,7 +278,7 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
      * the heartbeat for several tokens.
      */
     function recalibrateBulk(
-        address[] memory _tokenAddresses
+        address[] calldata _tokenAddresses
     )
         external
     {

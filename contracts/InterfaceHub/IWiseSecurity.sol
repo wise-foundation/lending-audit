@@ -91,8 +91,8 @@ interface IWiseSecurity {
 
     function prepareCurvePools(
         address _poolToken,
-        CurveSwapStructData memory _curveSwapStructData,
-        CurveSwapStructToken memory _curveSwapStructToken
+        CurveSwapStructData calldata _curveSwapStructData,
+        CurveSwapStructToken calldata _curveSwapStructToken
     )
         external;
 

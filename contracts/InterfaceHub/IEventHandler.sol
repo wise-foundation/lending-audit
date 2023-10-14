@@ -11,7 +11,7 @@ interface IEventHandler {
 
     function emitEvent(
         uint8 _eventId,
-        bytes memory _eventData
+        bytes calldata _eventData
     )
         external;
 }

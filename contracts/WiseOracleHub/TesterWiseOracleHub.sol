@@ -9,8 +9,8 @@ contract TesterWiseOracleHub is WiseOracleHub {
     constructor() WiseOracleHub() {}
 
     function setHeartBeatBulk(
-        address[] memory _tokenAddresses,
-        uint256[] memory _values
+        address[] calldata _tokenAddresses,
+        uint256[] calldata _values
     )
         external
     {

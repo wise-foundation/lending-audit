@@ -110,7 +110,7 @@ abstract contract PoolManager is WiseCore {
     }
 
     function createPool(
-        CreatePool memory _params
+        CreatePool calldata _params
     )
         external
         onlyMaster
@@ -121,8 +121,8 @@ abstract contract PoolManager is WiseCore {
     }
 
     function createCurvePool(
-        CreatePool memory _params,
-        CurvePoolSettings memory _settings
+        CreatePool calldata _params,
+        CurvePoolSettings calldata _settings
     )
         external
         onlyMaster
@@ -139,7 +139,7 @@ abstract contract PoolManager is WiseCore {
     }
 
     function _createPool(
-        CreatePool memory _params
+        CreatePool calldata _params
     )
         private
     {
