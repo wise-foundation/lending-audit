@@ -43,18 +43,18 @@ contract DeclarationsLiquidationBot is OwnableMaster, TransferHelper {
     mapping(address => uint256) public thresholdPriceDeviation;
     mapping(address => uint256) public intervallUpdate;
 
-    mapping(uint256 => string) functionNamesResolver;
+    mapping(uint256 => string) internal functionNamesResolver;
 
-    uint8 constant MAX_ANZ_RESOLVER = 10;
-    uint256 constant BASE_INTERVAL = 100;
-    uint256 constant FEE_PERCENT = 1E17;
-    uint256 constant PRECISION_FACTOR_E18 = 1E18;
-    uint256 constant MAX_AMOUNT = type(uint256).max;
-    uint256 constant MAX_USD_LIQUIDATION_FEE = 500 * PRECISION_FACTOR_E18;
-    uint256 constant THRESHOLD = 200 * PRECISION_FACTOR_E18;
+    uint8 internal constant MAX_ANZ_RESOLVER = 10;
+    uint256 internal constant BASE_INTERVAL = 100;
+    uint256 internal constant FEE_PERCENT = 1E17;
+    uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant MAX_AMOUNT = type(uint256).max;
+    uint256 internal constant MAX_USD_LIQUIDATION_FEE = 500 * PRECISION_FACTOR_E18;
+    uint256 internal constant THRESHOLD = 200 * PRECISION_FACTOR_E18;
 
-    bytes32 constant EMPTY_BYTES32 = bytes32("");
-    bytes constant EMPTY_BYTES = abi.encodePacked(int(0));
+    bytes32 internal constant EMPTY_BYTES32 = bytes32("");
+    bytes internal constant EMPTY_BYTES = abi.encodePacked(int(0));
 
     address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 

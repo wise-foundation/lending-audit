@@ -26,26 +26,25 @@ contract Declarations is OwnableMaster {
 
     // ---- Variables ----
 
-    // Base reward for liquidator normal liquidation
-    uint256 public baseRewardLiquidation;
-
-    // Base reward for liquidator power farm liquidation
-    uint256 public baseRewardLiquidationFarm;
-
     // Max reward USD for liquidator power farm liquidation
     uint256 public maxFeeFarmUSD;
 
     // Max reward USD for liquidator normal liquidation
     uint256 public maxFeeUSD;
 
+    // Base reward for liquidator normal liquidation
+    uint256 public baseRewardLiquidation;
+
+    // Base reward for liquidator power farm liquidation
+    uint256 public baseRewardLiquidationFarm;
 
     // Precision factors for computations
-    uint256 constant PRECISION_FACTOR_E18 = 1E18;
-    uint256 constant PRECISION_FACTOR_E16 = 1E16;
+    uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant PRECISION_FACTOR_E16 = 1E16;
 
     // Threshold values
-    uint256 constant MAX_LIQUIDATION_50 = 50 * PRECISION_FACTOR_E16;
-    uint256 constant BAD_DEBT_THRESHOLD = 89 * PRECISION_FACTOR_E16;
+    uint256 internal constant MAX_LIQUIDATION_50 = 50 * PRECISION_FACTOR_E16;
+    uint256 internal constant BAD_DEBT_THRESHOLD = 89 * PRECISION_FACTOR_E16;
 
     // ---- Interfaces ----
 

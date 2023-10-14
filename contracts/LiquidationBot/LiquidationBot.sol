@@ -132,7 +132,7 @@ contract LiquidationBot is LiquidationResolver, ApprovalHelper {
         external
         onlyMaster
     {
-        for(uint8 i = 0; i < MAX_ANZ_RESOLVER; ++i) {
+        for (uint8 i = 0; i < MAX_ANZ_RESOLVER; ++i) {
             createBotIntervall(i);
         }
     }

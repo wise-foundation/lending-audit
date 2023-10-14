@@ -15,20 +15,20 @@ contract Declarations {
     // -- Constant values --
 
     // Target Decimals of the returned USD values.
-    uint8 constant _decimalsUSD = 18;
+    uint8 internal constant _decimalsUSD = 18;
 
     // Number of last rounds which are checked for heartbeat.
-    uint80 constant MAX_ROUND_COUNT = 50;
+    uint80 internal  constant MAX_ROUND_COUNT = 50;
 
     // Value address used for empty feed comparison.
-    IPriceFeed constant ZERO_FEED = IPriceFeed(
+    IPriceFeed internal constant ZERO_FEED = IPriceFeed(
         address(0x0)
     );
 
     // -- Mapping values --
 
     // Stores decimals of specific ERC20 token.
-    mapping(address => uint8) _tokenDecimals;
+    mapping(address => uint8) internal _tokenDecimals;
 
     // Stores the price feed address from oracle sources.
     mapping(address => IPriceFeed) public priceFeed;

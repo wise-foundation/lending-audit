@@ -213,7 +213,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     // Interfaces -----------------------------------------
 
     // Wrapped ETH interface
-    IWETH immutable WETH;
+    IWETH internal immutable WETH;
 
     // WiseSecurity interface
     IWiseSecurity public WISE_SECURITY;
@@ -275,7 +275,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     }
 
     // Position mappings ------------------------------------------
-    mapping(address => uint256) bufferIncrease;
+    mapping(address => uint256) internal bufferIncrease;
     mapping(address => uint256) public maxDepositValueToken;
 
     mapping(uint256 => address[]) public positionBorrowTokenData;
@@ -302,29 +302,29 @@ contract WiseLendingDeclaration is OwnableMaster {
     mapping(address => bool) public verifiedIsolationPool;
 
     // Hash mappings -------------------------------------
-    mapping(bytes32 => bool) hashMapPositionBorrow;
-    mapping(bytes32 => bool) hashMapPositionLending;
+    mapping(bytes32 => bool) internal hashMapPositionBorrow;
+    mapping(bytes32 => bool) internal hashMapPositionLending;
 
     // PRECISION FACTORS ------------------------------------
-    uint256 constant PRECISION_FACTOR_E16 = 1E16;
-    uint256 constant PRECISION_FACTOR_E18 = 1E18;
-    uint256 constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
+    uint256 internal constant PRECISION_FACTOR_E16 = 1E16;
+    uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
 
     // TIME CONSTANTS --------------------------------------
-    uint256 constant ONE_YEAR = 52 weeks;
-    uint256 constant THREE_HOURS = 3 hours;
-    uint256 constant PRECISION_FACTOR_E18_YEAR = PRECISION_FACTOR_E18 * ONE_YEAR;
+    uint256 internal constant ONE_YEAR = 52 weeks;
+    uint256 internal constant THREE_HOURS = 3 hours;
+    uint256 internal constant PRECISION_FACTOR_E18_YEAR = PRECISION_FACTOR_E18 * ONE_YEAR;
 
     // Two months in seconds:
     // Norming change in pole value that it steps from min to max value
     // within two month (if nothing changes)
-    uint256 constant NORMALISATION_FACTOR = 4838400;
+    uint256 internal constant NORMALISATION_FACTOR = 4838400;
 
     // Default boundary values for pool creation.
-    uint256 constant LOWER_BOUND_MAX_RATE = 100 * PRECISION_FACTOR_E16;
-    uint256 constant UPPER_BOUND_MAX_RATE = 300 * PRECISION_FACTOR_E16;
+    uint256 internal constant LOWER_BOUND_MAX_RATE = 100 * PRECISION_FACTOR_E16;
+    uint256 internal constant UPPER_BOUND_MAX_RATE = 300 * PRECISION_FACTOR_E16;
 
     // LASA CONSTANTS -------------------------
-    uint256 constant THRESHOLD_SWITCH_DIRECTION = 90 * PRECISION_FACTOR_E16;
-    uint256 constant THRESHOLD_RESET_RESONANCE_FACTOR = 75 * PRECISION_FACTOR_E16;
+    uint256 internal constant THRESHOLD_SWITCH_DIRECTION = 90 * PRECISION_FACTOR_E16;
+    uint256 internal constant THRESHOLD_RESET_RESONANCE_FACTOR = 75 * PRECISION_FACTOR_E16;
 }
