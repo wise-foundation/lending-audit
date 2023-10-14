@@ -6,13 +6,13 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./OwnableMaster.sol";
 
+error NotPermitted();
 error AlreadyReserved();
-error AlreadyExecuted();
 
 contract PositionNFTs is ERC721Enumerable, OwnableMaster {
 
     string public baseURI;
-    string public baseExtension = ".json";
+    string public baseExtension;
 
     address public feeManager;
     uint256 public totalReserved;
@@ -47,7 +47,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         onlyMaster
     {
         if (feeManager > ZERO_ADDRESS) {
-            revert AlreadyExecuted();
+            revert NotPermitted();
         }
 
         feeManager = _feeManagerContract;
@@ -147,6 +147,14 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         external
         returns (uint256)
     {
+        if (isApprovedForAll(
+                _user,
+                msg.sender
+            ) == false
+        ) {
+            revert NotPermitted();
+        }
+
         return _mintPositionForUser(
             _user
         );
@@ -312,7 +320,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
             "PositionNFTs: WRONG_TOKEN"
         );
 
-        string memory currentBaseURI = _baseURI();
+        string memory currentBaseURI = baseURI;
 
         if (bytes(currentBaseURI).length == 0) {
             return "";
