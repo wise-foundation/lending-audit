@@ -23,21 +23,17 @@ contract Declarations is OwnableMaster {
         uint256 timestamp
     );
 
+    // Max reward USD for liquidator normal liquidation
+    uint256 public maxFeeUSD;
 
-    // ---- Variables ----
+    // Max reward USD for liquidator power farm liquidation
+    uint256 public maxFeeFarmUSD;
 
     // Base reward for liquidator normal liquidation
     uint256 public baseRewardLiquidation;
 
     // Base reward for liquidator power farm liquidation
     uint256 public baseRewardLiquidationFarm;
-
-    // Max reward USD for liquidator power farm liquidation
-    uint256 public maxFeeFarmUSD;
-
-    // Max reward USD for liquidator normal liquidation
-    uint256 public maxFeeUSD;
-
 
     // Precision factors for computations
     uint256 constant PRECISION_FACTOR_E18 = 1E18;
@@ -68,6 +64,18 @@ contract Declarations is OwnableMaster {
             _master
         )
     {
+        if (_wiseLendingAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_oracleHubAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_wiseSecurityAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         WISE_ORACLE = IWiseOracleHub(
             _oracleHubAddress
         );
@@ -85,6 +93,5 @@ contract Declarations is OwnableMaster {
 
         maxFeeUSD = 50000 * PRECISION_FACTOR_E18;
         maxFeeFarmUSD = 50000 * PRECISION_FACTOR_E18;
-
     }
 }
