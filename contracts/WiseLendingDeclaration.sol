@@ -136,6 +136,18 @@ contract WiseLendingDeclaration is OwnableMaster {
             _master
         )
     {
+        if (_wiseOracleHub == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_nftContract == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_wethContract == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         WETH_ADDRESS = _wethContract;
 
         WETH = IWETH(

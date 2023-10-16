@@ -42,6 +42,14 @@ contract WiseSecurityDeclarations is OwnableMaster {
             _master
         )
     {
+        if (_wiseLendingAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_aaveHubAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         WISE_LENDING = IWiseLending(
             _wiseLendingAddress
         );

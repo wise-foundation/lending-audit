@@ -39,6 +39,26 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
             _master
         )
     {
+        if (_aaveAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_wiseLendingAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_oracleHubAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_wiseSecurityAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_positionNFTAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         WISE_LENDING = IWiseLending(
             _wiseLendingAddress
         );
@@ -52,11 +72,11 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
         );
 
         WISE_SECURITY = IWiseSecurity(
-            address(_wiseSecurityAddress)
+            _wiseSecurityAddress
         );
 
         POSITION_NFTS = IPositionNFTs(
-            address(_positionNFTAddress)
+            _positionNFTAddress
         );
 
         FEE_MANAGER_NFT = POSITION_NFTS.FEE_MANAGER_NFT();
