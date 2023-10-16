@@ -214,6 +214,25 @@ contract WiseLendingDeclaration is OwnableMaster {
         );
     }
 
+    function _sendValue(
+        address _recipient,
+        uint256 _amount
+    )
+        internal
+    {
+        if (address(this).balance < _amount) {
+            revert ForbiddenValue();
+        }
+
+        (bool success, ) = payable(_recipient).call{
+            value: _amount
+        }("");
+
+        if (success == false) {
+            revert ForbiddenValue();
+        }
+    }
+
     // Variables -----------------------------------------
 
     // Aave address

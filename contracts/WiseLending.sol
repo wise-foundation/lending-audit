@@ -54,7 +54,8 @@ contract WiseLending is PoolManager {
             return;
         }
 
-        payable(master).transfer(
+        _sendValue(
+            master,
             msg.value
         );
     }
@@ -447,7 +448,8 @@ contract WiseLending is PoolManager {
             _amount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             _amount
         );
 
@@ -497,7 +499,8 @@ contract WiseLending is PoolManager {
             withdrawAmount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             withdrawAmount
         );
 
@@ -586,7 +589,8 @@ contract WiseLending is PoolManager {
             withdrawAmount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             withdrawAmount
         );
 
@@ -868,7 +872,8 @@ contract WiseLending is PoolManager {
             _amount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             _amount
         );
 
@@ -1047,7 +1052,8 @@ contract WiseLending is PoolManager {
         );
 
         if (refundAmount > 0) {
-            payable(msg.sender).transfer(
+            _sendValue(
+                msg.sender,
                 refundAmount
             );
         }
