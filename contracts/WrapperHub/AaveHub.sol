@@ -85,7 +85,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             return;
         }
 
-        payable(master).transfer(
+        _sendValue(
+            master,
             msg.value
         );
     }
@@ -273,7 +274,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             _withdrawAmount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             _withdrawAmount
         );
 
@@ -344,7 +346,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             withdrawAmount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             withdrawAmount
         );
 
@@ -433,7 +436,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             _borrowAmount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             _borrowAmount
         );
 
@@ -549,7 +553,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         );
 
         if (ethRefundAmount > 0) {
-            payable(msg.sender).transfer(
+            _sendValue(
+                msg.sender,
                 ethRefundAmount
             );
         }
@@ -797,7 +802,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             _withdrawAmount
         );
 
-        payable(msg.sender).transfer(
+        _sendValue(
+            msg.sender,
             _withdrawAmount
         );
 

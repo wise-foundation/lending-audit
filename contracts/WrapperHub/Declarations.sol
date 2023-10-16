@@ -13,6 +13,8 @@ import "../InterfaceHub/IPositionNFTs.sol";
 import "../OwnableMaster.sol";
 
 error AlreadySet();
+error InvalidValue();
+error FailedInnerCall();
 
 contract Declarations is OwnableMaster, AaveEvents {
 
