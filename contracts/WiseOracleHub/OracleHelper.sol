@@ -12,7 +12,7 @@ abstract contract OracleHelper is Declarations {
     function _addOracle(
         address _tokenAddress,
         IPriceFeed _priceFeedAddress,
-        address[] memory _underlyingFeedTokens
+        address[] calldata _underlyingFeedTokens
     )
         internal
     {

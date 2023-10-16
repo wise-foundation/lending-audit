@@ -79,7 +79,7 @@ contract TesterLending is WiseLending {
     }
 
     function syncSeveralPools(
-        address[] memory _pools
+        address[] calldata _pools
     )
         external
     {

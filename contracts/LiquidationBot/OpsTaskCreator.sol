@@ -22,8 +22,8 @@ abstract contract OpsTaskCreator is DeclarationsLiquidationBot {
 
     function _createTask(
         address _execAddress,
-        bytes memory _execDataOrSelector,
-        ModuleData memory _moduleData,
+        bytes calldata _execDataOrSelector,
+        ModuleData calldata _moduleData,
         address _feeToken
     )
         internal
@@ -47,7 +47,7 @@ abstract contract OpsTaskCreator is DeclarationsLiquidationBot {
 
     function _resolverModuleArg(
         address _resolverAddress,
-        bytes memory _resolverData
+        bytes calldata _resolverData
     )
         internal
         pure

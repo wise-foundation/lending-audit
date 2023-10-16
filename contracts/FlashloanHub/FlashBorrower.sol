@@ -29,9 +29,9 @@ contract FlashBorrower is IFlashBorrower, ApprovalHelper {
     );
 
     function flashBorrowBulk(
-        IERC20[] memory _flashMaker,
-        address[] memory _tokenList,
-        uint256[] memory _amountList,
+        IERC20[] calldata _flashMaker,
+        address[] calldata _tokenList,
+        uint256[] calldata _amountList,
         bytes[] calldata _bytesArray
     )
         external
@@ -49,7 +49,9 @@ contract FlashBorrower is IFlashBorrower, ApprovalHelper {
         );
 
         uint256 i;
-        uint256[] memory feeList = new uint256[] (lengthIndex);
+        uint256[] memory feeList = new uint256[](
+            lengthIndex
+        );
 
         for (i; i < lengthIndex;) {
             uint256 allowance = _flashMaker[i].allowance(
@@ -85,9 +87,9 @@ contract FlashBorrower is IFlashBorrower, ApprovalHelper {
 
     function onFlashLoan(
         address _initiator,
-        address[] memory _tokenList,
-        uint256[] memory _amountList,
-        uint256[] memory _feeList,
+        address[] calldata _tokenList,
+        uint256[] calldata _amountList,
+        uint256[] calldata _feeList,
         bytes[] calldata _data
     )
         external

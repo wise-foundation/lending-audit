@@ -29,9 +29,9 @@ contract FlashBorrowerBotExample is IFlashBorrower, ApprovalHelper {
     );
 
     function flashBorrowBulk(
-        IERC20[] memory _flashMaker,
-        address[] memory _tokenList,
-        uint256[] memory _amountList,
+        IERC20[] calldata _flashMaker,
+        address[] calldata _tokenList,
+        uint256[] calldata _amountList,
         bytes[] calldata _bytesArray
     )
         external
@@ -83,9 +83,9 @@ contract FlashBorrowerBotExample is IFlashBorrower, ApprovalHelper {
 
     function onFlashLoan(
         address _initiator,
-        address[] memory _tokenList,
-        uint256[] memory _amountList,
-        uint256[] memory _feeList,
+        address[] calldata _tokenList,
+        uint256[] calldata _amountList,
+        uint256[] calldata _feeList,
         bytes[] calldata _data
     )
         external
@@ -164,7 +164,7 @@ contract FlashBorrowerBotExample is IFlashBorrower, ApprovalHelper {
     }
 
     function _unmergeBytes(
-        bytes memory _unmerge,
+        bytes calldata _unmerge,
         uint256 _cutoffPoint
     )
         internal

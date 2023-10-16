@@ -60,9 +60,9 @@ contract FlashMaker {
 
     function flashLoan(
         IFlashBorrower _receiver,
-        IERC20[] memory _flashMaker,
-        address[] memory _tokenList,
-        uint256[] memory _amountList,
+        IERC20[] calldata _flashMaker,
+        address[] calldata _tokenList,
+        uint256[] calldata _amountList,
         bytes[] calldata _data
     )
         external

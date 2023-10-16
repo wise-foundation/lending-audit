@@ -31,7 +31,7 @@ struct CreatePoolStruct {
 interface IWiseLendingPoolCreator {
 
     function createPool(
-        CreatePoolStruct memory _data
+        CreatePoolStruct calldata _data
     )
         external;
 }
@@ -93,7 +93,7 @@ contract TimeLockDecider is OwnableMaster {
     }
 
     function preparePool(
-        CreatePoolStruct memory _inputParams
+        CreatePoolStruct calldata _inputParams
     )
         external
         onlyMaster

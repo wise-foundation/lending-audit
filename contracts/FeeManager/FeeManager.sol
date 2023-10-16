@@ -425,7 +425,7 @@ contract FeeManager is FeeManagerHelper {
      */
     function setBeneficial(
         address _user,
-        address[] memory _feeTokens
+        address[] calldata _feeTokens
     )
         external
         onlyMaster
@@ -458,7 +458,7 @@ contract FeeManager is FeeManagerHelper {
      */
     function revokeBeneficial(
         address _user,
-        address[] memory _feeTokens
+        address[] calldata _feeTokens
     )
         external
         onlyMaster
