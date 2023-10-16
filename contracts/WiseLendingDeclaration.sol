@@ -171,6 +171,10 @@ contract WiseLendingDeclaration is OwnableMaster {
         external
         onlyMaster
     {
+        if (address(WISE_SECURITY) > ZERO_ADDRESS) {
+            revert ForbiddenValue();
+        }
+
         WISE_SECURITY = IWiseSecurity(
             _wiseSecurity
         );

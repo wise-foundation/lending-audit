@@ -176,6 +176,10 @@ contract Declarations is OwnableMaster, AaveEvents {
         external
         onlyMaster
     {
+        if (address(WISE_SECURITY) > ZERO_ADDRESS) {
+            revert AlreadySet();
+        }
+
         WISE_SECURITY = IWiseSecurity(
             _securityAddress
         );
