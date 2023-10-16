@@ -11,7 +11,7 @@ import "../TransferHub/ApprovalHelper.sol";
 
 contract FlashBorrower is IFlashBorrower, ApprovalHelper {
 
-    bytes32 constant CALLBACK_VALUE = keccak256(
+    bytes32 internal constant CALLBACK_VALUE = keccak256(
         "IFlashBorrower.onFlashLoan"
     );
 

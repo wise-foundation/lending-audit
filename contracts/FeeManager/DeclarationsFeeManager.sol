@@ -137,42 +137,42 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
     // ---- Mappings ----
 
     // Bad debt of a specific position
-    mapping (uint256 => uint256) public badDebtPosition;
+    mapping(uint256 => uint256) public badDebtPosition;
 
     // Amount of fee token inside feeManager
-    mapping (address => uint256) public feeTokens;
+    mapping(address => uint256) public feeTokens;
 
     // Open incetive amount for incentiveOwner in USD
-    mapping (address => uint256) public incentiveUSD;
+    mapping(address => uint256) public incentiveUSD;
 
     // Flag that specific token is already added
-    mapping (address => bool) public poolTokenAdded;
+    mapping(address => bool) public poolTokenAdded;
 
     // Flag for token being aToken
-    mapping (address => bool) public isAaveToken;
+    mapping(address => bool) public isAaveToken;
 
     // Getting underlying token of aave aToken
-    mapping (address => address) public underlyingToken;
+    mapping(address => address) public underlyingToken;
 
     // Showing which token are allowed to claim for beneficial address
-    mapping (address => mapping (address => bool)) public allowedTokens;
+    mapping(address => mapping(address => bool)) public allowedTokens;
 
     // Gives claimable token amount for incentiveOwner per token
-    mapping (address => mapping (address => uint256)) public gatheredIncentiveToken;
+    mapping(address => mapping(address => uint256)) public gatheredIncentiveToken;
 
     // Position NFT id of the feeManager
     uint256 public immutable FEE_MANAGER_NFT;
 
     // Precision factors for computations
-    uint256 constant PRECISION_FACTOR_E15 = 1E15;
-    uint256 constant PRECISION_FACTOR_E16 = 1E16;
-    uint256 constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant PRECISION_FACTOR_E15 = 1E15;
+    uint256 internal constant PRECISION_FACTOR_E16 = 1E16;
+    uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
 
     // Maximal amount for 256 byte number
-    uint256 constant HUGE_AMOUNT = type(uint256).max;
+    uint256 internal constant HUGE_AMOUNT = type(uint256).max;
 
     // Base portion from gathered fees for incentiveOwners (0.5%)
-    uint256 constant public INCENTIVE_PORTION = 5 * PRECISION_FACTOR_E15;
+    uint256 public constant INCENTIVE_PORTION = 5 * PRECISION_FACTOR_E15;
 
 
     // ---- Modifier ----

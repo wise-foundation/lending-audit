@@ -105,10 +105,10 @@ contract Declarations is WiseIsolationModeEvents, ApprovalHelper {
     uint256[] public portionTotalBorrow;
     address[] public borrowTokenAddresses;
 
-    mapping (uint256 => uint256) public nftToIndex;
+    mapping(uint256 => uint256) public nftToIndex;
 
-    uint256 constant MAX_AMOUNT = type(uint256).max;
-    uint256 constant PRECISION_FACTOR_E18 = 1 ether;
-    uint256 constant MIN_DEPOSIT_USD_AMOUNT = 5000 * PRECISION_FACTOR_E18;
-    address constant ZERO_ADDRESS = address(0x0);
+    uint256 internal constant MAX_AMOUNT = type(uint256).max;
+    uint256 internal constant PRECISION_FACTOR_E18 = 1 ether;
+    uint256 internal constant MIN_DEPOSIT_USD_AMOUNT = 5000 * PRECISION_FACTOR_E18;
+    address internal constant ZERO_ADDRESS = address(0x0);
 }

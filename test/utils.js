@@ -526,7 +526,7 @@ simpleLendingTest = async (
 
     );
 
-    for(let i = 0; i < numTokens; i++) {
+    for (let i = 0; i < numTokens; i++) {
         //approve lending with token for user1 and user2
         await tokens[i].approve(
             lending.address,
@@ -567,7 +567,7 @@ simpleLendingTest = async (
     }
 
     //do each user borrow for each user/token
-    for(let i = 0; i < numTokens; i++) {
+    for (let i = 0; i < numTokens; i++) {
 
         if(debugMessages){
             await debugLendingData(
@@ -599,7 +599,7 @@ simpleLendingTest = async (
     };
 
     //change oracles prices to OracleAfterPrices
-    for(let i = 0; i < numTokens; i++) {
+    for (let i = 0; i < numTokens; i++) {
         await oracles[i].setValue(
             OracleAfterPrices[i]
         )

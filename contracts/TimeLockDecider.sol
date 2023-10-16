@@ -44,8 +44,8 @@ contract TimeLockDecider is OwnableMaster {
 
     IWiseLendingPoolCreator public WISE_LENDING;
 
-    mapping (uint256 => uint256) public creationTimes;
-    mapping (uint256 => CreatePoolStruct) public upcomingPools;
+    mapping(uint256 => uint256) public creationTimes;
+    mapping(uint256 => CreatePoolStruct) public upcomingPools;
 
     modifier timeLocked(
         uint256 _creationIndex
