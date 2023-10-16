@@ -31,7 +31,7 @@ struct CreatePoolStruct {
 interface IWiseLendingPoolCreator {
 
     function createPool(
-        CreatePoolStruct memory _data
+        CreatePoolStruct calldata _data
     )
         external;
 }
@@ -44,8 +44,8 @@ contract TimeLockDecider is OwnableMaster {
 
     IWiseLendingPoolCreator public WISE_LENDING;
 
-    mapping (uint256 => uint256) public creationTimes;
-    mapping (uint256 => CreatePoolStruct) public upcomingPools;
+    mapping(uint256 => uint256) public creationTimes;
+    mapping(uint256 => CreatePoolStruct) public upcomingPools;
 
     modifier timeLocked(
         uint256 _creationIndex
@@ -93,7 +93,7 @@ contract TimeLockDecider is OwnableMaster {
     }
 
     function preparePool(
-        CreatePoolStruct memory _inputParams
+        CreatePoolStruct calldata _inputParams
     )
         external
         onlyMaster

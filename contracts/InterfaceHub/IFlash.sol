@@ -6,9 +6,9 @@ interface IFlashBorrower {
 
     function onFlashLoan(
         address _initiator,
-        address[] memory _tokenList,
-        uint256[] memory _amountList,
-        uint256[] memory feeList,
+        address[] calldata _tokenList,
+        uint256[] calldata _amountList,
+        uint256[] calldata feeList,
         bytes[] calldata _data
     )
         external
@@ -34,8 +34,8 @@ interface IFlashLender {
 
     function flashLoan(
         IFlashBorrower _receiver,
-        address[] memory _tokenList,
-        uint256[] memory _amountList,
+        address[] calldata _tokenList,
+        uint256[] calldata _amountList,
         bytes[] calldata _data
     )
         external

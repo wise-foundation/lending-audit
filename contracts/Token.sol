@@ -8,8 +8,8 @@ contract Token {
     string public constant symbol = "TX";
     uint8 public decimals = 18;
 
-    address constant ZERO_ADDY = address(0x0);
-    uint256 constant UINT256_MAX = type(uint256).max;
+    address internal constant ZERO_ADDY = address(0x0);
+    uint256 internal constant UINT256_MAX = type(uint256).max;
 
     uint256 public totalSupply;
 

@@ -93,6 +93,12 @@ contract FeeManager is FeeManagerHelper {
             _poolToken,
             _newFee
         );
+
+        emit PoolFeeChanged(
+            _poolToken,
+            _newFee,
+            block.timestamp
+        );
     }
 
     /**
@@ -107,6 +113,11 @@ contract FeeManager is FeeManagerHelper {
         onlyIncentiveMaster
     {
         proposedIncentiveMaster = _proposedIncentiveMaster;
+
+        emit IncentiveMasterProposed(
+            _proposedIncentiveMaster,
+            block.timestamp
+        );
     }
 
     /**
@@ -121,6 +132,11 @@ contract FeeManager is FeeManagerHelper {
 
         incentiveMaster = proposedIncentiveMaster;
         proposedIncentiveMaster = ZERO_ADDRESS;
+
+        emit ClaimedOwnershipIncentiveMaster(
+            incentiveMaster,
+            block.timestamp
+        );
     }
 
     /**
@@ -134,6 +150,11 @@ contract FeeManager is FeeManagerHelper {
         onlyIncentiveMaster
     {
         incentiveUSD[incentiveOwnerA] += _value;
+
+        emit IncentiveIncreasedA(
+            _value,
+            block.timestamp
+        );
     }
 
     /**
@@ -147,6 +168,11 @@ contract FeeManager is FeeManagerHelper {
         onlyIncentiveMaster
     {
         incentiveUSD[incentiveOwnerB] += _value;
+
+        emit IncentiveIncreasedB(
+            _value,
+            block.timestamp
+        );
     }
 
     /**
@@ -155,8 +181,9 @@ contract FeeManager is FeeManagerHelper {
     function claimIncentivesBulk()
         external
     {
-        uint256 i;
         address tokenAddress;
+
+        uint256 i;
         uint256 l = getPoolTokenAddressesLength();
 
         for (i; i < l;) {
@@ -177,6 +204,10 @@ contract FeeManager is FeeManagerHelper {
                 ++i;
             }
         }
+
+        emit ClaimedIncentivesBulk(
+            block.timestamp
+        );
     }
 
     /**
@@ -194,6 +225,12 @@ contract FeeManager is FeeManagerHelper {
         );
 
         delete gatheredIncentiveToken[msg.sender][_feeToken];
+
+        emit ClaimedIncentives(
+            msg.sender,
+            _feeToken,
+            block.timestamp
+        );
     }
 
     /**
@@ -218,6 +255,11 @@ contract FeeManager is FeeManagerHelper {
         ];
 
         incentiveOwnerA = _newOwner;
+
+        emit IncentiveOwnerAChanged(
+            _newOwner,
+            block.timestamp
+        );
     }
 
     /**
@@ -240,6 +282,11 @@ contract FeeManager is FeeManagerHelper {
         delete incentiveUSD[incentiveOwnerB];
 
         incentiveOwnerB = _newOwner;
+
+        emit IncentiveOwnerBChanged(
+            _newOwner,
+            block.timestamp
+        );
     }
 
     /**
@@ -301,10 +348,9 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyMaster
     {
+        uint256 i;
         uint256 len = getPoolTokenAddressesLength();
         uint256 lastEntry = len - 1;
-
-        uint256 i;
 
         for (i; i < len; ++i) {
 
@@ -321,6 +367,11 @@ contract FeeManager is FeeManagerHelper {
 
             break;
         }
+
+        emit PoolTokenRemoved(
+            _poolToken,
+            block.timestamp
+        );
     }
 
     /**
@@ -374,7 +425,7 @@ contract FeeManager is FeeManagerHelper {
      */
     function setBeneficial(
         address _user,
-        address[] memory _feeTokens
+        address[] calldata _feeTokens
     )
         external
         onlyMaster
@@ -388,10 +439,10 @@ contract FeeManager is FeeManagerHelper {
                 _feeTokens[i],
                 true
             );
-        }
 
-        unchecked {
-            ++i;
+            unchecked {
+                ++i;
+            }
         }
 
         emit SetBeneficial(
@@ -407,7 +458,7 @@ contract FeeManager is FeeManagerHelper {
      */
     function revokeBeneficial(
         address _user,
-        address[] memory _feeTokens
+        address[] calldata _feeTokens
     )
         external
         onlyMaster
@@ -452,6 +503,10 @@ contract FeeManager is FeeManagerHelper {
                 ++i;
             }
         }
+
+        emit ClaimedFeesWiseBulk(
+            block.timestamp
+        );
     }
 
     /**
@@ -720,10 +775,9 @@ contract FeeManager is FeeManagerHelper {
         external
     {
         uint256 i;
-        uint256 l = getPoolTokenAddressesLength();
+        uint256 l = poolTokenAddresses.length;
 
         for (i; i < l;) {
-
             WISE_LENDING.syncManually(
                 poolTokenAddresses[i]
             );

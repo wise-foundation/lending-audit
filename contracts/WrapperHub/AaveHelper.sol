@@ -279,6 +279,25 @@ abstract contract AaveHelper is Declarations {
         );
     }
 
+    function _sendValue(
+        address _recipient,
+        uint256 _amount
+    )
+        internal
+    {
+        if (address(this).balance < _amount) {
+            revert InvalidValue();
+        }
+
+        (bool success, ) = payable(_recipient).call{
+            value: _amount
+        }("");
+
+        if (success == false) {
+            revert FailedInnerCall();
+        }
+    }
+
     function _getInfoPayback(
         uint256 _ethSent,
         uint256 _maxPaybackAmount

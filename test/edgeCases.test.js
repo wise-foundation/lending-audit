@@ -228,7 +228,7 @@ contract("Edge Cases tests", async accounts  => {
 
         let token;
 
-        for(index = 0; index < inputParam.tokens.length; index++) {
+        for (index = 0; index < inputParam.tokens.length; index++) {
 
             token = await Token.at(inputParam.tokens[index]);
 

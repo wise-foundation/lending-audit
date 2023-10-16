@@ -42,6 +42,14 @@ contract WiseSecurityDeclarations is OwnableMaster {
             _master
         )
     {
+        if (_wiseLendingAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_aaveHubAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         WISE_LENDING = IWiseLending(
             _wiseLendingAddress
         );
@@ -108,23 +116,18 @@ contract WiseSecurityDeclarations is OwnableMaster {
     // Interface wiseLiquidation contract
     IWiseLiquidation public immutable WISE_LIQUIDATION;
 
-    // Interface for zero interface
-    ICurve constant ZERO_CURVE = ICurve(
-        address(0x0)
-    );
-
     // Threshold values
-    uint256 constant MAX_LIQUIDATION_50 = 50E16;
-    uint256 constant BAD_DEBT_THRESHOLD = 89E16;
+    uint256 internal constant MAX_LIQUIDATION_50 = 50E16;
+    uint256 internal constant BAD_DEBT_THRESHOLD = 89E16;
 
-    uint256 constant TARGET_DEC = 18;
-    uint256 constant UINT256_MAX = type(uint256).max;
-    uint256 constant ONE_YEAR = 52 weeks;
+    uint256 internal constant TARGET_DEC = 18;
+    uint256 internal constant UINT256_MAX = type(uint256).max;
+    uint256 internal constant ONE_YEAR = 52 weeks;
 
     // Precision factors for computations
-    uint256 constant PRECISION_FACTOR_E16 = 1E16;
-    uint256 constant PRECISION_FACTOR_E18 = 1E18;
-    uint256 constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
+    uint256 internal constant PRECISION_FACTOR_E16 = 1E16;
+    uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
 
 
     // ---- Mappings ----
@@ -142,15 +145,15 @@ contract WiseSecurityDeclarations is OwnableMaster {
 
     // @TODO - store all 4 in a struct:
 
-    // Base reward for liquidator normal liquidation
-    uint256 public baseRewardLiquidation;
-
-    // Base reward for liquidator power farm liquidation
-    uint256 public baseRewardLiquidationFarm;
-
     // Max reward USD for liquidator power farm liquidation
     uint256 public maxFeeUSD;
 
     // Max reward USD for liquidator normal liquidation
     uint256 public maxFeeFarmUSD;
+
+    // Base reward for liquidator normal liquidation
+    uint256 public baseRewardLiquidation;
+
+    // Base reward for liquidator power farm liquidation
+    uint256 public baseRewardLiquidationFarm;
 }

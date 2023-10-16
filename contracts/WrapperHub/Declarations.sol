@@ -13,26 +13,28 @@ import "../InterfaceHub/IPositionNFTs.sol";
 import "../OwnableMaster.sol";
 
 error AlreadySet();
+error InvalidValue();
+error FailedInnerCall();
 
 contract Declarations is OwnableMaster, AaveEvents {
 
-    IAave immutable AAVE;
-    IWETH immutable WETH;
+    IAave internal immutable AAVE;
+    IWETH internal immutable WETH;
 
-    IWiseLending immutable public WISE_LENDING;
-    IPositionNFTs immutable public POSITION_NFT;
+    IWiseLending public immutable WISE_LENDING;
+    IPositionNFTs public immutable POSITION_NFT;
 
-    uint16 constant REF_CODE = 0;
+    uint16 internal constant REF_CODE = 0;
     IWiseSecurity public WISE_SECURITY;
 
-    address immutable public WETH_ADDRESS;
-    address immutable public AAVE_ADDRESS;
+    address public immutable WETH_ADDRESS;
+    address public immutable AAVE_ADDRESS;
 
-    uint256 constant PRECISION_FACTOR_E9 = 1E9;
-    uint256 constant PRECISION_FACTOR_E18 = 1E18;
-    uint256 constant MAX_AMOUNT = type(uint256).max;
+    uint256 internal constant PRECISION_FACTOR_E9 = 1E9;
+    uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant MAX_AMOUNT = type(uint256).max;
 
-    mapping (address => address) public aaveTokenAddress;
+    mapping(address => address) public aaveTokenAddress;
 
     constructor(
         address _master,
@@ -43,6 +45,14 @@ contract Declarations is OwnableMaster, AaveEvents {
             _master
         )
     {
+        if (_aaveAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
+        if (_lendingAddress == ZERO_ADDRESS) {
+            revert NoValue();
+        }
+
         AAVE_ADDRESS = _aaveAddress;
 
         WISE_LENDING = IWiseLending(
@@ -168,6 +178,10 @@ contract Declarations is OwnableMaster, AaveEvents {
         external
         onlyMaster
     {
+        if (address(WISE_SECURITY) > ZERO_ADDRESS) {
+            revert AlreadySet();
+        }
+
         WISE_SECURITY = IWiseSecurity(
             _securityAddress
         );
