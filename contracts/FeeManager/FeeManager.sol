@@ -234,7 +234,7 @@ contract FeeManager is FeeManagerHelper {
     }
 
     /**
-     * @dev Function chaning incentiveOwnerA!. Only callable by
+     * @dev Function chaning incentiveOwnerA! Only callable by
      * incentiveOwnerA.
      */
     function changeIncentiveUSDA(
@@ -243,6 +243,14 @@ contract FeeManager is FeeManagerHelper {
         external
     {
         if (msg.sender != incentiveOwnerA) {
+            revert NotAllowed();
+        }
+
+        if (_newOwner == incentiveOwnerA) {
+            revert NotAllowed();
+        }
+
+        if (_newOwner == incentiveOwnerB) {
             revert NotAllowed();
         }
 
@@ -263,7 +271,7 @@ contract FeeManager is FeeManagerHelper {
     }
 
     /**
-     * @dev Function chaning incentiveOwnerB!. Only callable by
+     * @dev Function chaning incentiveOwnerB! Only callable by
      * incentiveOwnerB.
      */
     function changeIncentiveUSDB(
@@ -272,6 +280,14 @@ contract FeeManager is FeeManagerHelper {
         external
     {
         if (msg.sender != incentiveOwnerB) {
+            revert NotAllowed();
+        }
+
+        if (_newOwner == incentiveOwnerA) {
+            revert NotAllowed();
+        }
+
+        if (_newOwner == incentiveOwnerB) {
             revert NotAllowed();
         }
 
