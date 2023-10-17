@@ -27,8 +27,6 @@ abstract contract OracleHelper is Declarations {
         ).decimals();
 
         underlyingFeedTokens[_tokenAddress] = _underlyingFeedTokens;
-
-        return;
     }
 
     /**
@@ -57,8 +55,13 @@ abstract contract OracleHelper is Declarations {
         view
         returns (bool)
     {
-        uint256 upd = latestRoundData(
+        uint80 latestRoundId = getLatestRoundId(
             _tokenAddress
+        );
+
+        uint256 upd = _getRoundTimestamp(
+            _tokenAddress,
+            latestRoundId
         );
 
         unchecked {
@@ -81,12 +84,17 @@ abstract contract OracleHelper is Declarations {
         view
         returns (uint256)
     {
-        uint80 latestAggregatorRoundId = _getLatestAggregatorRoundId(
+        uint80 latestRoundId = getLatestRoundId(
             _tokenAddress
         );
 
+        uint256 latestTimestamp = _getRoundTimestamp(
+            _tokenAddress,
+            latestRoundId
+        );
+
         uint80 iterationCount = _getIterationCount(
-            latestAggregatorRoundId
+            latestRoundId
         );
 
         if (iterationCount < 3) {
@@ -97,16 +105,6 @@ abstract contract OracleHelper is Declarations {
             );
         }
 
-        uint16 phaseId = _getPhaseId(
-            _tokenAddress
-        );
-
-        uint256 latestTimestamp = _getRoundTimestamp(
-            _tokenAddress,
-            phaseId,
-            latestAggregatorRoundId
-        );
-
         uint256 currentDiff;
         uint256 currentBiggest;
         uint256 currentSecondBiggest;
@@ -115,8 +113,7 @@ abstract contract OracleHelper is Declarations {
 
             uint256 currentTimestamp = _getRoundTimestamp(
                 _tokenAddress,
-                phaseId,
-                latestAggregatorRoundId - i
+                latestRoundId - i
             );
 
             currentDiff = latestTimestamp
@@ -159,12 +156,11 @@ abstract contract OracleHelper is Declarations {
 
     /**
      * @dev Fetches timestamp of a byteshifted
-     * aggregatorRound with specific phaseId.
+     * aggregatorRound with specific _roundId.
      */
     function _getRoundTimestamp(
         address _tokenAddress,
-        uint16 _phaseId,
-        uint80 _aggregatorRoundId
+        uint80 _roundId
     )
         internal
         view
@@ -174,83 +170,33 @@ abstract contract OracleHelper is Declarations {
             ,
             ,
             ,
-            uint256 timestamp,
+            uint256 timestamp
+            ,
         ) = priceFeed[_tokenAddress].getRoundData(
-                getRoundIdByByteShift(
-                    _phaseId,
-                    _aggregatorRoundId
-                )
+                _roundId
             );
 
         return timestamp;
     }
 
     /**
-     * @dev Determines info for the heartbeat update
-     * mechanism for chainlink oracles, roundIds.
-     */
-    function _getLatestAggregatorRoundId(
-        address _tokenAddress
-    )
-        internal
-        view
-        returns (uint80)
-    {
-        (   uint80 roundId,
-            ,
-            ,
-            ,
-        ) = priceFeed[_tokenAddress].latestRoundData();
-
-        return roundId;
-    }
-
-    /**
-     * @dev Determines info for the heartbeat update
-     * mechanism for chainlink oracles, shifted roundIds.
-     */
-    function getRoundIdByByteShift(
-        uint16 _phaseId,
-        uint80 _aggregatorRoundId
-    )
-        public
-        pure
-        returns (uint80)
-    {
-        return uint80(
-            (uint256(_phaseId) << 64) | _aggregatorRoundId
-        );
-    }
-
-    /**
-     * @dev Routing phaseId from chainLink.
-     * Returns phaseId by passing underlying token address.
-     */
-    function _getPhaseId(
-        address _tokenAddress
-    )
-        internal
-        view
-        returns (uint16)
-    {
-        return priceFeed[_tokenAddress].phaseId();
-    }
-
-    /**
      * @dev Routing latest round data from chainLink.
      * Returns latestRoundData by passing underlying token address.
      */
-    function latestRoundData(
+    function getLatestRoundId(
         address _tokenAddress
     )
         public
         view
-        returns (uint256 upd)
+        returns (
+            uint80 roundId
+        )
     {
-        (   ,
+        (
+            roundId
             ,
             ,
-            upd
+            ,
             ,
         ) = priceFeed[_tokenAddress].latestRoundData();
     }
