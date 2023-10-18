@@ -2,22 +2,25 @@
 
 pragma solidity =0.8.21;
 
-interface IWstETH {
+interface ISDai {
 
-    function wrap(
-        uint256 _stETHAmount
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
     )
         external
-        returns (uint256);
+        returns (uint256 assets);
 
-    function unwrap(
-        uint256 _wstETHAmount
+    function convertToShares(
+        uint256 assets
     )
         external
+        view
         returns (uint256);
 
-    function getStETHByWstETH(
-        uint256 _wstETHAmount
+    function convertToAssets(
+        uint256 _sDAIAmount
     )
         external
         view
@@ -27,6 +30,13 @@ interface IWstETH {
         external
         view
         returns (uint8);
+
+    function deposit(
+        uint256 assets,
+        address receiver
+    )
+        external
+        returns (uint256);
 
     function balanceOf(
         address _account

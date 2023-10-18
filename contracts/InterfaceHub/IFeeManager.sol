@@ -4,6 +4,20 @@ pragma solidity =0.8.21;
 
 interface IFeeManager {
 
+    function underlyingToken(
+        address _poolToken
+    )
+        external
+        view
+        returns (address);
+
+    function isAaveToken(
+        address _poolToken
+    )
+        external
+        view
+        returns (bool);
+
     function setBadDebtUserLiquidation(
         uint256 _nftId,
         uint256 _amount
