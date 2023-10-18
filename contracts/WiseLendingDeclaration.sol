@@ -10,11 +10,11 @@ import "./InterfaceHub/IFeeManagerLight.sol";
 
 import "./OwnableMaster.sol";
 
+error DeadOracle();
+error InvalidAction();
 error InvalidCaller();
 error AlreadyCreated();
 error PositionLocked();
-error ForbiddenValue();
-error ParametersLocked();
 error DepositCapReached();
 error CollateralTooSmall();
 
@@ -116,14 +116,14 @@ contract WiseLendingDeclaration is OwnableMaster {
     );
 
     event PoolSynced(
-        address pool,
-        uint256 timestamp
+        address indexed pool,
+        uint256 indexed timestamp
     );
 
     event RegisteredForIsolationPool(
-        address user,
-        uint256 timestamp,
-        bool registration
+        address indexed user,
+        uint256 indexed timestamp,
+        bool indexed registration
     );
 
     constructor(
@@ -150,10 +150,6 @@ contract WiseLendingDeclaration is OwnableMaster {
 
         WETH_ADDRESS = _wethContract;
 
-        WETH = IWETH(
-            _wethContract
-        );
-
         WISE_ORACLE = IWiseOracleHub(
             _wiseOracleHub
         );
@@ -172,7 +168,7 @@ contract WiseLendingDeclaration is OwnableMaster {
         onlyMaster
     {
         if (address(WISE_SECURITY) > ZERO_ADDRESS) {
-            revert ForbiddenValue();
+            revert InvalidAction();
         }
 
         WISE_SECURITY = IWiseSecurity(
@@ -195,7 +191,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     )
         internal
     {
-        WETH.deposit{
+        IWETH(WETH_ADDRESS).deposit{
             value: _value
         }();
     }
@@ -209,7 +205,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     )
         internal
     {
-        WETH.withdraw(
+        IWETH(WETH_ADDRESS).withdraw(
             _value
         );
     }
@@ -221,7 +217,7 @@ contract WiseLendingDeclaration is OwnableMaster {
         internal
     {
         if (address(this).balance < _amount) {
-            revert ForbiddenValue();
+            revert InvalidAction();
         }
 
         (bool success, ) = payable(_recipient).call{
@@ -229,11 +225,9 @@ contract WiseLendingDeclaration is OwnableMaster {
         }("");
 
         if (success == false) {
-            revert ForbiddenValue();
+            revert InvalidAction();
         }
     }
-
-    // Variables -----------------------------------------
 
     // Aave address
     address public AAVE_HUB;
@@ -243,12 +237,6 @@ contract WiseLendingDeclaration is OwnableMaster {
 
     // Nft id for feeManager
     uint256 public immutable FEE_MANAGER_NFT;
-
-
-    // Interfaces -----------------------------------------
-
-    // Wrapped ETH interface
-    IWETH internal immutable WETH;
 
     // WiseSecurity interface
     IWiseSecurity public WISE_SECURITY;
@@ -278,10 +266,10 @@ contract WiseLendingDeclaration is OwnableMaster {
     }
 
     struct AlgorithmEntry {
+        bool increasePole;
         uint256 bestPole;
         uint256 maxValue;
         uint256 previousValue;
-        bool increasePole;
     }
 
     struct GlobalPoolEntry {
@@ -333,7 +321,7 @@ contract WiseLendingDeclaration is OwnableMaster {
 
     // Bool mappings -------------------------------------
     mapping(uint256 => bool) public positionLocked;
-    mapping(address => bool) public parametersLocked;
+    mapping(address => bool) internal parametersLocked;
     mapping(address => bool) public verifiedIsolationPool;
 
     // Hash mappings -------------------------------------
