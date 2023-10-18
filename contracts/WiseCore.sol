@@ -229,7 +229,7 @@ abstract contract WiseCore is MainHelper {
         );
 
         if (WISE_ORACLE.chainLinkIsDead(_poolToken) == true) {
-            revert();
+            revert DeadOracle();
         }
 
         _checkMaxDepositValue(

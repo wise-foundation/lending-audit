@@ -39,15 +39,22 @@ interface IWiseOracleHub {
         pure
         returns (uint8);
 
-    function previousValue(
+    function addOracle(
+        address _tokenAddress,
+        address _priceFeedAddress,
+        address[] calldata _underlyingFeedTokens
+    )
+        external;
+
+    function recalibrate(
+        address _tokenAddress
+    )
+        external;
+
+    function recalibratePreview(
         address _tokenAddress
     )
         external
         view
         returns (uint256);
-
-    function setPreviousValue(
-        address _tokenAddress
-    )
-        external;
 }

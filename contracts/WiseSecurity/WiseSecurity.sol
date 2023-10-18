@@ -727,7 +727,6 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                     _nftId,
                     token
                 ) / PRECISION_FACTOR_E18;
-
         }
 
         return buffer

@@ -4,6 +4,18 @@ pragma solidity =0.8.21;
 
 interface IWstETH {
 
+    function wrap(
+        uint256 _stETHAmount
+    )
+        external
+        returns (uint256);
+
+    function unwrap(
+        uint256 _wstETHAmount
+    )
+        external
+        returns (uint256);
+
     function getStETHByWstETH(
         uint256 _wstETHAmount
     )
@@ -15,4 +27,11 @@ interface IWstETH {
         external
         view
         returns (uint8);
+
+    function balanceOf(
+        address _account
+    )
+        external
+        view
+        returns (uint256);
 }

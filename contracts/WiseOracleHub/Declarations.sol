@@ -19,7 +19,7 @@ contract Declarations {
     uint8 internal constant _decimalsUSD = 18;
 
     // Number of last rounds which are checked for heartbeat.
-    uint80 internal  constant MAX_ROUND_COUNT = 50;
+    uint80 internal constant MAX_ROUND_COUNT = 50;
 
     // Value address used for empty feed comparison.
     IPriceFeed internal constant ZERO_FEED = IPriceFeed(
@@ -37,6 +37,6 @@ contract Declarations {
     // Stores the time between chainLink heartbeats.
     mapping(address => uint256) public heartBeat;
 
-    // Mapping underlying feed token for multi token derivate oracle
+    // Mapping underlying feed token for multi token derivate oracle.
     mapping(address => address[]) public underlyingFeedTokens;
 }

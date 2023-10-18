@@ -2,9 +2,7 @@
 
 pragma solidity =0.8.21;
 
-import '../InterfaceHub/IERC20.sol';
-
-interface IAave is IERC20 {
+interface IAave {
 
     struct ReserveData {
 
@@ -80,4 +78,5 @@ interface IAave is IERC20 {
         external
         view
         returns (ReserveData memory);
+
 }

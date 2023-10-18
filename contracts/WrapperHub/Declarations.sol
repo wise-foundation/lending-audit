@@ -3,9 +3,9 @@
 pragma solidity = 0.8.21;
 
 import "./AaveEvents.sol";
-import "./InterfacesWrapperHub.sol";
 
 import "../InterfaceHub/IWETH.sol";
+import "../InterfaceHub/IAave.sol";
 import "../InterfaceHub/IWiseLending.sol";
 import "../InterfaceHub/IWiseSecurity.sol";
 import "../InterfaceHub/IPositionNFTs.sol";
@@ -21,14 +21,15 @@ contract Declarations is OwnableMaster, AaveEvents {
     IAave internal immutable AAVE;
     IWETH internal immutable WETH;
 
-    IWiseLending public immutable WISE_LENDING;
-    IPositionNFTs public immutable POSITION_NFT;
-
     uint16 internal constant REF_CODE = 0;
+
+    IWiseLending immutable public WISE_LENDING;
+    IPositionNFTs immutable public POSITION_NFT;
+
     IWiseSecurity public WISE_SECURITY;
 
-    address public immutable WETH_ADDRESS;
-    address public immutable AAVE_ADDRESS;
+    address immutable public WETH_ADDRESS;
+    address immutable public AAVE_ADDRESS;
 
     uint256 internal constant PRECISION_FACTOR_E9 = 1E9;
     uint256 internal constant PRECISION_FACTOR_E18 = 1E18;

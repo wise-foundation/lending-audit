@@ -29,7 +29,22 @@ struct PoolEntry {
     uint256 poolFee;
 }
 
+struct BorrowRatesEntry {
+    uint256 pole;
+    uint256 deltaPole;
+    uint256 minPole;
+    uint256 maxPole;
+    uint256 multiplicativeFactor;
+}
+
 interface IWiseLending {
+
+    function borrowRatesData(
+        address _pooToken
+    )
+        external
+        view
+        returns (BorrowRatesEntry memory);
 
     function newBorrowRate(
         address _poolToken
@@ -221,6 +236,21 @@ interface IWiseLending {
         external
         returns (uint256);
 
+    function borrowExactAmount(
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount
+    )
+        external
+        returns (uint256);
+
+    function paybackExactAmountETH(
+        uint256 _nftId
+    )
+        external
+        payable
+        returns (uint256);
+
     function solelyDeposit(
         uint256 _nftId,
         address _poolToken,
@@ -285,12 +315,25 @@ interface IWiseLending {
     )
         external;
 
-    /*
-    function curveSecurityCheck(
-        address _poolToken
+    function depositExactAmountETH(
+        uint256 _nftId
     )
-        external;
-    */
+        external
+        payable
+        returns (uint256);
+
+    function coreLiquidationIsolationPools(
+        uint256 _nftId,
+        uint256 _nftIdLiquidator,
+        address _caller,
+        address _receiver,
+        address _tokenToPayback,
+        address _tokenToRecieve,
+        uint256 _paybackAmount,
+        uint256 _shareAmountToPay
+    )
+        external
+        returns (uint256 reveiveAmount);
 
     function preparePool(
         address _poolToken
@@ -382,14 +425,6 @@ interface IWiseLending {
     function paybackAmount(
         address _token,
         uint256 _shares
-    )
-        external
-        view
-        returns (uint256);
-
-    function getPositionBorrowShares(
-        address _user,
-        address _token
     )
         external
         view

@@ -20,8 +20,8 @@ interface ICurve {
         returns (uint256);
 
     function get_dy(
-        uint256 i,
-        uint256 j,
+        int128 i,
+        int128 j,
         uint256 dx
     )
         external
@@ -43,7 +43,8 @@ interface ICurve {
         uint256 exactAmountFrom,
         uint256 minReceiveAmount
     )
-        external;
+        external
+        returns (uint256);
 
     function exchange_underlying(
         int128 i,
