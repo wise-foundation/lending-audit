@@ -5,6 +5,7 @@ pragma solidity =0.8.21;
 import "../InterfaceHub/IERC20.sol";
 import "../InterfaceHub/IPriceFeed.sol";
 
+error OracleIsDead();
 error OracleAlreadySet();
 error SampleTooSmall(
     uint256 size

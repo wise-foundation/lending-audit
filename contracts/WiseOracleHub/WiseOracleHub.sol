@@ -61,6 +61,10 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
         view
         returns (uint256)
     {
+        if (_chainLinkIsDead(_tokenAddress) == true) {
+            revert OracleIsDead();
+        }
+
         (
                 ,
                 int256 answer,
