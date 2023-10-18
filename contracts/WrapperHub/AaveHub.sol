@@ -819,14 +819,14 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
      * of a pool.
      */
     function getLendingRate(
-        address _underlyingAssert
+        address _underlyingAsset
     )
         external
         view
         returns (uint256)
     {
         address aToken = aaveTokenAddress[
-            _underlyingAssert
+            _underlyingAsset
         ];
 
         uint256 lendingRate = WISE_SECURITY.getLendingRate(
@@ -834,7 +834,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         );
 
         uint256 aaveRate = getAavePoolAPY(
-            _underlyingAssert
+            _underlyingAsset
         );
 
         uint256 utilization = WISE_LENDING.globalPoolData(
