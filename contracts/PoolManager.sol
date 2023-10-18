@@ -32,7 +32,7 @@ abstract contract PoolManager is WiseCore {
         onlyMaster
     {
         if (parametersLocked[_poolToken] == true) {
-            revert ParametersLocked();
+            revert InvalidAction();
         }
 
         parametersLocked[_poolToken] = _isFinal;
@@ -92,7 +92,7 @@ abstract contract PoolManager is WiseCore {
         }
 
         if (_collateralFactor > PRECISION_FACTOR_E18) {
-            revert ForbiddenValue();
+            revert InvalidAction();
         }
     }
 
