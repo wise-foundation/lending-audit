@@ -3,9 +3,9 @@
 pragma solidity = 0.8.21;
 
 import "./AaveEvents.sol";
-import "./InterfacesWrapperHub.sol";
 
 import "../InterfaceHub/IWETH.sol";
+import "../InterfaceHub/IAave.sol";
 import "../InterfaceHub/IWiseLending.sol";
 import "../InterfaceHub/IWiseSecurity.sol";
 import "../InterfaceHub/IPositionNFTs.sol";
