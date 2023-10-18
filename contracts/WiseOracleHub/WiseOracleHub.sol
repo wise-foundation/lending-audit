@@ -235,6 +235,7 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
         view
         returns (bool state)
     {
+        uint256 i;
         uint256 length = underlyingFeedTokens[_tokenAddress].length;
 
         if (length == 0) {
@@ -242,8 +243,6 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
                 _tokenAddress
             );
         }
-
-        uint256 i;
 
         for (i; i < length;) {
 
