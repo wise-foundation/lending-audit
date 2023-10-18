@@ -1,0 +1,11 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["node_modules","lib"]
+test = "test/foundry"
+cache_path = "forge-cache"
+solc = "0.8.21"
+evm_version ="shanghai"
+eth-rpc-url = "https://eth.llamarpc.com"
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
