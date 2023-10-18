@@ -1,3 +1,4 @@
 node_modules
 out/
 lib/
+forge-cache/solidity-files-cache.json
