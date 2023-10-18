@@ -6,7 +6,7 @@ import "./CallOptionalReturn.sol";
 
 contract ApprovalHelper is CallOptionalReturn {
 
-    bytes4 internal constant approveSelector = IERC20
+    bytes4 private constant approveSelector = IERC20
         .approve
         .selector;
 
