@@ -52,9 +52,12 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             return _amount;
         }
 
-        return _amount
-            * shares
-            / pseudo;
+        uint256 product = _amount
+            * shares;
+
+        return product % pseudo == 0
+            ? product / pseudo
+            : product / pseudo + 1;
     }
 
     /**
@@ -89,9 +92,12 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             return _amount;
         }
 
-        return _amount
-            * shares
-            / pseudo;
+        uint256 product = _amount
+            * shares;
+
+        return product % pseudo == 0
+            ? product / pseudo
+            : product / pseudo + 1;
     }
 
     /**
