@@ -18,7 +18,7 @@ import "../../TransferHub/ApprovalHelper.sol";
 
 import "./sDaiFarm.sol";
 
-contract SDaiFarmTestBase is Test, TransferHelper, ApprovalHelper {
+contract sDaiFarmTestBase is Test, TransferHelper, ApprovalHelper {
 
     address public WISE_DEPLOYER = 0x641AD78BAca220C5BD28b51Ce8e0F495e85Fe689;
 

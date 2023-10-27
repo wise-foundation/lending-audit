@@ -4,32 +4,19 @@ pragma solidity =0.8.21;
 
 import "./sDaiFarmDeclarations.sol";
 
-abstract contract SDaiFarmMathLogic is SDaiFarmDeclarations {
-
-    /**
-     * @dev Modfier for updating used pools.
-     * (sDAI + USDC/USDT/DAI)
-     */
-    modifier updatePools(
-        uint256 _nftId
-    ) {
-        _updatePools(
-            _nftId
-        );
-        _;
-    }
+abstract contract sDaiFarmMathLogic is sDaiFarmDeclarations {
 
     /**
      * @dev Update logic for pools via wise lending
-     * interfaces
+     * (sDAI + USDC / USDT / DAI)
      */
     function _updatePools(
-        uint256 _nftId
+        address _poolToken
     )
-        private
+        internal
     {
         WISE_LENDING.preparePool(
-            aaveTokenAddresses[nftToIndex[_nftId]]
+            _poolToken
         );
 
         WISE_LENDING.preparePool(
@@ -189,7 +176,7 @@ abstract contract SDaiFarmMathLogic is SDaiFarmDeclarations {
             uint256 receivingAmount
         )
     {
-        if (_checkDebtratio(_nftId) == true) {
+        if (_checkDebtRatio(_nftId) == true) {
             revert DebtRatioTooHigh();
         }
 
@@ -237,7 +224,7 @@ abstract contract SDaiFarmMathLogic is SDaiFarmDeclarations {
      * @dev Internal function checking if a position
      * with {_nftId} has a debt ratio under 100%.
      */
-    function _checkDebtratio(
+    function _checkDebtRatio(
         uint256 _nftId
     )
         internal

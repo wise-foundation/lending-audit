@@ -4,7 +4,7 @@ pragma solidity =0.8.21;
 
 import "./sDaiFarmMathLogic.sol";
 
-abstract contract SDaiFarmSwapLogic is SDaiFarmMathLogic {
+abstract contract sDaiFarmSwapLogic is sDaiFarmMathLogic {
 
     /**
      * @dev Internal wrapper function for an unsiwap

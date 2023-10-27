@@ -4,7 +4,10 @@ pragma solidity =0.8.21;
 
 import "./sDaiFarmSwapLogic.sol";
 
-abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipient {
+abstract contract sDaiFarmLeverageLogic is
+    sDaiFarmSwapLogic,
+    IFlashLoanRecipient
+{
 
     /**
      * @dev Wrapper function preparing balancer flashloan and
@@ -38,6 +41,8 @@ abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipien
             _amount
         );
 
+        allowEnter = true;
+
         BALANCER_VAULT.flashLoan(
             this,
             globalTokens,
@@ -66,6 +71,12 @@ abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipien
         if (msg.sender != BLANCER_ADDRESS) {
             revert NotBalancerVault();
         }
+
+        if (allowEnter == false) {
+            revert NotAllowed();
+        }
+
+        allowEnter = false;
 
         uint256 flashloanAmount = _amounts[0];
 
@@ -154,7 +165,6 @@ abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipien
     )
         internal
     {
-
         uint256 unwrapedAmount = _paybackAndUnstake(
             _nftId,
             _index,
@@ -189,7 +199,7 @@ abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipien
             );
 
             sendAmount = unwrapedAmount
-                - amountIn * PRECISION_FACTOR_E12;
+                - (amountIn * PRECISION_FACTOR_E12);
         }
 
         if (_index == uint256(Token.USDC)) {
@@ -200,7 +210,7 @@ abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipien
             );
 
             sendAmount = unwrapedAmount
-                - _totalDebtBalancer * PRECISION_FACTOR_E12;
+                - (_totalDebtBalancer * PRECISION_FACTOR_E12);
         }
 
         _safeTransfer(
@@ -236,7 +246,7 @@ abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipien
             _borrowShares
         );
 
-        uint256 withdrawAmount = WISE_LENDING.withdrawOnBehalfExactShares(
+        uint256 withdrawAmount = WISE_LENDING.withdrawExactShares(
             _nftId,
             SDAI_ADDRESS,
             _lendingShares
@@ -315,13 +325,13 @@ abstract contract SDaiFarmLeverageLogic is SDaiFarmSwapLogic, IFlashLoanRecipien
             sDaiAmount
         );
 
-        WISE_LENDING.borrowOnBehalfExactAmount(
+        WISE_LENDING.borrowExactAmount(
             _nftId,
             aaveTokenAddresses[_index],
             _totalDebtBalancer
         );
 
-        if (_checkDebtratio(_nftId) == false) {
+        if (_checkDebtRatio(_nftId) == false) {
             revert DebtratioTooHigh();
         }
 

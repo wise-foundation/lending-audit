@@ -23,4 +23,11 @@ interface IWstETHTest {
         external
         view
         returns (uint256);
+
+    function balanceOf(
+        address _account
+    )
+        external
+        view
+        returns (uint256);
 }

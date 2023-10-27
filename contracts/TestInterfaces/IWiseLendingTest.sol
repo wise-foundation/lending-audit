@@ -2,6 +2,14 @@
 
 pragma solidity =0.8.21;
 
+struct CreatePool {
+    bool allowBorrow;
+    address poolToken;
+    uint256 poolMulFactor;
+    uint256 poolCollFactor;
+    uint256 maxDepositAmount;
+}
+
 interface IWiseLendingTest {
 
     function getPositionBorrowShares(
@@ -63,6 +71,11 @@ interface IWiseLendingTest {
         address _spender,
         address _poolToken,
         uint256 _amount
+    )
+        external;
+
+    function createPool(
+        CreatePool memory _params
     )
         external;
 }

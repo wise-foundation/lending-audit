@@ -2,6 +2,8 @@
 
 pragma solidity =0.8.21;
 
+import "../InterfaceHub/IPriceFeed.sol";
+
 interface IOracleHubTest {
 
     function getTokensFromUSD(
@@ -26,5 +28,19 @@ interface IOracleHubTest {
         external
         view
         returns (uint256);
+
+    function addOracle(
+        address _tokenAddress,
+        IPriceFeed _priceFeedAddress,
+        address[] memory _underlyingFeedTokens
+    )
+        external;
+
+    function chainLinkIsDead(
+        address _tokenAddress
+    )
+        external
+        view
+        returns (bool);
 
 }

@@ -3,17 +3,19 @@
 pragma solidity =0.8.21;
 
 
-import "./sDaiFarm.sol";
+import "./sDaiFarmManager.sol";
 
-contract sDaiFarmTester is SDaiFarm {
+contract sDaiFarmTester is sDaiFarmManager {
 
     constructor(
         address _wiseLendingAddress,
-        uint256 _collateralFactor
+        uint256 _collateralFactor,
+        address _powerFarmNFTs
     )
-        SDaiFarm(
+        sDaiFarmManager(
             _wiseLendingAddress,
-            _collateralFactor
+            _collateralFactor,
+            _powerFarmNFTs
         )
     {}
 

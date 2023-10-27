@@ -3,14 +3,16 @@
 pragma solidity =0.8.21;
 
 import "./sDaiFarmBase.t.sol";
+import "../PowerFarmNFTs/PowerFarmNFTs.sol";
 
-contract sDaiFarmTest is SDaiFarmTestBase {
+contract sDaiFarmTest is sDaiFarmTestBase {
 
     uint256 internal constant USED_BLOCK = 18061701;
 
     uint256 public nftIDContract;
+    PowerFarmNFTs public powerFarmNFTs;
 
-    sDaiFarmTester public sDaiFarm;
+    sDaiFarmTester public sDaiFarmContract;
 
     function setUp()
         public
@@ -27,15 +29,27 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         nftIDContract = positions[0];
 
-        sDaiFarm = new sDaiFarmTester(
-            WISE_LENDING_ADD,
-            95 * PRECISION_FACTOR_E16
+        powerFarmNFTs = new PowerFarmNFTs(
+            "PowerFarmNFTs",
+            "PF-NFTs"
         );
 
-        vm.prank(WISE_DEPLOYER);
+        sDaiFarmContract = new sDaiFarmTester(
+            WISE_LENDING_ADD,
+            95 * PRECISION_FACTOR_E16,
+            address(powerFarmNFTs)
+        );
+
+        powerFarmNFTs.setFarmContract(
+            address(sDaiFarmContract)
+        );
+
+        vm.prank(
+            WISE_DEPLOYER
+        );
 
         WISE_LENDING.setVeryfiedIsolationPool(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             true
         );
     }
@@ -44,87 +58,38 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         public
     {
         assertEq(
-            sDaiFarm.collateralFactor(),
+            sDaiFarmContract.collateralFactor(),
             95 * PRECISION_FACTOR_E16
         );
 
         assertEq(
-            sDaiFarm.borrowTokenAddresses(0),
+            sDaiFarmContract.borrowTokenAddresses(0),
             DAI_ADDRESS
         );
 
         assertEq(
-            sDaiFarm.borrowTokenAddresses(1),
+            sDaiFarmContract.borrowTokenAddresses(1),
             USDC_ADDRESS
         );
 
         assertEq(
-            sDaiFarm.borrowTokenAddresses(2),
+            sDaiFarmContract.borrowTokenAddresses(2),
             USDT_ADDRESS
         );
 
         assertEq(
-            sDaiFarm.aaveTokenAddresses(0),
+            sDaiFarmContract.aaveTokenAddresses(0),
             AAVE_DAI_ADDRESS
         );
 
         assertEq(
-            sDaiFarm.aaveTokenAddresses(1),
+            sDaiFarmContract.aaveTokenAddresses(1),
             AAVE_USDC_ADDRESS
         );
 
         assertEq(
-            sDaiFarm.aaveTokenAddresses(2),
+            sDaiFarmContract.aaveTokenAddresses(2),
             AAVE_USDT_ADDRESS
-        );
-    }
-
-    function testRegisterFarm()
-        public
-    {
-        vm.expectRevert(OutOfBound.selector);
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            5
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            1
-        );
-
-        assertEq(
-            sDaiFarm.nftToIndex(nftIDContract),
-            1
-        );
-
-        vm.expectRevert(PositionLocked.selector);
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            1
-        );
-
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
-        assertEq(
-            sDaiFarm.nftToIndex(nftIDContract),
-            0
-        );
-
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
-        WISE_LENDING.depositExactAmountETH
-            {value: PRECISION_FACTOR_E18}
-            (nftIDContract);
-
-        vm.expectRevert(PositionNotEmpty.selector);
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            2
         );
     }
 
@@ -137,14 +102,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 10 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             WISE_DEPLOYER,
             data.amount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -177,57 +148,45 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
         );
 
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            0
-        );
-
-        uint256 bal = DAI.balanceOf(
-            address(this)
-        );
-
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_DAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
-            bal,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            0,
+            DAI.balanceOf(
+                address(this)
+            ),
             data.leverage,
             0
         );
 
-        uint256 debtratio = sDaiFarm.getLiveDebtRatio(
-            nftIDContract
+        uint256 farmNFT = sDaiFarmContract.farmingKeys(
+            farmKey
+        );
+
+        uint256 debtRatio = sDaiFarmContract.getLiveDebtRatio(
+            farmNFT
         );
 
         assertGt(
-            debtratio,
+            debtRatio,
             0,
             "Should be greater zero"
         );
 
-        uint256 collatUSD = sDaiFarm.getTotalWeightedCollateralUSD(
-            nftIDContract
+        uint256 collatUSD = sDaiFarmContract.getTotalWeightedCollateralUSD(
+            farmNFT
         );
 
-        uint256 borrowUSD = sDaiFarm.getPositionBorrowUSD(
-            nftIDContract
-        );
-
-        uint256 collatBareUSD = collatUSD
-            * PRECISION_FACTOR_E18
-            / LTV;
-
-        uint256 borrowToken = ORACLE_HUB.getTokensFromUSD(
-            DAI_ADDRESS,
-            borrowUSD
+        uint256 borrowUSD = sDaiFarmContract.getPositionBorrowUSD(
+            farmNFT
         );
 
         uint256 daiPrice = ORACLE_HUB.latestResolver(
@@ -235,7 +194,10 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         assertApproxEqRel(
-            borrowToken,
+            ORACLE_HUB.getTokensFromUSD(
+                DAI_ADDRESS,
+                borrowUSD
+            ),
             data.amountOpen
                 * (data.leverage - PRECISION_FACTOR_E18)
                 / PRECISION_FACTOR_E18,
@@ -244,7 +206,9 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         assertApproxEqRel(
-            collatBareUSD,
+            collatUSD
+                * PRECISION_FACTOR_E18
+                / LTV,
             data.amountOpen
                 * data.leverage
                 * daiPrice
@@ -254,13 +218,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             "collateral amount should be very close to 10 times open amount"
         );
 
-        vm.expectRevert(PositionNotEmpty.selector);
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
         uint256 daiBalContract = DAI.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         assertEq(
@@ -279,14 +238,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 7 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(USDC_WHALE);
+        vm.prank(
+            USDC_WHALE
+        );
+
         _safeTransfer(
             USDC_ADDRESS,
             WISE_DEPLOYER,
             data.amount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -319,13 +284,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            1
         );
 
         uint256 bal = DAI.balanceOf(
@@ -333,39 +293,35 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_USDC_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            1,
             bal,
             data.leverage,
             0
         );
 
-        uint256 debtratio = sDaiFarm.getLiveDebtRatio(
-            nftIDContract
+        uint256 farmNFT = sDaiFarmContract.farmingKeys(
+            farmKey
         );
 
-        console.log("debtratio", debtratio);
+        uint256 debtRatio = sDaiFarmContract.getLiveDebtRatio(
+            farmNFT
+        );
 
         assertGt(
-            debtratio,
+            debtRatio,
             0,
             "Should be greater zero"
         );
 
-        uint256 collatUSD = sDaiFarm.getTotalWeightedCollateralUSD(
-            nftIDContract
-        );
-
-        uint256 borrowUSD = sDaiFarm.getPositionBorrowUSD(
-            nftIDContract
-        );
-
-        uint256 collatBareUSD = collatUSD
+        uint256 collatBareUSD = sDaiFarmContract.getTotalWeightedCollateralUSD(
+            farmNFT
+        )
             * PRECISION_FACTOR_E18
             / LTV;
 
@@ -374,7 +330,9 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         assertApproxEqRel(
-            borrowUSD,
+            sDaiFarmContract.getPositionBorrowUSD(
+                farmNFT
+            ),
             data.amountOpen
                 * (data.leverage - PRECISION_FACTOR_E18)
                 * daiPrice
@@ -395,17 +353,12 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             "collateral amount should be very close to 7 times open amount"
         );
 
-        vm.expectRevert(PositionNotEmpty.selector);
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
         uint256 daiBalContract = DAI.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         uint256 usdcBalContract = USDC.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         assertEq(
@@ -430,14 +383,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 14 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(USDT_WHALE);
+        vm.prank(
+            USDT_WHALE
+        );
+
         _safeTransfer(
             USDT_ADDRESS,
             WISE_DEPLOYER,
             data.amount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -476,13 +435,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            2
         );
 
         uint256 bal = DAI.balanceOf(
@@ -490,39 +444,35 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_USDT_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            2,
             bal,
             data.leverage,
             0
         );
 
-        uint256 debtratio = sDaiFarm.getLiveDebtRatio(
-            nftIDContract
+        uint256 farmNFT = sDaiFarmContract.farmingKeys(
+            farmKey
         );
 
-        console.log("debtratio", debtratio);
+        uint256 debtRatio = sDaiFarmContract.getLiveDebtRatio(
+            farmNFT
+        );
 
         assertGt(
-            debtratio,
+            debtRatio,
             0,
             "Should be greater zero"
         );
 
-        uint256 collatUSD = sDaiFarm.getTotalWeightedCollateralUSD(
-            nftIDContract
-        );
-
-        uint256 borrowUSD = sDaiFarm.getPositionBorrowUSD(
-            nftIDContract
-        );
-
-        uint256 collatBareUSD = collatUSD
+        uint256 collatBareUSD = sDaiFarmContract.getTotalWeightedCollateralUSD(
+            farmNFT
+        )
             * PRECISION_FACTOR_E18
             / LTV;
 
@@ -531,7 +481,9 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         assertApproxEqRel(
-            borrowUSD,
+            sDaiFarmContract.getPositionBorrowUSD(
+                farmNFT
+            ),
             data.amountOpen
                 * (data.leverage - PRECISION_FACTOR_E18)
                 * daiPrice
@@ -552,21 +504,16 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             "collateral amount should be very close to 14 times open amount"
         );
 
-        vm.expectRevert(PositionNotEmpty.selector);
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
         uint256 daiBalContract = DAI.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         uint256 usdcBalContract = USDC.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         uint256 usdtBalContract = USDT.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         assertEq(
@@ -597,14 +544,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 10 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             WISE_DEPLOYER,
             data.amount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -637,13 +590,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            0
         );
 
         uint256 bal = DAI.balanceOf(
@@ -651,34 +599,34 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_DAI_ADDRESS,
             HUGE_AMOUNT
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             SDAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            0,
             bal,
             data.leverage,
+            1
+        );
+
+        sDaiFarmContract.exitFarm(
+            farmKey,
             0
         );
 
-        sDaiFarm.closingPosition(
-            nftIDContract,
-            0
-        );
-
-        uint256 collatUSD = sDaiFarm.getTotalWeightedCollateralUSD(
+        uint256 collatUSD = sDaiFarmContract.getTotalWeightedCollateralUSD(
             nftIDContract
         );
 
-        uint256 borrowUSD = sDaiFarm.getPositionBorrowUSD(
+        uint256 borrowUSD = sDaiFarmContract.getPositionBorrowUSD(
             nftIDContract
         );
 
@@ -694,12 +642,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             "Borrow amount should be zero after closing"
         );
 
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
         uint256 daiBalContract = DAI.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         assertEq(
@@ -758,13 +702,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            1
         );
 
         uint256 bal = DAI.balanceOf(
@@ -772,34 +711,34 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_USDC_ADDRESS,
             HUGE_AMOUNT
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             SDAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            1,
             bal,
             data.leverage,
             0
         );
 
-        sDaiFarm.closingPosition(
-            nftIDContract,
+        sDaiFarmContract.exitFarm(
+            farmKey,
             0
         );
 
-        uint256 collatUSD = sDaiFarm.getTotalWeightedCollateralUSD(
+        uint256 collatUSD = sDaiFarmContract.getTotalWeightedCollateralUSD(
             nftIDContract
         );
 
-        uint256 borrowUSD = sDaiFarm.getPositionBorrowUSD(
+        uint256 borrowUSD = sDaiFarmContract.getPositionBorrowUSD(
             nftIDContract
         );
 
@@ -815,16 +754,12 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             "Borrow amount should be zero after closing"
         );
 
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
         uint256 daiBalContract = DAI.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         uint256 usdcBalContract = USDC.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         assertEq(
@@ -849,7 +784,10 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 5 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(USDT_WHALE);
+        vm.prank(
+            USDT_WHALE
+        );
+
         _safeTransfer(
             USDT_ADDRESS,
             WISE_DEPLOYER,
@@ -895,13 +833,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            2
         );
 
         uint256 bal = DAI.balanceOf(
@@ -909,34 +842,34 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_USDT_ADDRESS,
             HUGE_AMOUNT
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             SDAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            2,
             bal,
             data.leverage,
-            0
+            1
         );
 
-        sDaiFarm.closingPosition(
-            nftIDContract,
+        sDaiFarmContract.exitFarm(
+            farmKey,
             HUGE_AMOUNT
         );
 
-        uint256 collatUSD = sDaiFarm.getTotalWeightedCollateralUSD(
+        uint256 collatUSD = sDaiFarmContract.getTotalWeightedCollateralUSD(
             nftIDContract
         );
 
-        uint256 borrowUSD = sDaiFarm.getPositionBorrowUSD(
+        uint256 borrowUSD = sDaiFarmContract.getPositionBorrowUSD(
             nftIDContract
         );
 
@@ -952,20 +885,16 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             "Borrow amount should be zero after closing"
         );
 
-        sDaiFarm.unregistrationFarm(
-            nftIDContract
-        );
-
         uint256 daiBalContract = DAI.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         uint256 usdcBalContract = USDC.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         uint256 usdtBalContract = USDT.balanceOf(
-            address(sDaiFarm)
+            address(sDaiFarmContract)
         );
 
         assertEq(
@@ -1005,7 +934,10 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             data.amount + liquidationAmount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -1038,13 +970,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            0
         );
 
         uint256 bal = DAI.balanceOf(
@@ -1052,19 +979,19 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_DAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            0,
             bal,
             data.leverage,
             0
         );
 
-        sDaiFarm.setCollfactor(
+        sDaiFarmContract.setCollfactor(
             92815 * PRECISION_FACTOR_E13
         );
 
@@ -1089,8 +1016,12 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             HUGE_AMOUNT
         );
 
+        uint256 farmNftId = sDaiFarmContract.farmingKeys(
+            farmKey
+        );
+
         uint256 borrowSharesUser = WISE_LENDING.getPositionBorrowShares(
-            nftIDContract,
+            farmNftId,
             AAVE_DAI_ADDRESS
         );
 
@@ -1100,7 +1031,7 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         vm.expectRevert(PositionLocked.selector);
         WISE_LENDING.liquidatePartiallyFromTokens(
-            nftIDContract,
+            farmNftId,
             nftId,
             AAVE_DAI_ADDRESS,
             SDAI_ADDRESS,
@@ -1108,28 +1039,28 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         IERC20Test(AAVE_DAI_ADDRESS).approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
         );
 
-        uint256 debtratio = sDaiFarm.getLiveDebtRatio(
-            nftIDContract
+        uint256 debtratio = sDaiFarmContract.getLiveDebtRatio(
+            farmNftId
         );
 
         uint256 balsDAI = IERC20Test(SDAI_ADDRESS).balanceOf(
             WISE_DEPLOYER
         );
 
-        sDaiFarm.liquidatePartiallyFromToken(
-            nftIDContract,
+        sDaiFarmContract.liquidatePartiallyFromToken(
+            farmNftId,
             nftId,
             portionShares
         );
 
         vm.stopPrank();
 
-        uint256 debtratioEnd = sDaiFarm.getLiveDebtRatio(
-            nftIDContract
+        uint256 debtratioEnd = sDaiFarmContract.getLiveDebtRatio(
+            farmNftId
         );
 
         uint256 balsDAIEnd = IERC20Test(SDAI_ADDRESS).balanceOf(
@@ -1160,14 +1091,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 10 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(USDC_WHALE);
+        vm.prank(
+            USDC_WHALE
+        );
+
         _safeTransfer(
             USDC_ADDRESS,
             WISE_DEPLOYER,
             data.amount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -1200,13 +1137,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            1
         );
 
         uint256 bal = DAI.balanceOf(
@@ -1214,13 +1146,13 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_USDC_ADDRESS,
             HUGE_AMOUNT
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             SDAI_ADDRESS,
             HUGE_AMOUNT
         );
@@ -1237,7 +1169,7 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             )
         );
 
-        uint256 newRate = sDaiFarm.getNewBorrowRate(
+        uint256 newRate = sDaiFarmContract.getNewBorrowRate(
             convertedToUSDC,
             AAVE_USDC_ADDRESS
         );
@@ -1252,7 +1184,7 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             uint256 approxNetAPY,
             bool isPositive
 
-        ) = sDaiFarm.getApproxNetAPY(
+        ) = sDaiFarmContract.getApproxNetAPY(
             data.amountOpen,
             data.leverage,
             DUMMY_SDAI_APY,
@@ -1271,8 +1203,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             "Net APY should be positiv."
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        sDaiFarmContract.enterFarm(
+            1,
             bal,
             data.leverage,
             0
@@ -1300,29 +1232,28 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             WISE_DEPLOYER
         );
 
-        vm.expectRevert(NotMaster.selector);
-        sDaiFarm.shutdownFarm(
+        vm.expectRevert(
+            NotMaster.selector
+        );
+
+        sDaiFarmContract.shutDownFarm(
             true
         );
 
-        sDaiFarm.shutdownFarm(
+        sDaiFarmContract.shutDownFarm(
             true
         );
 
-        vm.expectRevert(Deactivated.selector);
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            2
+        vm.expectRevert(
+            Deactivated.selector
         );
 
-        vm.expectRevert(Deactivated.selector);
-        sDaiFarm.openPosition(
+        sDaiFarmContract.enterFarm(
             nftIDContract,
             DUMMY_INITAL,
             DUMMY_LEVERAGE,
             0
         );
-
     }
 
     function testSecurityPayback()
@@ -1334,14 +1265,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 7 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             WISE_DEPLOYER,
             2 * data.amount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -1380,13 +1317,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            0
         );
 
         uint256 bal = DAI.balanceOf(
@@ -1394,20 +1326,24 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_DAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            0,
             bal,
             data.leverage,
-            0
+            1
+        );
+
+        uint256 farmNFT = sDaiFarmContract.farmingKeys(
+            farmKey
         );
 
         uint256 borrowShares = WISE_LENDING.getPositionBorrowShares(
-            nftIDContract,
+            farmNFT,
             AAVE_DAI_ADDRESS
         );
 
@@ -1428,23 +1364,23 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             AAVE_DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
         );
 
-        sDaiFarm.manuallyPaybackShares(
-            nftIDContract,
+        sDaiFarmContract.manuallyPaybackShares(
+            farmKey,
             borrowShares
         );
 
         vm.stopPrank();
 
-        uint256 borrowUSDAfter = sDaiFarm.getPositionBorrowUSD(
-            nftIDContract
+        uint256 borrowUSDAfter = sDaiFarmContract.getPositionBorrowUSD(
+            farmNFT
         );
 
-        uint256 debtratio = sDaiFarm.getLiveDebtRatio(
-            nftIDContract
+        uint256 debtRatio = sDaiFarmContract.getLiveDebtRatio(
+            farmNFT
         );
 
         assertEq(
@@ -1454,7 +1390,7 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         assertEq(
-            debtratio,
+            debtRatio,
             0,
             "Debt ratio should be zero"
         );
@@ -1469,14 +1405,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             leverage: 10 * PRECISION_FACTOR_E18
         });
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             WISE_DEPLOYER,
             2 * data.amount
         );
 
-        vm.prank(DAI_WHALE);
+        vm.prank(
+            DAI_WHALE
+        );
+
         _safeTransfer(
             DAI_ADDRESS,
             address(this),
@@ -1515,13 +1457,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         _safeApprove(
             DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
-        );
-
-        sDaiFarm.registrationFarm(
-            nftIDContract,
-            0
         );
 
         uint256 bal = DAI.balanceOf(
@@ -1529,20 +1466,20 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             AAVE_DAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        sDaiFarm.openPosition(
-            nftIDContract,
+        uint256 farmKey = sDaiFarmContract.enterFarm(
+            0,
             bal,
             data.leverage,
             0
         );
 
-        uint256 balDAI = DAI.balanceOf(
-            WISE_DEPLOYER
+        uint256 farmNFT = sDaiFarmContract.farmingKeys(
+            farmKey
         );
 
         vm.startPrank(
@@ -1551,31 +1488,31 @@ contract sDaiFarmTest is SDaiFarmTestBase {
 
         AAVE.deposit(
             DAI_ADDRESS,
-            balDAI,
+            DAI.balanceOf(
+                WISE_DEPLOYER
+            ),
             WISE_DEPLOYER,
             0
         );
 
         _safeApprove(
             AAVE_DAI_ADDRESS,
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             HUGE_AMOUNT
         );
 
-        uint256 borrowShares = WISE_LENDING.getPositionBorrowShares(
-            nftIDContract,
-            AAVE_DAI_ADDRESS
-        );
-
-        sDaiFarm.manuallyPaybackShares(
-            nftIDContract,
-            borrowShares / 2
+        sDaiFarmContract.manuallyPaybackShares(
+            farmKey,
+            WISE_LENDING.getPositionBorrowShares(
+                farmNFT,
+                AAVE_DAI_ADDRESS
+            ) / 2
         );
 
         vm.stopPrank();
 
         uint256 lendingShares = WISE_LENDING.getPositionLendingShares(
-            nftIDContract,
+            farmNFT,
             SDAI_ADDRESS
         );
 
@@ -1584,25 +1521,31 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             / PRECISION_FACTOR_E18;
 
         WISE_LENDING.approve(
-            address(sDaiFarm),
+            address(sDaiFarmContract),
             SDAI_ADDRESS,
             HUGE_AMOUNT
         );
 
-        vm.expectRevert(ResultsInBadDebt.selector);
-        sDaiFarm.manuallyWithdrawShares(
-            nftIDContract,
+        vm.expectRevert(
+            ResultsInBadDebt.selector
+        );
+
+        sDaiFarmContract.manuallyWithdrawShares(
+            farmKey,
             moreThanHalf
         );
 
         uint256 borrowSharesRest = WISE_LENDING.getPositionBorrowShares(
-            nftIDContract,
+            farmNFT,
             AAVE_DAI_ADDRESS
         );
 
-        vm.prank(WISE_DEPLOYER);
-        sDaiFarm.manuallyPaybackShares(
-            nftIDContract,
+        vm.prank(
+            WISE_DEPLOYER
+        );
+
+        sDaiFarmContract.manuallyPaybackShares(
+            farmKey,
             borrowSharesRest
         );
 
@@ -1610,8 +1553,8 @@ contract sDaiFarmTest is SDaiFarmTestBase {
             address(this)
         );
 
-        sDaiFarm.manuallyWithdrawShares(
-            nftIDContract,
+        sDaiFarmContract.manuallyWithdrawShares(
+            farmKey,
             lendingShares
         );
 
@@ -1646,5 +1589,3 @@ contract sDaiFarmTest is SDaiFarmTestBase {
         );
     }
 }
-
-

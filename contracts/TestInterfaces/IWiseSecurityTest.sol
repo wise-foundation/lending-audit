@@ -19,4 +19,12 @@ interface IWiseSecurityTest {
         external
         view
         returns (uint256);
+
+    function getPositionBorrowAmount(
+        uint256 _nftId,
+        address _poolToken
+    )
+        external
+        view
+        returns (uint256);
 }

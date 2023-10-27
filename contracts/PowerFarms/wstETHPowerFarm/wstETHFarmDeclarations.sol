@@ -17,13 +17,11 @@ import "../../InterfaceHub/IBalancerFlashloan.sol";
 import "../../TransferHub/TransferHelper.sol";
 import "../../TransferHub/ApprovalHelper.sol";
 
-error InvalidKey();
 error Deactivated();
 error InvalidParam();
 error InvalidOwner();
 error AccessDenied();
 error AmountTooSmall();
-error AlreadyReserved();
 error LeverageTooHigh();
 error DebtRatioTooLow();
 error NotBalancerVault();
@@ -160,13 +158,6 @@ contract wstETHFarmDeclarations is
         uint256 timestamp
     );
 
-    event ERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes _data
-    );
-
     event ETHReceived(
         uint256 amount,
         address from
@@ -284,24 +275,5 @@ contract wstETHFarmDeclarations is
             revert Deactivated();
         }
         _;
-    }
-
-    function onERC721Received(
-        address _operator,
-        address _from,
-        uint256 _tokenId,
-        bytes calldata _data
-    )
-        external
-        returns (bytes4)
-    {
-        emit ERC721Received(
-            _operator,
-            _from,
-            _tokenId,
-            _data
-        );
-
-        return this.onERC721Received.selector;
     }
 }

@@ -2,70 +2,63 @@
 
 pragma solidity =0.8.21;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+/**
+ * @author Christoph Krpoun
+ * @author René Hochmuth
+ * @author Vitally Marinchenko
+ */
 
 import "./wstETHFarm.sol";
 import "../../OwnableMaster.sol";
+import "../PowerFarmNFTs/MinterReserver.sol";
 
-contract wstETHManager is ERC721Enumerable, OwnableMaster, wstETHFarm {
+/**
+ * @dev The wstETH power farm is an automated leverage contract working as a
+ * second layer for Wise lending. It needs to be registed inside the latter one
+ * to have access to the pools. It uses BALANCER FLASHLOANS as well as CURVE POOLS and
+ * the LIDO contracts for staked ETH and wrapped staked ETH.
+ * The corresponding contract addresses can be found in {wstETHFarmDeclarations.sol}.
+ *
+ * It allows to open leverage positions with wrapped ETH in form of aave wrapped ETH.
+ * For opening a position the user needs to have {_initalAmount} of ETH or WETH in the wallet.
+ * A maximum of 15x leverage is possible. Once the user registers with its position NFT that
+ * NFT is locked for ALL other interactions with wise lending as long as the positon is open!
+ *
+ * For more infos see {https://wisesoft.gitbook.io/wise/}
+ */
 
-    string public baseURI;
-    string public baseExtension;
+contract wstETHManager is OwnableMaster, wstETHFarm, MinterReserver {
 
-    // Tracks increment of keys
-    uint256 public totalMinted;
-
-    // Tracks reserved counter
-    uint256 public totalReserved;
-
-    // Tracks amount of reusable NFTs
-    uint256 public availableNFTCount;
-
-    // Maps access to wiseLendingNFT through farmNFT
-    mapping(uint256 => uint256) public farmingKeys;
-
-    // Tracks reusable wiseLendingNFTs after burn
-    mapping(uint256 => uint256) public availableNFTs;
-
-    // Tracks reserved NFTs mapped to address
-    mapping(address => uint256) public reserved;
-
-    modifier onlyKeyOwner(
-        uint256 _keyId
-    ) {
-        if (isOwner(_keyId, msg.sender) == false) {
-            revert InvalidOwner();
-        }
-        _;
+    /**
+     * @dev Standard receive functions forwarding
+     * directly send ETH to the master address.
+     */
+    receive()
+        external
+        payable
+    {
+        emit ETHReceived(
+            msg.value,
+            msg.sender
+        );
     }
 
     constructor(
-        string memory _name,
-        string memory _symbol,
-        string memory _initBaseURI,
         address _wiseLendingAddress,
-        uint256 _collateralFactor
+        uint256 _collateralFactor,
+        address _powerFarmNFTs
     )
-        ERC721(
-            _name,
-            _symbol
-        )
         OwnableMaster(
             msg.sender
         )
-        wstETHFarm(
+        MinterReserver(
+            _powerFarmNFTs
+        )
+        wstETHFarmDeclarations(
             _wiseLendingAddress,
             _collateralFactor
         )
     {
-        baseURI = _initBaseURI;
-    }
-
-    function _incrementReserved()
-        internal
-        returns (uint256)
-    {
-        return ++totalReserved;
     }
 
     function changeMinDeposit(
@@ -80,32 +73,6 @@ contract wstETHManager is ERC721Enumerable, OwnableMaster, wstETHFarm {
             _newMinDeposit,
             block.timestamp
         );
-    }
-
-    function _getNextReserveKey()
-        internal
-        returns (uint256)
-    {
-        return totalMinted + _incrementReserved();
-    }
-
-    function _reserveKey(
-        address _userAddress,
-        uint256 _wiseLendingNFT
-    )
-        internal
-        returns (uint256)
-    {
-        if (reserved[_userAddress] > 0) {
-            revert AlreadyReserved();
-        }
-
-        uint256 keyId = _getNextReserveKey();
-
-        reserved[_userAddress] = keyId;
-        farmingKeys[keyId] = _wiseLendingNFT;
-
-        return keyId;
     }
 
     function getMinAmountOut(
@@ -140,7 +107,7 @@ contract wstETHManager is ERC721Enumerable, OwnableMaster, wstETHFarm {
      * disableing the openPosition function. Allowing user
      * to manualy payback and withdraw.
      */
-    function shutdownFarm(
+    function shutDownFarm(
         bool _state
     )
         external
@@ -151,20 +118,6 @@ contract wstETHManager is ERC721Enumerable, OwnableMaster, wstETHFarm {
         emit FarmStatus(
             _state,
             block.timestamp
-        );
-    }
-
-    /**
-     * @dev Standard receive functions forwarding
-     * directly send ETH to the master address.
-     */
-    receive()
-        external
-        payable
-    {
-        emit ETHReceived(
-            msg.value,
-            msg.sender
         );
     }
 
@@ -268,6 +221,7 @@ contract wstETHManager is ERC721Enumerable, OwnableMaster, wstETHFarm {
         returns (uint256)
     {
         if (availableNFTCount == 0) {
+
             uint256 nftId = POSITION_NFT.mintPositionForUser(
                 address(this)
             );
@@ -306,10 +260,10 @@ contract wstETHManager is ERC721Enumerable, OwnableMaster, wstETHFarm {
             _keyId
         ];
 
-        if (reserved[msg.sender] == _keyId) {
-            reserved[msg.sender] = 0;
+        if (reservedKeys[msg.sender] == _keyId) {
+            reservedKeys[msg.sender] = 0;
         } else {
-            _burn(
+            FARMS_NFTS.burnKey(
                 _keyId
             );
         }
@@ -370,235 +324,6 @@ contract wstETHManager is ERC721Enumerable, OwnableMaster, wstETHFarm {
             farmingKeys[_keyId],
             _withdrawShares,
             block.timestamp
-        );
-    }
-
-    function isOwner(
-        uint256 _keyId,
-        address _owner
-    )
-        public
-        view
-        returns (bool)
-    {
-        if (reserved[_owner] == _keyId) {
-            return true;
-        }
-
-        if (ownerOf(_keyId) == _owner) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function _mintKeyForUser(
-        uint256 _keyId,
-        address _userAddress
-    )
-        internal
-        returns (uint256)
-    {
-        if (_keyId == 0) {
-            revert InvalidKey();
-        }
-
-        delete reserved[
-            _userAddress
-        ];
-
-        _mint(
-            _userAddress,
-            _keyId
-        );
-
-        totalMinted++;
-        totalReserved--;
-
-        return _keyId;
-    }
-
-    function approveMint(
-        address _spender,
-        uint256 _keyId
-    )
-        external
-    {
-        if (reserved[msg.sender] == _keyId) {
-            _mintKeyForUser(
-                _keyId,
-                msg.sender
-            );
-        }
-
-        approve(
-            _spender,
-            _keyId
-        );
-    }
-
-    function mintReserved()
-        external
-        returns (uint256)
-    {
-        return _mintKeyForUser(
-            reserved[
-                msg.sender
-            ],
-            msg.sender
-        );
-    }
-
-    /**
-     * @dev Returns positions of owner
-     */
-    function walletOfOwner(
-        address _owner
-    )
-        external
-        view
-        returns (uint256[] memory)
-    {
-        uint256 reservedId = reserved[
-            _owner
-        ];
-
-        uint256 ownerTokenCount = balanceOf(
-            _owner
-        );
-
-        uint256 reservedCount;
-
-        if (reservedId > 0) {
-            reservedCount = 1;
-        }
-
-        uint256[] memory tokenIds = new uint256[](
-            ownerTokenCount + reservedCount
-        );
-
-        uint256 i;
-
-        for (i; i < ownerTokenCount;) {
-            tokenIds[i] = tokenOfOwnerByIndex(
-                _owner,
-                i
-            );
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        if (reservedId > 0) {
-            tokenIds[i] = reservedId;
-        }
-
-        return tokenIds;
-    }
-
-    /**
-     * @dev Allows to update base target for MetaData.
-     */
-    function setBaseURI(
-        string memory _newBaseURI
-    )
-        external
-        onlyMaster
-    {
-        baseURI = _newBaseURI;
-
-        emit BaseUrlChange(
-            _newBaseURI,
-            block.timestamp
-        );
-    }
-
-    function setBaseExtension(
-        string memory _newBaseExtension
-    )
-        external
-        onlyMaster
-    {
-        baseExtension = _newBaseExtension;
-
-        emit BaseExtensionChange(
-            _newBaseExtension,
-            block.timestamp
-        );
-    }
-
-    /**
-     * @dev Returns path to MetaData URI
-     */
-    function tokenURI(
-        uint256 _tokenId
-    )
-        public
-        view
-        override
-        returns (string memory)
-    {
-        require(
-            _exists(_tokenId) == true,
-            "wstETHManager: WRONG_TOKEN"
-        );
-
-        string memory currentBaseURI = baseURI;
-
-        if (bytes(currentBaseURI).length == 0) {
-            return "";
-        }
-
-        return string(
-            abi.encodePacked(
-                currentBaseURI,
-                _toString(_tokenId),
-                baseExtension
-            )
-        );
-    }
-
-    /**
-     * @dev Converts tokenId uint to string.
-     */
-    function _toString(
-        uint256 _tokenId
-    )
-        internal
-        pure
-        returns (string memory str)
-    {
-        if (_tokenId == 0) {
-            return "0";
-        }
-
-        uint256 j = _tokenId;
-        uint256 length;
-
-        while (j != 0) {
-            length++;
-            j /= 10;
-        }
-
-        bytes memory bstr = new bytes(
-            length
-        );
-
-        uint256 k = length;
-        j = _tokenId;
-
-        while (j != 0) {
-            bstr[--k] = bytes1(
-                uint8(
-                    48 + (j % 10)
-                )
-            );
-            j /= 10;
-        }
-
-        str = string(
-            bstr
         );
     }
 }

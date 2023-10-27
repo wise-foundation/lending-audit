@@ -17,6 +17,7 @@ import "../../OwnableMaster.sol";
 import "../../TransferHub/TransferHelper.sol";
 import "../../TransferHub/ApprovalHelper.sol";
 
+error NotAllowed();
 error AlreadySet();
 error OutOfBound();
 error Deactivated();
@@ -28,13 +29,16 @@ error PositionNotEmpty();
 error NotBalancerVault();
 error DebtratioTooHigh();
 
-abstract contract SDaiFarmDeclarations is
+abstract contract sDaiFarmDeclarations is
     TransferHelper,
     ApprovalHelper,
     OwnableMaster
 {
     // Bool indicating that a power farm is deactivated
     bool public isShutdown;
+
+    // Bool for reentrancy guard during leverage
+    bool internal allowEnter;
 
     // Array of ERC20 interfaces for balancer flashloan
     IERC20[] public globalTokens;
@@ -53,8 +57,6 @@ abstract contract SDaiFarmDeclarations is
 
     // Saving the chosen borrow token for opening the position per {_nftId}
     mapping(uint256 => uint256) public nftToIndex;
-
-    // Interfaces -----------------------------------------
 
     ISDai public immutable SDAI;
     IAave public immutable AAVE;
@@ -100,8 +102,6 @@ abstract contract SDaiFarmDeclarations is
         USDC,
         USDT
     }
-
-    // Constructor -----------------------------------------
 
     constructor(
         address _wiseLendingAddress,
@@ -248,32 +248,32 @@ abstract contract SDaiFarmDeclarations is
         );
     }
 
-    modifier checkOwner(
-        uint256 _nftId
-    ) {
-        WISE_SECURITY.checkOwnerPosition(
-            _nftId,
-            msg.sender
-        );
-        _;
-    }
-
-    modifier checkActivated() {
+    modifier isActive() {
         if (isShutdown == true) {
             revert Deactivated();
         }
         _;
     }
 
-    event RegistrationFarm(
-        uint256 nftId,
-        uint256 index,
+    event FarmEntry(
+        uint256 indexed keyId,
+        uint256 indexed wiseLendingNFT,
+        uint256 indexed leverage,
+        uint256 amount,
+        uint256 minOutAmount,
         uint256 timestamp
     );
 
-    event UnregistrationFarm(
-        uint256 nftId,
-        uint256 previousIndex,
+    event FarmExit(
+        uint256 indexed keyId,
+        uint256 indexed wiseLendingNFT,
+        uint256 maxInAmount,
+        uint256 timestamp
+    );
+
+    event RegistrationFarm(
+        uint256 indexed nftId,
+        uint256 indexed index,
         uint256 timestamp
     );
 }

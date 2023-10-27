@@ -4,29 +4,27 @@ pragma solidity =0.8.21;
 
 import "forge-std/Test.sol";
 
-import "../../WiseLending.sol";
-import "../../OwnableMaster.sol";
-
+import "../../TestInterfaces/IERC20Test.sol";
 import "../../TestInterfaces/IAaveTest.sol";
 import "../../TestInterfaces/IWiseLendingTest.sol";
 import "../../TestInterfaces/IAaveHubTest.sol";
 import "../../TestInterfaces/IOracleHubTest.sol";
 import "../../TestInterfaces/INftTest.sol";
-import "../../TestInterfaces/IERC20Test.sol";
 import "../../TestInterfaces/IWiseSecurityTest.sol";
 
 import "../../TransferHub/TransferHelper.sol";
 import "../../TransferHub/ApprovalHelper.sol";
 
-import "./sDaiFarmTester.sol";
+import "./wstETHFarmTester.sol";
 
-contract sDaiFarmTestBase is Test, TransferHelper, ApprovalHelper {
+contract wstETHFarmBase is Test, TransferHelper, ApprovalHelper {
 
     address public WISE_DEPLOYER = 0x641AD78BAca220C5BD28b51Ce8e0F495e85Fe689;
 
-    address public DAI_WHALE = 0xaD0135AF20fa82E106607257143d0060A7eB5cBf;
-    address public USDC_WHALE = 0xa993C72762815AF2bFC1afFED15c0cb4f3Ba0634;
-    address public USDT_WHALE = 0x68841a1806fF291314946EebD0cdA8b348E73d6D;
+    address internal constant AAVE_WETH_ADDRESS = 0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8;
+    address internal constant WST_ETH_ADDRESS = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+    address internal constant WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address internal constant ST_ETH_ADDRESS = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
     address public constant WISE_ORACLE_ADD = 0xD2cAa748B66768aC9c53A5443225Bdf1365dd4B6;
     address public constant WISE_SECURITY_ADD = 0x5F8B6c17C3a6EF18B5711f9b562940990658400D;
@@ -34,17 +32,6 @@ contract sDaiFarmTestBase is Test, TransferHelper, ApprovalHelper {
     address public constant AAVE_HUB_ADD = 0x4307d8207f2C429f0dCbd9051b5B1d638c3b7fbB;
     address public constant NFT_ADD = 0x9D6d4e2AfAB382ae9B52807a4B36A8d2Afc78b07;
     address public constant AAVE_ADD = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
-
-    address public constant SDAI_ADDRESS = 0x83F20F44975D03b1b09e64809B757c47f942BEeA;
-    address public constant DSS_PSM_ADD = 0x89B78CfA322F6C5dE0aBcEecab66Aee45393cC5A;
-
-    address public constant DAI_ADDRESS = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    address public constant USDT_ADDRESS = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-    address public constant USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-
-    address public constant AAVE_DAI_ADDRESS = 0x018008bfb33d285247A21d44E50697654f754e63;
-    address public constant AAVE_USDT_ADDRESS = 0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a;
-    address public constant AAVE_USDC_ADDRESS = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
 
     uint256 public constant PRECISION_FACTOR_E6 = 1E6;
     uint256 public constant PRECISION_FACTOR_E8 = 1E8;
@@ -92,46 +79,20 @@ contract sDaiFarmTestBase is Test, TransferHelper, ApprovalHelper {
         WISE_ORACLE_ADD
     );
 
-    IERC20Test public DAI = IERC20Test(
-        DAI_ADDRESS
+    IERC20Test public constant WETH = IERC20Test(
+        WETH_ADDRESS
     );
 
-    IERC20Test public USDT = IERC20Test(
-        USDT_ADDRESS
+    IERC20Test public constant WST_ETH = IERC20Test(
+        WST_ETH_ADDRESS
     );
 
-    IERC20Test public USDC = IERC20Test(
-        USDC_ADDRESS
+    IERC20Test public constant ST_ETH = IERC20Test(
+        ST_ETH_ADDRESS
     );
 
     receive()
         external
         payable
     {}
-
-    event ERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes _data
-    );
-
-    function onERC721Received(
-        address _operator,
-        address _from,
-        uint256 _tokenId,
-        bytes calldata _data
-    )
-        external
-        returns (bytes4)
-    {
-        emit ERC721Received(
-            _operator,
-            _from,
-            _tokenId,
-            _data
-        );
-
-        return this.onERC721Received.selector;
-    }
 }

@@ -2,93 +2,9 @@
 
 pragma solidity =0.8.21;
 
-/**
- * @author Christoph Krpoun
- * @author René Hochmuth
- * @author Vitally Marinchenko
- */
-
 import "./sDaiFarmLeverageLogic.sol";
 
-/**
- * @dev The sDai power farm is an automated leverage contract working as a
- * second layer for Wise lending. It needs to be registed inside the latter one
- * to have access to the pools. It uses BALANCER FLASHLOANS as well as UNISWAPV3,
- * the sDAI contract and the DSS-PSM contract for fee-less exchanging of USDC <-> DAI.
- * The corresponding contract addresses can be found in {sDaiFarmDeclarations.sol}.
- *
- * It allows to open leverage positions with different stable borrow tokens, namely
- * USDC, USDT and DAI. For opening a position the user needs to have {_initalAmount}
- * of DAI in the wallet. A maximum of 15x leverage is possible. Once the user
- * registers with its position NFT that NFT is locked for ALL other interactions with
- * wise lending as long as the positon is open!
- *
- * For more infos see {https://wisesoft.gitbook.io/wise/}
- */
-
-contract SDaiFarm is SDaiFarmLeverageLogic {
-
-    constructor(
-        address _wiseLendingAddress,
-        uint256 _collateralFactor
-    )
-        SDaiFarmDeclarations(
-            _wiseLendingAddress,
-            _collateralFactor
-        )
-    {}
-
-    /**
-     * @dev External function deactivating the power farm by
-     * disableing the openPosition function. Allowing user
-     * to manualy payback and withdraw.
-     */
-    function shutdownFarm(
-        bool _state
-    )
-        external
-        onlyMaster
-    {
-        isShutdown = _state;
-    }
-
-    /**
-     * @dev Function to register for sDAI power farms.
-     * Needs to be called before open a postion. User
-     * can choose used borrow token with {_index}:
-     * 0 : DAI
-     * 1 : USDC
-     * 2 : USDT
-     */
-    function registrationFarm(
-        uint256 _nftId,
-        uint256 _index
-    )
-        external
-        checkActivated
-        checkOwner(_nftId)
-    {
-        _registrationFarm(
-            _nftId,
-            _index
-        );
-    }
-
-    /**
-     * @dev Function to unregister from sDAI power
-     * farms to enable the {_nftId} for all other
-     * wise lending functions again.
-     */
-    function unregistrationFarm(
-        uint256 _nftId
-    )
-        external
-        checkOwner(_nftId)
-    {
-        _unregistrationFarm(
-            _nftId
-        );
-    }
+abstract contract sDaiFarm is sDaiFarmLeverageLogic {
 
     /**
      * @dev External view function approximating the
@@ -149,7 +65,9 @@ contract SDaiFarm is SDaiFarmLeverageLogic {
         view
         returns (uint256)
     {
-        uint256 totalCollateral = getTotalWeightedCollateralUSD(_nftId);
+        uint256 totalCollateral = getTotalWeightedCollateralUSD(
+            _nftId
+        );
 
         if (totalCollateral == 0) {
             return 0;
@@ -158,212 +76,6 @@ contract SDaiFarm is SDaiFarmLeverageLogic {
         return getPositionBorrowUSD(_nftId)
             * PRECISION_FACTOR_E18
             / totalCollateral;
-    }
-
-    /**
-     * @dev Function to open a leveraged position. User
-     * must be the owner of the used position with {_nftId}.
-     * A maximum leverage of 15 (in orders of 1E18) is allowed.
-     * The inital amount of DAI defines the position amount by the
-     * formula {_initialAmount * _leverage} and needs to
-     * have a correspoding USD value of at least 5000 USD.
-     * {_minOutAmount} needs to be passed from the UI when USDT
-     * is used as borrow token. (querring quoteExactInputSingle
-     * with a callStatic from quoterContract [uniswapV3])
-     */
-    function openPosition(
-        uint256 _nftId,
-        uint256 _initialAmount,
-        uint256 _leverage,
-        uint256 _minOutAmount
-    )
-        external
-        checkActivated
-        checkOwner(_nftId)
-        updatePools(_nftId)
-    {
-        _openPosition(
-            _nftId,
-            _initialAmount,
-            _leverage,
-            _minOutAmount
-        );
-    }
-
-    /**
-     * @dev Wrapper function combining registration
-     * and opening of a postion.
-     */
-    function openPositionRegister(
-        uint256 _nftId,
-        uint256 _index,
-        uint256 _initialAmount,
-        uint256 _leverage,
-        uint256 _minOutAmount
-    )
-        external
-        checkActivated
-        checkOwner(_nftId)
-        updatePools(_nftId)
-    {
-        _registrationFarm(
-            _nftId,
-            _index
-        );
-
-        _openPosition(
-            _nftId,
-            _initialAmount,
-            _leverage,
-            _minOutAmount
-        );
-    }
-
-    /**
-     * @dev Function to close a leveraged position. User
-     * must be the owner of the used position with {_nftId}.
-     * The return token is DAI and gets directly transferd in
-     * the owners wallet after closing.
-     * {_maxInAmount} needs to be passed from the UI when USDT
-     * is used as borrow token. (querring quoteExactOutputSingle
-     * with a callStatic from quoterContract [uniswapV3])
-     */
-    function closingPosition(
-        uint256 _nftId,
-        uint256 _maxInAmount
-    )
-        external
-        checkOwner(_nftId)
-        updatePools(_nftId)
-    {
-        _closingPosition(
-            _nftId,
-            _maxInAmount
-        );
-    }
-
-    /**
-     * @dev Wrapper function combining unregistration
-     * and closing of a postion.
-     */
-    function closePositionUnregsiter(
-        uint256 _nftId,
-        uint256 _maxInAmount
-    )
-        external
-        checkOwner(_nftId)
-        updatePools(_nftId)
-    {
-        _closingPosition(
-            _nftId,
-            _maxInAmount
-        );
-
-        _unregistrationFarm(
-            _nftId
-        );
-    }
-
-    /**
-     * @dev Manually payback function for users. Takes
-     * {_paybackShares} which can be converted
-     * into token with {paybackAmount()} or vice verse
-     * with {calculateBorrowShares()} from wise lending
-     * contract.
-     */
-    function manuallyPaybackShares(
-        uint256 _nftId,
-        uint256 _paybackShares
-    )
-        external
-        updatePools(_nftId)
-    {
-        address paybackTokenAddress = aaveTokenAddresses[
-            nftToIndex[_nftId]
-        ];
-
-        uint256 paybackAmount = WISE_LENDING.paybackAmount(
-            paybackTokenAddress,
-            _paybackShares
-        );
-
-        _safeTransferFrom(
-            paybackTokenAddress,
-            msg.sender,
-            address(this),
-            paybackAmount
-        );
-
-        WISE_LENDING.paybackExactShares(
-            _nftId,
-            paybackTokenAddress,
-            _paybackShares
-        );
-    }
-
-    /**
-     * @dev Manually withdraw function for users. Takes
-     * {_withdrawShares} which can be converted
-     * into token with {cashoutAmount()} or vice verse
-     * with {calculateLendingShares()} from wise lending
-     * contract.
-     */
-    function manuallyWithdrawShares(
-        uint256 _nftId,
-        uint256 _withdrawShares
-    )
-        external
-        updatePools(_nftId)
-    {
-        uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
-            SDAI_ADDRESS,
-            _withdrawShares
-        );
-
-        if (_checkBorrowLimit(_nftId, SDAI_ADDRESS, withdrawAmount) == false) {
-            revert ResultsInBadDebt();
-        }
-
-        withdrawAmount = WISE_LENDING.withdrawOnBehalfExactShares(
-            _nftId,
-            SDAI_ADDRESS,
-            _withdrawShares
-        );
-
-        _safeTransfer(
-            SDAI_ADDRESS,
-            msg.sender,
-            withdrawAmount
-        );
-    }
-
-    /**
-     * @dev Liquidation function for open power farm
-     * postions which have a debtratio greater 100 %.
-     *
-     * NOTE: The borrow token is defined by the positon
-     * and thus cannot be usseted by the liquidator.
-     * Since the token are borrwed from an aave pool it
-     * is always an aave token derivative!
-     * The receiving token is always sDAI.
-     */
-    function liquidatePartiallyFromToken(
-        uint256 _nftId,
-        uint256 _nftIdLiquidator,
-        uint256 _shareAmountToPay
-    )
-        external
-        updatePools(_nftId)
-        returns (
-            uint256 paybackAmount,
-            uint256 receivingAmount
-        )
-    {
-        return _coreLiquidation(
-            _nftId,
-            _nftIdLiquidator,
-            _shareAmountToPay
-        );
     }
 
     /**
@@ -386,14 +98,18 @@ contract SDaiFarm is SDaiFarmLeverageLogic {
             revert LeverageTooHigh();
         }
 
-        uint256 index = nftToIndex[_nftId];
+        uint256 index = nftToIndex[
+            _nftId
+        ];
 
         uint256 leveragedAmount = getLeverageAmount(
             _initialAmount,
             _leverage
         );
 
-        address borrowToken = borrowTokenAddresses[index];
+        address borrowToken = borrowTokenAddresses[
+            index
+        ];
 
         uint256 flashloanAmount = leveragedAmount
             - _initialAmount;
@@ -444,9 +160,13 @@ contract SDaiFarm is SDaiFarmLeverageLogic {
     )
         internal
     {
-        uint256 index = nftToIndex[_nftId];
+        uint256 index = nftToIndex[
+            _nftId
+        ];
 
-        address aaveToken = aaveTokenAddresses[index];
+        address aaveToken = aaveTokenAddresses[
+            index
+        ];
 
         uint256 borrowShares = _getPositionBorrowShares(
             _nftId,
@@ -497,8 +217,6 @@ contract SDaiFarm is SDaiFarmLeverageLogic {
             revert OutOfBound();
         }
 
-        nftToIndex[_nftId] = _index;
-
         WISE_LENDING.setRegistrationIsolationPool(
             _nftId,
             true
@@ -507,35 +225,6 @@ contract SDaiFarm is SDaiFarmLeverageLogic {
         emit RegistrationFarm(
             _nftId,
             _index,
-            block.timestamp
-        );
-    }
-
-    /**
-     * @dev Internal function combining the core
-     * logic for {_unregistrationFarm()}.
-     */
-    function _unregistrationFarm(
-        uint256 _nftId
-    )
-        internal
-    {
-        if (_checkPositionUsed(_nftId) == true) {
-            revert PositionNotEmpty();
-        }
-
-        uint256 previousIndex = nftToIndex[_nftId];
-
-        delete nftToIndex[_nftId];
-
-        WISE_LENDING.setRegistrationIsolationPool(
-            _nftId,
-            false
-        );
-
-        emit UnregistrationFarm(
-            _nftId,
-            previousIndex,
             block.timestamp
         );
     }

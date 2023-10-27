@@ -2,9 +2,9 @@
 
 pragma solidity =0.8.21;
 
-import "./wstETHFarmLeverageLogic.sol";
+import "./PendleWstETHLeverageLogic.sol";
 
-abstract contract wstETHFarm is wstETHFarmLeverageLogic {
+abstract contract PendleWstETHFarm is PendleWstETHLeverageLogic {
 
     /**
      * @dev External view function approximating the
@@ -15,7 +15,7 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
     function getApproxNetAPY(
         uint256 _initialAmount,
         uint256 _leverage,
-        uint256 _wstETHAPY
+        uint256 _pendleAPY
     )
         external
         view
@@ -27,7 +27,7 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
         return _getApproxNetAPY(
             _initialAmount,
             _leverage,
-            _wstETHAPY
+            _pendleAPY
         );
     }
 
@@ -54,6 +54,7 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
      * @dev View functions returning the current
      * debt ratio of the postion with {_nftId}
      */
+    /*
     function getLiveDebtRatio(
         uint256 _nftId
     )
@@ -61,18 +62,11 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
         view
         returns (uint256)
     {
-        uint256 totalCollateral = getTotalWeightedCollateralUSD(
+        return _getLiveDebtRatio(
             _nftId
         );
-
-        if (totalCollateral == 0) {
-            return 0;
-        }
-
-        return getPositionBorrowUSD(_nftId)
-            * PRECISION_FACTOR_E18
-            / totalCollateral;
     }
+    */
 
     /**
      * @dev Liquidation function for open power farm
@@ -80,9 +74,9 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
      *
      * NOTE: The borrow token is defined by the power farm
      * and is always aave wrapped ETH.
-     * The receiving token is always wrapped staked ETH.
+     * The receiving token is always .....
      */
-    function liquidatePartiallyFromToken(
+    function liquidatePartially(
         uint256 _nftId,
         uint256 _nftIdLiquidator,
         uint256 _shareAmountToPay
@@ -108,6 +102,7 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
      * with {calculateBorrowShares()} from wise lending
      * contract.
      */
+    /*
     function _manuallyPaybackShares(
         uint256 _nftId,
         uint256 _paybackShares
@@ -132,6 +127,7 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
             _paybackShares
         );
     }
+    */
 
     /**
      * @dev Manually withdraw function for users. Takes
@@ -140,6 +136,7 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
      * with {calculateLendingShares()} from wise lending
      * contract.
      */
+    /*
     function _manuallyWithdrawShares(
         uint256 _nftId,
         uint256 _withdrawShares
@@ -147,7 +144,7 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
         internal
     {
         uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
-            WST_ETH_ADDRESS,
+            address(HYBRID_TOKEN),
             _withdrawShares
         );
 
@@ -155,18 +152,19 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
             revert ResultsInBadDebt();
         }
 
-        withdrawAmount = WISE_LENDING.withdrawExactShares(
+        withdrawAmount = WISE_LENDING.withdrawOnBehalfExactShares(
             _nftId,
-            WST_ETH_ADDRESS,
+            address(HYBRID_TOKEN),
             _withdrawShares
         );
 
         _safeTransfer(
-            WST_ETH_ADDRESS,
+            address(HYBRID_TOKEN),
             msg.sender,
             withdrawAmount
         );
     }
+    */
 
     /**
      * @dev Internal function combining the core
@@ -175,7 +173,10 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
     function _openPosition(
         uint256 _nftId,
         uint256 _initialAmount,
-        uint256 _leverage
+        uint256 _leverage,
+        uint256 _overhangFetched,
+        bool _ptGreaterFetched,
+        bytes calldata _swapDataFetched
     )
         internal
     {
@@ -191,7 +192,12 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
         uint256 flashloanAmount = leveragedAmount
             - _initialAmount;
 
-        if (_aboveMinDepositAmount(leveragedAmount) == false) {
+        uint256 equivUSD = ORACLE_HUB.getTokensInUSD(
+            WETH_ADDRESS,
+            leveragedAmount
+        );
+
+        if (equivUSD >= MIN_DEPOSIT_USD_AMOUNT == false) {
             revert AmountTooSmall();
         }
 
@@ -203,7 +209,10 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
                 _lendingShares: 0,
                 _borrowShares: 0,
                 _minAmountOut: 0,
-                _ethBack: false
+                _overhangFetched: _overhangFetched,
+                _ptGreaterFetched: _ptGreaterFetched,
+                _ethBack: false,
+                _swapDataFetched: _swapDataFetched
             }
         );
     }
@@ -218,38 +227,47 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
     function _closingPosition(
         uint256 _nftId,
         uint256 _minOutAmount,
-        bool _ethBack
+        bool _ethBack,
+        uint256 _overhangFetched,
+        bool _ptGreaterFetched,
+        bytes memory _swapDataFetched
     )
+        redeemPt
         internal
     {
-        uint256 borrowShares = _getPositionBorrowShares(
-            _nftId
-        );
+        // FarmState memory farmStateCache = farmState;
 
-        uint256 lendingShares = _getPositionLendingShares(
-            _nftId
-        );
-
-        uint256 borrowAmount = _getPositionBorrowToken(
-            _nftId
-        );
+        NftInfo memory nftInfo = NftInfo({
+            borrowShares: _getPositionBorrowShares(
+                _nftId
+            ),
+            lendingShares: _getPositionLendingShares(
+                _nftId
+            ),
+            borrowAmount: _getPositionBorrowToken(
+                _nftId
+            )
+        });
 
         _executeBalancerFlashLoan(
             {
                 _nftId: _nftId,
-                _amount: borrowAmount,
+                _amount: nftInfo.borrowAmount,
                 _initialAmount: 0,
-                _lendingShares: lendingShares,
-                _borrowShares: borrowShares,
+                _lendingShares: nftInfo.lendingShares,
+                _borrowShares: nftInfo.borrowShares,
                 _minAmountOut: _minOutAmount,
-                _ethBack: _ethBack
+                _overhangFetched: _overhangFetched,
+                _ptGreaterFetched: _ptGreaterFetched,
+                _ethBack: _ethBack,
+                _swapDataFetched: _swapDataFetched
             }
         );
     }
 
     /**
-     * @dev Makes a call to WISE_LENDING to
-     * register {_nftId} for specific farm use.
+     * @dev Internal function combining the core
+     * logic for {_registrationFarm()}.
      */
     function _registrationFarm(
         uint256 _nftId
@@ -267,4 +285,3 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
         );
     }
 }
-

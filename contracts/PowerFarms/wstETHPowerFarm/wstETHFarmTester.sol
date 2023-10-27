@@ -8,14 +8,13 @@ contract wstETHFarmTester is wstETHManager {
 
     constructor(
         address _wiseLendingAddress,
-        uint256 _collateralFactor
+        uint256 _collateralFactor,
+        address _powerFarmNFTs
     )
         wstETHManager(
-            "keyNFT",
-            "keyNFT",
-            "meta-path",
             _wiseLendingAddress,
-            _collateralFactor
+            _collateralFactor,
+            _powerFarmNFTs
         )
     {}
 
