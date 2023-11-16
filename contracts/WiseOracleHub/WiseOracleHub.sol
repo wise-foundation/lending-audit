@@ -131,30 +131,6 @@ contract WiseOracleHub is OracleHelper {
         return _tokenDecimals[_tokenAddress];
     }
 
-    // @TODO: Delete later, keep for backward compatibility
-    function getTokensInUSD(
-        address _tokenAddress,
-        uint256 _tokenAmount
-    )
-        external
-        view
-        returns (uint256)
-    {
-        uint8 tokenDecimals = _tokenDecimals[
-            _tokenAddress
-        ];
-
-        return _decimalsETH < tokenDecimals
-            ? _tokenAmount
-                * latestResolver(_tokenAddress)
-                / 10 ** decimals(_tokenAddress)
-                / 10 ** (tokenDecimals - _decimalsETH)
-            : _tokenAmount
-                * 10 ** (_decimalsETH - tokenDecimals)
-                * latestResolver(_tokenAddress)
-                / 10 ** decimals(_tokenAddress);
-    }
-
     /**
      * @dev Returns USD value of a given token
      * amount in order of 1E18 decimal precision.
@@ -204,30 +180,6 @@ contract WiseOracleHub is OracleHelper {
                 * 10 ** (_decimalsETH - tokenDecimals)
                 * latestResolver(_tokenAddress)
                 / 10 ** decimals(_tokenAddress);
-    }
-
-    // @TODO: Delete later, keep for backward compatibility
-    function getTokensFromUSD(
-        address _tokenAddress,
-        uint256 _usdValue
-    )
-        external
-        view
-        returns (uint256)
-    {
-        uint8 tokenDecimals = _tokenDecimals[
-            _tokenAddress
-        ];
-
-        return _decimalsETH < tokenDecimals
-            ? _usdValue
-                * 10 ** (tokenDecimals - _decimalsETH)
-                * 10 ** decimals(_tokenAddress)
-                / latestResolver(_tokenAddress)
-            : _usdValue
-                * 10 ** decimals(_tokenAddress)
-                / latestResolver(_tokenAddress)
-                / 10 ** (_decimalsETH - tokenDecimals);
     }
 
     /**
