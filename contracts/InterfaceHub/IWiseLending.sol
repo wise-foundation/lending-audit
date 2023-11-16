@@ -53,7 +53,8 @@ interface IWiseLending {
 
     function calculateBorrowShares(
         address _poolToken,
-        uint256 _amount
+        uint256 _amount,
+        bool _maxSharePrice
     )
         external
         view
@@ -179,7 +180,8 @@ interface IWiseLending {
 
     function calculateLendingShares(
         address _poolToken,
-        uint256 _amount
+        uint256 _amount,
+        bool _maxSharePrice
     )
         external
         view
@@ -294,11 +296,32 @@ interface IWiseLending {
         external
         view
         returns (uint256);
+    
+    function collateralizeDeposit(
+        uint256 _nftId,
+        address _poolToken
+    )
+        external;
+    
+    function approve(
+        address _spender,
+        address _poolToken,
+        uint256 _amount
+    )
+        external;
 
     function withdrawExactShares(
         uint256 _nftId,
         address _poolToken,
         uint256 _shares
+    )
+        external
+        returns (uint256);
+    
+    function withdrawExactAmount(
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount
     )
         external
         returns (uint256);
@@ -439,7 +462,16 @@ interface IWiseLending {
         returns (uint256);
 
     function cashoutAmount(
-        address _token,
+        address _poolToken,
+        uint256 _shares,
+        bool _maxAmount
+    )
+        external
+        view
+        returns (uint256);
+
+    function cashoutAmount(
+        address _poolToken,
         uint256 _shares
     )
         external

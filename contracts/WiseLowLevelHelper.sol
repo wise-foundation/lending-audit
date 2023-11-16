@@ -470,4 +470,17 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
     {
         globalPoolData[_poolToken].poolFee = _newFee;
     }
+
+    function _checkOwnerPosition(
+        uint256 _nftId,
+        address _msgSender
+    )
+        internal
+        view
+    {
+        WISE_SECURITY.checkOwnerPosition(
+            _nftId,
+            _msgSender
+        );
+    }
 }

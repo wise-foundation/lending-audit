@@ -19,9 +19,25 @@ interface IWiseOracleHub {
         view
         returns (uint256);
 
+    function getTokensFromETH(
+        address _tokenAddress,
+        uint256 _ethValue
+    )
+        external
+        view
+        returns (uint256);
+
     function getTokensInUSD(
         address _tokenAddress,
         uint256 _amount
+    )
+        external
+        view
+        returns (uint256);
+
+    function getTokensInETH(
+        address _tokenAddress,
+        uint256 _tokenAmount
     )
         external
         view
@@ -35,6 +51,11 @@ interface IWiseOracleHub {
         returns (bool);
 
     function decimalsUSD()
+        external
+        pure
+        returns (uint8);
+
+    function decimalsETH()
         external
         pure
         returns (uint8);

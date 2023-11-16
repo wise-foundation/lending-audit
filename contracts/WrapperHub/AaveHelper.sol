@@ -9,6 +9,10 @@ abstract contract AaveHelper is Declarations {
     modifier syncPool(
         address _underlyingToken
     ) {
+        if (sendingProgress == true) {
+            revert InvalidAction();
+        }
+
         if (WISE_LENDING.verifiedIsolationPool(msg.sender) == false) {
             WISE_LENDING.preparePool(
                 aaveTokenAddress[
@@ -126,8 +130,11 @@ abstract contract AaveHelper is Declarations {
         ];
 
         uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
-            aaveToken,
-            _shareAmount
+            {
+                _poolToken: aaveToken,
+                _shares: _shareAmount,
+                _maxAmount: false
+            }
         );
 
         WISE_SECURITY.checksWithdraw(
@@ -279,6 +286,8 @@ abstract contract AaveHelper is Declarations {
         );
     }
 
+    bool internal sendingProgress;
+
     function _sendValue(
         address _recipient,
         uint256 _amount
@@ -289,9 +298,13 @@ abstract contract AaveHelper is Declarations {
             revert InvalidValue();
         }
 
+        sendingProgress = true;
+
         (bool success, ) = payable(_recipient).call{
             value: _amount
         }("");
+
+        sendingProgress = false;
 
         if (success == false) {
             revert FailedInnerCall();

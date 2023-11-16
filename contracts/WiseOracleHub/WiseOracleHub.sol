@@ -9,7 +9,6 @@ pragma solidity =0.8.21;
  */
 
 import "./OracleHelper.sol";
-import "../OwnableMaster.sol";
 
 /**
  * @dev WiseOracleHub is an onchain extension for price feeds (chainLink or others).
@@ -17,7 +16,7 @@ import "../OwnableMaster.sol";
  * multisig. Only the master can add new price feed <-> address pairs to the contract.
  *
  * One advantage is the linking of price feeds to their underlying token address.
- * Therefore, users can get the current USD value of a token by just knowing the token
+ * Therefore, users can get the current ETH value of a token by just knowing the token
  * address when calling {latestResolver}. It takes the answer from {latestRoundData}
  * for chainLink oracles as recommended from chainLink.
  *
@@ -26,32 +25,27 @@ import "../OwnableMaster.sol";
  * (See {latestResolver} implementation).
  *
  * Additionally, the oracleHub provides so called heartbeat checks if a token gets
- * still updated in expected time intervall.
+ * still updated in expected time interval.
  *
  */
 
-contract WiseOracleHub is OracleHelper, OwnableMaster {
+contract WiseOracleHub is OracleHelper {
 
-    constructor()
-        OwnableMaster(
-            msg.sender
+    constructor(
+        address _wethAddrss,
+        address _ethPricingFeed,
+        address _uniswapFactoryV3
+    )
+        Declarations(
+            _wethAddrss,
+            _ethPricingFeed,
+            _uniswapFactoryV3
         )
-    {}
-
-    /**
-     * @dev Returns USD values decimals
-     * meaning that 1.00 USD <=> 1E18.
-     */
-    function decimalsUSD()
-        external
-        pure
-        returns (uint8)
     {
-        return _decimalsUSD;
     }
 
     /**
-     * @dev Returns priceFeed latest USD value
+     * @dev Returns priceFeed latest ETH value
      * by passing the underlying token address.
      */
     function latestResolver(
@@ -61,33 +55,70 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
         view
         returns (uint256)
     {
-        if (_chainLinkIsDead(_tokenAddress) == true) {
+        if (chainLinkIsDead(_tokenAddress) == true) {
             revert OracleIsDead();
         }
 
-        (
-                ,
-                int256 answer,
-                ,
-                ,
+        UniTwapPoolInfo memory uniTwapPoolInfoStruct = uniTwapPoolInfo[
+            _tokenAddress
+        ];
 
-            ) = priceFeed[_tokenAddress].latestRoundData();
+        uint256 fetchTwapValue;
 
-        return uint256(answer);
+        if (uniTwapPoolInfoStruct.oracle > ZERO_ADDRESS){
+            fetchTwapValue = latestResolverTwap(
+                _tokenAddress
+            );
+        }
+
+        uint256 answer = _getChainlinkAnswer(
+            _tokenAddress
+        );
+
+        if (fetchTwapValue > 0) {
+
+            uint256 relativeDifference = _getRelativeDifference(
+                answer,
+                fetchTwapValue
+            );
+
+            _compareDifference(
+                relativeDifference
+            );
+        }
+
+        return answer;
     }
 
     /**
-     * @dev Returns priceFeed decimals by
-     * passing the underlying token address.
+     * @dev Returns Twaps latest USD value
+     * by passing the underlying token address.
      */
-    function decimals(
+    function latestResolverTwap(
         address _tokenAddress
     )
         public
         view
-        returns (uint8)
+        returns (uint256)
     {
-        return priceFeed[_tokenAddress].decimals();
+        UniTwapPoolInfo memory uniTwapPoolInfoStruct = uniTwapPoolInfo[
+            _tokenAddress
+        ];
+
+        if (uniTwapPoolInfoStruct.isUniPool == true) {
+
+            return _getTwapPrice(
+                _tokenAddress,
+                uniTwapPoolInfoStruct.oracle
+            )
+                / 10 ** (_decimalsWETH - decimals(_tokenAddress));
+        }
+
+        return _getTwapDerivatePrice(
+            _tokenAddress,
+            uniTwapPoolInfoStruct
+        )
+            / 10 ** (_decimalsWETH - decimals(_tokenAddress));
     }
 
     function getTokenDecimals(
@@ -100,13 +131,10 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
         return _tokenDecimals[_tokenAddress];
     }
 
-    /**
-     * @dev Returns USD value of a given token
-     * amount in order of 1E18 decimal precision.
-     */
+    // @TODO: Delete later, keep for backward compatibility
     function getTokensInUSD(
         address _tokenAddress,
-        uint256 _amount
+        uint256 _tokenAmount
     )
         external
         view
@@ -116,21 +144,69 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
             _tokenAddress
         ];
 
-        return _decimalsUSD < tokenDecimals
-            ? _amount
+        return _decimalsETH < tokenDecimals
+            ? _tokenAmount
                 * latestResolver(_tokenAddress)
                 / 10 ** decimals(_tokenAddress)
-                / 10 ** (tokenDecimals - _decimalsUSD)
-            : _amount
-                * 10 ** (_decimalsUSD - tokenDecimals)
+                / 10 ** (tokenDecimals - _decimalsETH)
+            : _tokenAmount
+                * 10 ** (_decimalsETH - tokenDecimals)
                 * latestResolver(_tokenAddress)
                 / 10 ** decimals(_tokenAddress);
     }
 
     /**
-     * @dev Converts USD value of a token into token amount with a
-     * current price. The order of the argument _usdValue is 1E18.
+     * @dev Returns USD value of a given token
+     * amount in order of 1E18 decimal precision.
      */
+    function getTokensPriceInUSD(
+        address _tokenAddress,
+        uint256 _tokenAmount
+    )
+        external
+        view
+        returns (uint256)
+    {
+        return getTokensInETH(
+            _tokenAddress,
+            _tokenAmount
+        )
+            * getETHPriceInUSD()
+            / 10 ** _decimalsUSD;
+    }
+
+    /**
+     * @dev Returns ETH value of a given token
+     * amount in order of 1E18 decimal precision.
+     */
+    function getTokensInETH(
+        address _tokenAddress,
+        uint256 _tokenAmount
+    )
+        public
+        view
+        returns (uint256)
+    {
+        if (_tokenAddress == WETH_ADDRESS) {
+            return _tokenAmount;
+        }
+
+        uint8 tokenDecimals = _tokenDecimals[
+            _tokenAddress
+        ];
+
+        return _decimalsETH < tokenDecimals
+            ? _tokenAmount
+                * latestResolver(_tokenAddress)
+                / 10 ** decimals(_tokenAddress)
+                / 10 ** (tokenDecimals - _decimalsETH)
+            : _tokenAmount
+                * 10 ** (_decimalsETH - tokenDecimals)
+                * latestResolver(_tokenAddress)
+                / 10 ** decimals(_tokenAddress);
+    }
+
+    // @TODO: Delete later, keep for backward compatibility
     function getTokensFromUSD(
         address _tokenAddress,
         uint256 _usdValue
@@ -143,15 +219,171 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
             _tokenAddress
         ];
 
-        return _decimalsUSD < tokenDecimals
+        return _decimalsETH < tokenDecimals
             ? _usdValue
-                * 10 ** (tokenDecimals - _decimalsUSD)
+                * 10 ** (tokenDecimals - _decimalsETH)
                 * 10 ** decimals(_tokenAddress)
                 / latestResolver(_tokenAddress)
             : _usdValue
                 * 10 ** decimals(_tokenAddress)
                 / latestResolver(_tokenAddress)
-                / 10 ** (_decimalsUSD - tokenDecimals);
+                / 10 ** (_decimalsETH - tokenDecimals);
+    }
+
+    /**
+     * @dev Converts USD value of a token into token amount with a
+     * current price. The order of the argument _usdValue is 1E18.
+     */
+    function getTokensPriceFromUSD(
+        address _tokenAddress,
+        uint256 _usdValue
+    )
+        external
+        view
+        returns (uint256)
+    {
+        return getTokensFromETH(
+            _tokenAddress,
+            _usdValue
+                * 10 ** _decimalsUSD
+                / getETHPriceInUSD()
+        );
+    }
+
+    /**
+     * @dev Adds a new token address to the oracleHub Twap.
+     * Can't overwrite existing mappings.
+     */
+    function addTwapOracle(
+        address _tokenAddress,
+        address _uniPoolAddress,
+        address _token0,
+        address _token1,
+        uint24 _fee
+    )
+        external
+        onlyMaster
+    {
+        address pool = _getPool(
+            _token0,
+            _token1,
+            _fee
+        );
+
+        _validateTokenAddress(
+            _tokenAddress,
+            _token0,
+            _token1
+        );
+
+        _validateTwapOracle(
+            _tokenAddress
+        );
+
+        _validatePoolAddress(
+            pool,
+            _uniPoolAddress
+        );
+
+        _validatePriceFeed(
+            _tokenAddress
+        );
+
+        _writeUniTwapPoolInfoStruct(
+            {
+                _tokenAddress: _tokenAddress,
+                _oracle: pool,
+                _isUniPool: true
+            }
+        );
+    }
+
+    /**
+     * @dev Adds a new token address to the oracleHub Twap as derivative.
+     * Can't overwrite existing mappings.
+     */
+    function addTwapOracleDerivative(
+        address _tokenAddress,
+        address _partnerTokenAddress,
+        address[2] calldata _uniPools,
+        address[2] calldata _token0Array,
+        address[2] calldata _token1Array,
+        uint24[2] calldata _feeArray
+    )
+        external
+        onlyMaster
+    {
+        _validatePriceFeed(
+            _tokenAddress
+        );
+
+        _validateTwapOracle(
+            _tokenAddress
+        );
+
+        _validateTokenAddress(
+            _tokenAddress,
+            _token0Array[1],
+            _token1Array[1]
+        );
+
+        uint256 i;
+        address pool;
+        uint256 length = _uniPools.length;
+
+        for (i; i < length; ++i) {
+            pool = _getPool(
+                _token0Array[i],
+                _token1Array[i],
+                _feeArray[i]
+            );
+
+            _validatePoolAddress(
+                pool,
+                _uniPools[i]
+            );
+        }
+
+        _writeUniTwapPoolInfoStructDerivative(
+            {
+                _tokenAddress: _tokenAddress,
+                _partnerTokenAddress: _partnerTokenAddress,
+                _oracleAddress: _uniPools[0],
+                _partnerOracleAddress: _uniPools[1],
+                _isUniPool: false
+            }
+        );
+    }
+
+    /**
+     * @dev Converts ETH value of a token into token amount with a
+     * current price. The order of the argument _ethAmount is 1E18.
+     */
+    function getTokensFromETH(
+        address _tokenAddress,
+        uint256 _ethAmount
+    )
+        public
+        view
+        returns (uint256)
+    {
+        if (_tokenAddress == WETH_ADDRESS) {
+            return _ethAmount;
+        }
+
+        uint8 tokenDecimals = _tokenDecimals[
+            _tokenAddress
+        ];
+
+        return _decimalsETH < tokenDecimals
+            ? _ethAmount
+                * 10 ** (tokenDecimals - _decimalsETH)
+                * 10 ** decimals(_tokenAddress)
+                / latestResolver(_tokenAddress)
+            : _ethAmount
+                * 10 ** decimals(_tokenAddress)
+                / latestResolver(_tokenAddress)
+                / 10 ** (_decimalsETH - tokenDecimals);
     }
 
     /**
@@ -231,12 +463,13 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
     function chainLinkIsDead(
         address _tokenAddress
     )
-        external
+        public
         view
         returns (bool state)
     {
-        uint256 i;
-        uint256 length = underlyingFeedTokens[_tokenAddress].length;
+        uint256 length = underlyingFeedTokens[
+            _tokenAddress
+        ].length;
 
         if (length == 0) {
             return _chainLinkIsDead(
@@ -244,7 +477,7 @@ contract WiseOracleHub is OracleHelper, OwnableMaster {
             );
         }
 
-        for (i; i < length;) {
+        for (uint256 i = 0; i < length;) {
 
             state = _chainLinkIsDead(
                 underlyingFeedTokens[_tokenAddress][i]

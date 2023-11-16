@@ -6,10 +6,6 @@ import "./CallOptionalReturn.sol";
 
 contract ApprovalHelper is CallOptionalReturn {
 
-    bytes4 private constant approveSelector = IERC20
-        .approve
-        .selector;
-
     /**
      * @dev
      * Allows to execute safe approve for a token
@@ -24,7 +20,7 @@ contract ApprovalHelper is CallOptionalReturn {
         _callOptionalReturn(
             _token,
             abi.encodeWithSelector(
-                approveSelector,
+                IERC20.approve.selector,
                 _spender,
                 _value
             )

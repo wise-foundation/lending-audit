@@ -82,14 +82,13 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
         FEE_MANAGER_NFT = POSITION_NFTS.FEE_MANAGER_NFT();
 
         incentiveMaster = _master;
-
         paybackIncentive = 5 * PRECISION_FACTOR_E16;
 
         incentiveOwnerA = 0xf69A0e276664997357BF987df83f32a1a3F80944;
         incentiveOwnerB = 0x8f741ea9C9ba34B5B8Afc08891bDf53faf4B3FE7;
 
-        incentiveUSD[incentiveOwnerA] = 196000 * PRECISION_FACTOR_E18;
-        incentiveUSD[incentiveOwnerB] = 213000 * PRECISION_FACTOR_E18;
+        incentiveETH[incentiveOwnerA] = 105 * PRECISION_FACTOR_E18;
+        incentiveETH[incentiveOwnerB] = 115 * PRECISION_FACTOR_E18;
     }
 
     // ---- Interfaces ----
@@ -109,11 +108,10 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
     // Interface wise oracleHub contract
     IWiseOracleHub public immutable ORACLE_HUB;
 
-
     // ---- Variables ----
 
     // Global total bad debt variable
-    uint256 public totalBadDebtUSD;
+    uint256 public totalBadDebtETH;
 
     // Incentive percentage for paying back bad debt
     uint256 public paybackIncentive;
@@ -133,7 +131,6 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
     // Address of incentive owner B
     address public incentiveOwnerB;
 
-
     // ---- Mappings ----
 
     // Bad debt of a specific position
@@ -142,8 +139,8 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
     // Amount of fee token inside feeManager
     mapping(address => uint256) public feeTokens;
 
-    // Open incetive amount for incentiveOwner in USD
-    mapping(address => uint256) public incentiveUSD;
+    // Open incetive amount for incentiveOwner in ETH
+    mapping(address => uint256) public incentiveETH;
 
     // Flag that specific token is already added
     mapping(address => bool) public poolTokenAdded;
@@ -173,7 +170,6 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
 
     // Base portion from gathered fees for incentiveOwners (0.5%)
     uint256 public constant INCENTIVE_PORTION = 5 * PRECISION_FACTOR_E15;
-
 
     // ---- Modifier ----
 

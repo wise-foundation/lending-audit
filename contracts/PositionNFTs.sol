@@ -111,8 +111,9 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
      */
     function mintPosition()
         external
+        returns (uint256)
     {
-        _mintPositionForUser(
+        return _mintPositionForUser(
             msg.sender
         );
     }

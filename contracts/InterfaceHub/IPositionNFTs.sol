@@ -43,7 +43,14 @@ interface IPositionNFTs {
         external
         view
         returns (uint256);
-
+    
+    function walletOfOwner(
+        address _owner
+    )
+        external
+        view
+        returns (uint256[] memory);
+    
     function mintPositionForUser(
         address _user
     )

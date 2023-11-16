@@ -147,8 +147,11 @@ abstract contract wstETHFarm is wstETHFarmLeverageLogic {
         internal
     {
         uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
-            WST_ETH_ADDRESS,
-            _withdrawShares
+            {
+                _poolToken: AAVE_WETH_ADDRESS,
+                _shares: _withdrawShares
+                // _maxAmount: false
+            }
         );
 
         if (_checkBorrowLimit(_nftId, withdrawAmount) == false) {

@@ -16,8 +16,8 @@ abstract contract PoolManager is WiseCore {
     }
 
     struct CurvePoolSettings {
-        CurveSwapStructToken curveSecuritySwapsToken;
         CurveSwapStructData curveSecuritySwapsData;
+        CurveSwapStructToken curveSecuritySwapsToken;
     }
 
     function setParamsLASA(
@@ -144,7 +144,7 @@ abstract contract PoolManager is WiseCore {
         private
     {
         if (timestampsPoolData[_params.poolToken].timeStamp > 0) {
-            revert AlreadyCreated();
+            revert InvalidAction();
         }
 
         // Calculating lower bound for the pole

@@ -102,7 +102,7 @@ abstract contract sDaiFarmMathLogic is sDaiFarmDeclarations {
      * @dev Internal function converting
      * lending shares into tokens.
      */
-    function _getPostionCollateralToken(
+    function _getPostionCollateralTokenAmount(
         uint256 _nftId
     )
         internal
@@ -110,10 +110,13 @@ abstract contract sDaiFarmMathLogic is sDaiFarmDeclarations {
         returns(uint256)
     {
         return WISE_LENDING.cashoutAmount(
-            SDAI_ADDRESS,
-            _getPositionLendingShares(
-                _nftId
-            )
+            {
+                _poolToken: SDAI_ADDRESS,
+                _shares: _getPositionLendingShares(
+                    _nftId
+                )
+                // _maxAmount: false
+            }
         );
     }
 
@@ -152,9 +155,9 @@ abstract contract sDaiFarmMathLogic is sDaiFarmDeclarations {
         view
         returns (uint256)
     {
-        return  ORACLE_HUB.getTokensInUSD(
+        return ORACLE_HUB.getTokensInUSD(
             SDAI_ADDRESS,
-            _getPostionCollateralToken(_nftId)
+            _getPostionCollateralTokenAmount(_nftId)
         )
             * collateralFactor
             / PRECISION_FACTOR_E18;

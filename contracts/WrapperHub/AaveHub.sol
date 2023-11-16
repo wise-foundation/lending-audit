@@ -48,29 +48,32 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         external
         onlyMaster
     {
-        if (aaveTokenAddress[_underlyingAsset] > ZERO_ADDRESS) {
-            revert AlreadySet();
+        _setAaveTokenAddress(
+            _underlyingAsset,
+            _aaveToken
+        );
+
+    }
+
+    /**
+     * @dev Adds new mapping to aaveHub in bulk.
+     * Needed to link underlying assets with
+     * corresponding aTokens. Can only be called by master.
+     */
+
+    function setAaveTokenAddressBulk(
+        address[] calldata _underlyingAssets,
+        address[] calldata _aaveTokens
+    )
+        external
+        onlyMaster
+    {
+        for (uint256 i = 0; i < _underlyingAssets.length; i++) {
+            _setAaveTokenAddress(
+                _underlyingAssets[i],
+                _aaveTokens[i]
+            );
         }
-
-        aaveTokenAddress[_underlyingAsset] = _aaveToken;
-
-        _safeApprove(
-            _aaveToken,
-            address(WISE_LENDING),
-            MAX_AMOUNT
-        );
-
-        _safeApprove(
-            _underlyingAsset,
-            AAVE_ADDRESS,
-            MAX_AMOUNT
-        );
-
-        emit SetAaveTokenAddress(
-            _underlyingAsset,
-            _aaveToken,
-            block.timestamp
-        );
     }
 
     /**
@@ -845,5 +848,36 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             * (PRECISION_FACTOR_E18 - utilization)
             / PRECISION_FACTOR_E18
             + lendingRate;
+    }
+
+    function _setAaveTokenAddress(
+        address _underlyingAsset,
+        address _aaveToken
+    )
+        internal
+    {
+        if (aaveTokenAddress[_underlyingAsset] > ZERO_ADDRESS) {
+            revert AlreadySet();
+        }
+
+        aaveTokenAddress[_underlyingAsset] = _aaveToken;
+
+        _safeApprove(
+            _aaveToken,
+            address(WISE_LENDING),
+            MAX_AMOUNT
+        );
+
+        _safeApprove(
+            _underlyingAsset,
+            AAVE_ADDRESS,
+            MAX_AMOUNT
+        );
+
+        emit SetAaveTokenAddress(
+            _underlyingAsset,
+            _aaveToken,
+            block.timestamp
+        );
     }
 }

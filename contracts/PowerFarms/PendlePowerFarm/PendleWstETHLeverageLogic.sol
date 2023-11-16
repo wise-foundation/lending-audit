@@ -200,7 +200,7 @@ abstract contract PendleWstETHLeverageLogic is
             _swapData
         );
 
-        WISE_LENDING.borrowOnBehalfExactAmount(
+        WISE_LENDING.borrowExactAmount(
             _nftId,
             AAVE_WETH_ADDRESS,
             _totalDebtBalancer

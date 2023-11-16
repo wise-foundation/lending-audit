@@ -9,7 +9,7 @@ import "../TransferHub/ApprovalHelper.sol";
 
 contract FlashBorrowerBotExample is IFlashBorrower, ApprovalHelper {
 
-    bytes32 internal constant CALLBACK_VALUE = keccak256(
+    bytes32 constant CALLBACK_VALUE = keccak256(
         "IFlashBorrower.onFlashLoan"
     );
 
@@ -164,7 +164,7 @@ contract FlashBorrowerBotExample is IFlashBorrower, ApprovalHelper {
     }
 
     function _unmergeBytes(
-        bytes calldata _unmerge,
+        bytes memory _unmerge,
         uint256 _cutoffPoint
     )
         internal

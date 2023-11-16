@@ -11,7 +11,7 @@ import "../TransferHub/ApprovalHelper.sol";
 
 contract FlashBorrower is IFlashBorrower, ApprovalHelper {
 
-    bytes32 internal constant CALLBACK_VALUE = keccak256(
+    bytes32 constant CALLBACK_VALUE = keccak256(
         "IFlashBorrower.onFlashLoan"
     );
 
@@ -49,9 +49,7 @@ contract FlashBorrower is IFlashBorrower, ApprovalHelper {
         );
 
         uint256 i;
-        uint256[] memory feeList = new uint256[](
-            lengthIndex
-        );
+        uint256[] memory feeList = new uint256[] (lengthIndex);
 
         for (i; i < lengthIndex;) {
             uint256 allowance = _flashMaker[i].allowance(

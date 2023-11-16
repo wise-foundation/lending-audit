@@ -256,7 +256,7 @@ abstract contract WiseCore is MainHelper {
             + _amount;
 
         if (state == true) {
-            revert DepositCapReached();
+            revert InvalidAction();
         }
     }
 
@@ -505,53 +505,6 @@ abstract contract WiseCore is MainHelper {
     }
 
     /**
-     * @dev Core function combining payback
-     * logic for paying back borrow with
-     * lending shares of same asset type.
-     */
-    function _corePaybackLendingShares(
-        address _poolToken,
-        uint256 _tokenAmount,
-        uint256 _lendingShares,
-        uint256 _nftIdCaller,
-        uint256 _nftIdReceiver
-    )
-        internal
-    {
-        uint256 borrowShareEquivalent = _borrowShareEquivalent(
-            _poolToken,
-            _lendingShares
-        );
-
-        _updatePoolStorage(
-            _poolToken,
-            _tokenAmount,
-            _lendingShares,
-            _decreasePseudoTotalPool,
-            _decreasePseudoTotalBorrowAmount,
-            _decreaseTotalDepositShares
-        );
-
-        _decreaseLendingShares(
-            _nftIdCaller,
-            _poolToken,
-            _lendingShares
-        );
-
-        _decreaseTotalBorrowShares(
-            _poolToken,
-            borrowShareEquivalent
-        );
-
-        _decreasePositionMappingValue(
-            userBorrowShares,
-            _nftIdReceiver,
-            _poolToken,
-            borrowShareEquivalent
-        );
-    }
-
-    /**
      * @dev Internal math function for liquidation logic
      * caluclating amount to withdraw from pure
      * collateral for liquidation.
@@ -603,8 +556,11 @@ abstract contract WiseCore is MainHelper {
             ) / PRECISION_FACTOR_E18;
 
         uint256 cashoutAmount = cashoutAmount(
-            _poolToken,
-            cashoutShares
+            {
+                _poolToken: _poolToken,
+                _shares: cashoutShares,
+                _maxAmount: false
+            }
         );
 
         uint256 totalPoolToken = getTotalPool(
@@ -624,8 +580,11 @@ abstract contract WiseCore is MainHelper {
         }
 
         uint256 totalPoolInShares = calculateLendingShares(
-            _poolToken,
-            totalPoolToken
+            {
+                _poolToken: _poolToken,
+                _amount: totalPoolToken,
+                _maxSharePrice: true
+            }
         );
 
         uint256 shareDifference = cashoutShares
@@ -705,26 +664,26 @@ abstract contract WiseCore is MainHelper {
         address _tokenToRecieve,
         uint256 _paybackAmount,
         uint256 _shareAmountToPay,
-        uint256 _maxFeeUSD,
+        uint256 _maxFeeETH,
         uint256 _baseRewardLiquidation
     )
         internal
         returns (uint256 receiveAmount)
     {
-        uint256 paybackUSD = WISE_ORACLE.getTokensInUSD(
+        uint256 paybackETH = WISE_ORACLE.getTokensInETH(
             _tokenToPayback,
             _paybackAmount
         );
 
-        uint256 collateralPercenage = WISE_SECURITY.calculateWishPercentage(
+        uint256 collateralPercentage = WISE_SECURITY.calculateWishPercentage(
             _nftId,
             _tokenToRecieve,
-            paybackUSD,
-            _maxFeeUSD,
+            paybackETH,
+            _maxFeeETH,
             _baseRewardLiquidation
         );
 
-        if (collateralPercenage > PRECISION_FACTOR_E18) {
+        if (collateralPercentage > PRECISION_FACTOR_E18) {
             revert CollateralTooSmall();
         }
 
@@ -739,7 +698,7 @@ abstract contract WiseCore is MainHelper {
             _nftId,
             _nftIdLiquidator,
             _tokenToRecieve,
-            collateralPercenage
+            collateralPercentage
         );
 
         WISE_SECURITY.checkBadDebt(

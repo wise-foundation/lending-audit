@@ -11,7 +11,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * postion with {_nftId} (unweighted means
      * collateral factor equals 1E18).
      */
-    function overallUSDCollateralsBoth(
+    function overallETHCollateralsBoth(
         uint256 _nftId
     )
         public
@@ -35,11 +35,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
                 i
             );
 
-            if (checkHeartbeat(tokenAddress) == false) {
-                revert ChainlinkDead();
-            }
-
-            amount = getFullCollateralUSD(
+            amount = getFullCollateralETH(
                 _nftId,
                 tokenAddress
             );
@@ -65,7 +61,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * @dev Read function returning weighted
      *  total collateral of a postion with {_nftId}.
      */
-    function overallUSDCollateralsWeighted(
+    function overallETHCollateralsWeighted(
         uint256 _nftId
     )
         public
@@ -91,7 +87,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             );
 
             weightedTotal += WISE_LENDING.lendingPoolData(tokenAddress).collateralFactor
-                * getFullCollateralUSD(
+                * getFullCollateralETH(
                     _nftId,
                     tokenAddress
                 ) / PRECISION_FACTOR_E18;
@@ -107,7 +103,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      *  total collateral of a postion with {_nftId}
      * (unweighted means collateral factor equals 1E18).
      */
-    function overallUSDCollateralsBare(
+    function overallETHCollateralsBare(
         uint256 _nftId
     )
         public
@@ -128,11 +124,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
                 i
             );
 
-            if (checkHeartbeat(tokenAddress) == false) {
-                revert ChainlinkDead();
-            }
-
-            amount += getFullCollateralUSD(
+            amount += getFullCollateralETH(
                 _nftId,
                 tokenAddress
             );
@@ -149,7 +141,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * postion with {_nftId}. Result can be
      * extrapolated linear with length {_interval}.
      */
-    function _overallUSDCollateralsWeighted(
+    function _overallETHCollateralsWeighted(
         uint256 _nftId,
         uint256 _interval
     )
@@ -176,7 +168,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             );
 
             weightedTotal += WISE_LENDING.lendingPoolData(tokenAddress).collateralFactor
-                * _getCollateralOfTokenUSDUpdated(
+                * _getCollateralOfTokenETHUpdated(
                     _nftId,
                     tokenAddress,
                     _interval
@@ -194,15 +186,15 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * {_nftId}. Full means sum of private and
      * public added funds.
      */
-    function getFullCollateralUSD(
+    function getFullCollateralETH(
         uint256 _nftId,
         address _poolToken
     )
         public
         view
-        returns (uint256 usdCollateral)
+        returns (uint256 ethCollateral)
     {
-        usdCollateral = WISE_ORACLE.getTokensInUSD(
+        ethCollateral = WISE_ORACLE.getTokensInETH(
             _poolToken,
             WISE_LENDING.getPureCollateralAmount(
                 _nftId,
@@ -211,10 +203,10 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         );
 
         if (_isUncollateralized(_nftId, _poolToken) == true) {
-            return usdCollateral;
+            return ethCollateral;
         }
 
-        usdCollateral += getUSDCollateral(
+        ethCollateral += getETHCollateral(
             _nftId,
             _poolToken
         );
@@ -246,16 +238,16 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * funds. Can be extrapolated linear within
      * {_interval}.
      */
-    function _getCollateralOfTokenUSDUpdated(
+    function _getCollateralOfTokenETHUpdated(
         uint256 _nftId,
         address _poolToken,
         uint256 _interval
     )
         internal
         view
-        returns (uint256 usdCollateral)
+        returns (uint256 ethCollateral)
     {
-        usdCollateral = WISE_ORACLE.getTokensInUSD(
+        ethCollateral = WISE_ORACLE.getTokensInETH(
             _poolToken,
             WISE_LENDING.getPureCollateralAmount(
                 _nftId,
@@ -264,10 +256,10 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         );
 
         if (_isUncollateralized(_nftId, _poolToken) == true) {
-            return usdCollateral;
+            return ethCollateral;
         }
 
-        usdCollateral += getUSDCollateralUpdated(
+        ethCollateral += getETHCollateralUpdated(
             _nftId,
             _poolToken,
             _interval
@@ -281,7 +273,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * to current values. Can be extrapolated
      * linear within {_interval}.
      */
-    function getUSDCollateralUpdated(
+    function getETHCollateralUpdated(
         uint256 _nftId,
         address _poolToken,
         uint256 _interval
@@ -312,7 +304,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             * updatedPseudo
             / currentTotalLendingShares;
 
-        return WISE_ORACLE.getTokensInUSD(
+        return WISE_ORACLE.getTokensInETH(
             _poolToken,
             updatedToken
         );
@@ -323,7 +315,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * collateral amount of a {_poolToken} from a
      * {_nftId}.
      */
-    function getUSDCollateral(
+    function getETHCollateral(
         uint256 _nftId,
         address _poolToken
     )
@@ -331,7 +323,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256)
     {
-        return WISE_ORACLE.getTokensInUSD(
+        return WISE_ORACLE.getTokensInETH(
             _poolToken,
             getPositionLendingAmount(
                 _nftId,
@@ -346,7 +338,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * No heartbeat or blacklisted checks are
      * included in this function!
      */
-    function _overallUSDBorrowBare(
+    function _overallETHBorrowBare(
         uint256 _nftId
     )
         internal
@@ -360,7 +352,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
 
         for (i; i < l;) {
 
-            buffer += getUSDBorrow(
+            buffer += getETHBorrow(
                 _nftId,
                 WISE_LENDING.getPositionBorrowTokenByIndex(
                     _nftId,
@@ -380,7 +372,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * No blacklisted check is included
      * in this function!
      */
-    function overallUSDBorrowHeartbeat(
+    function overallETHBorrowHeartbeat(
         uint256 _nftId
     )
         public
@@ -401,11 +393,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
                 i
             );
 
-            if (checkHeartbeat(tokenAddress) == false) {
-                revert ChainlinkDead();
-            }
-
-            buffer += getUSDBorrow(
+            buffer += getETHBorrow(
                 _nftId,
                 tokenAddress
             );
@@ -420,7 +408,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * @dev Read function returning the total
      * borrow amount of a postion with {_nftId}.
      */
-    function overallUSDBorrow(
+    function overallETHBorrow(
         uint256 _nftId
     )
         public
@@ -445,7 +433,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
                 tokenAddress
             );
 
-            buffer += getUSDBorrow(
+            buffer += getETHBorrow(
                 _nftId,
                 tokenAddress
             );
@@ -467,8 +455,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (bool)
     {
-        return checkHeartbeat(_poolToken) == false
-            || wasBlacklisted[_poolToken] == true;
+        return wasBlacklisted[_poolToken] == true;
     }
 
     /**
@@ -477,7 +464,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * postion with {_nftId}. Can be
      * extrapolated linear with {_intervall}.
      */
-    function _overallUSDBorrow(
+    function _overallETHBorrow(
         uint256 _nftId,
         uint256 _interval
     )
@@ -503,7 +490,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
                 tokenAddress
             );
 
-            buffer += _getUSDBorrowUpdated(
+            buffer += _getETHBorrowUpdated(
                 _nftId,
                 tokenAddress,
                 _interval
@@ -601,7 +588,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * Can be extrapolated linear within
      * {_interval}.
      */
-    function _getUSDBorrowUpdated(
+    function _getETHBorrowUpdated(
         uint256 _nftId,
         address _poolToken,
         uint256 _intervall
@@ -632,7 +619,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             * updatesPseudo
             / currentTotalBorrowShares;
 
-        return WISE_ORACLE.getTokensInUSD(
+        return WISE_ORACLE.getTokensInETH(
             _poolToken,
             updatedToken
         );
@@ -642,7 +629,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * @dev Read function returning the borow
      * amount of a {_poolToken} from a {_nftId}.
      */
-    function getUSDBorrow(
+    function getETHBorrow(
         uint256 _nftId,
         address _poolToken
     )
@@ -650,7 +637,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256)
     {
-        return WISE_ORACLE.getTokensInUSD(
+        return WISE_ORACLE.getTokensInETH(
             _poolToken,
             getPositionBorrowAmount(
                 _nftId,
@@ -699,7 +686,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
     {
         if (WISE_LENDING.positionLocked(_nftId) == true) {
-            revert PositionLocked();
+            revert PositionLockedWiseSecurity();
         }
     }
 
@@ -708,18 +695,18 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * {_checkMaxFee} call.
      */
     function checkMaxFee(
-        uint256 _paybackUSD,
+        uint256 _paybackETH,
         uint256 _feeLiquidation,
-        uint256 _maxFeeUSD
+        uint256 _maxFeeETH
     )
         external
         pure
         returns (uint256)
     {
         return _checkMaxFee(
-            _paybackUSD,
+            _paybackETH,
             _feeLiquidation,
-            _maxFeeUSD
+            _maxFeeETH
         );
     }
 
@@ -728,21 +715,21 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * for liquidation.
      */
     function _checkMaxFee(
-        uint256 _paybackUSD,
+        uint256 _paybackETH,
         uint256 _liquidationFee,
-        uint256 _maxFeeUSD
+        uint256 _maxFeeETH
     )
         internal
         pure
         returns (uint256)
     {
-        uint256 feeUSD = _paybackUSD
+        uint256 feeETH = _paybackETH
             * _liquidationFee
             / PRECISION_FACTOR_E18;
 
-        return feeUSD < _maxFeeUSD
-            ? feeUSD
-            : _maxFeeUSD;
+        return feeETH < _maxFeeETH
+            ? feeETH
+            : _maxFeeETH;
     }
 
     /**
@@ -754,23 +741,23 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
     function calculateWishPercentage(
         uint256 _nftId,
         address _receiveToken,
-        uint256 _paybackUSD,
-        uint256 _maxFeeUSD,
+        uint256 _paybackETH,
+        uint256 _maxFeeETH,
         uint256 _baseRewardLiquidation
     )
         external
         view
         returns (uint256)
     {
-        uint256 feeUSD = _checkMaxFee(
-            _paybackUSD,
+        uint256 feeETH = _checkMaxFee(
+            _paybackETH,
             _baseRewardLiquidation,
-            _maxFeeUSD
+            _maxFeeETH
         );
 
-        return (feeUSD + _paybackUSD)
+        return (feeETH + _paybackETH)
             * PRECISION_FACTOR_E18
-            / getFullCollateralUSD(
+            / getFullCollateralETH(
                 _nftId,
                 _receiveToken
             );
@@ -790,7 +777,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         public
         view
     {
-        uint256 borrowAmount = overallUSDBorrow(
+        uint256 borrowAmount = overallETHBorrow(
             _nftId
         );
 
@@ -798,7 +785,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             return;
         }
 
-        uint256 withdrawValue = WISE_ORACLE.getTokensInUSD(
+        uint256 withdrawValue = WISE_ORACLE.getTokensInETH(
             _poolToken,
             _amount
         )
@@ -806,7 +793,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             / PRECISION_FACTOR_E18;
 
         bool state = borrowPercentageCap
-            * (overallUSDCollateralsWeighted(_nftId) - withdrawValue)
+            * (overallETHCollateralsWeighted(_nftId) - withdrawValue)
             / PRECISION_FACTOR_E18
             < borrowAmount;
 
@@ -829,15 +816,15 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         internal
         view
     {
-        uint256 borrowValue = WISE_ORACLE.getTokensInUSD(
+        uint256 borrowValue = WISE_ORACLE.getTokensInETH(
             _poolToken,
             _amount
         );
 
         bool state = borrowPercentageCap
-            * overallUSDCollateralsWeighted(_nftId)
+            * overallETHCollateralsWeighted(_nftId)
             / PRECISION_FACTOR_E18
-            < overallUSDBorrow(_nftId) + borrowValue;
+            < overallETHBorrow(_nftId) + borrowValue;
 
         if (state == true) {
             revert NotEnoughCollateral();
@@ -861,7 +848,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _caller
         );
 
-        if (overallUSDCollateralsWeighted(_nftId) > 0) {
+        if (overallETHCollateralsWeighted(_nftId) > 0) {
             revert NotAllowedWiseSecurity();
         }
     }
@@ -872,13 +859,13 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * liquidation.
      */
     function canLiquidate(
-        uint256 _borrowUSDTotal,
-        uint256 _weightedCollateralUSD
+        uint256 _borrowETHTotal,
+        uint256 _weightedCollateralETH
     )
         public
         pure
     {
-        if (_borrowUSDTotal < _weightedCollateralUSD) {
+        if (_borrowETHTotal < _weightedCollateralETH) {
             revert LiquidationDenied();
         }
     }
@@ -891,8 +878,8 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
     function checkMaxShares(
         uint256 _nftId,
         address _tokenToPayback,
-        uint256 _borrowUSDTotal,
-        uint256 _unweightedCollateralUSD,
+        uint256 _borrowETHTotal,
+        uint256 _unweightedCollateralETH,
         uint256 _shareAmountToPay
     )
         public
@@ -903,7 +890,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _tokenToPayback
         );
 
-        uint256 maxShares = checkBadDebtThreshold(_borrowUSDTotal, _unweightedCollateralUSD)
+        uint256 maxShares = checkBadDebtThreshold(_borrowETHTotal, _unweightedCollateralETH)
             ? totalSharesUser
             : totalSharesUser * MAX_LIQUIDATION_50 / PRECISION_FACTOR_E18;
 
@@ -919,14 +906,14 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * if postion has bad debt.
      */
     function checkBadDebtThreshold(
-        uint256 _borrowUSDTotal,
+        uint256 _borrowETHTotal,
         uint256 _unweightedCollateral
     )
         public
         pure
         returns (bool)
     {
-        return _borrowUSDTotal * PRECISION_FACTOR_E18
+        return _borrowETHTotal * PRECISION_FACTOR_E18
             >= _unweightedCollateral * BAD_DEBT_THRESHOLD;
     }
 
@@ -943,11 +930,14 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         returns (uint256)
     {
         return WISE_LENDING.cashoutAmount(
-            _poolToken,
-            WISE_LENDING.getPositionLendingShares(
-                _nftId,
-                _poolToken
-            )
+            {
+                _poolToken: _poolToken,
+                _shares: WISE_LENDING.getPositionLendingShares(
+                    _nftId,
+                    _poolToken
+                ),
+                _maxAmount: false
+            }
         );
     }
 
@@ -1048,17 +1038,17 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256)
     {
-        uint256 term = _overallUSDBorrow(_nftId, _interval)
+        uint256 term = _overallETHBorrow(_nftId, _interval)
             * PRECISION_FACTOR_E18
             / borrowPercentageCap;
 
-        uint256 withdrawUSD = PRECISION_FACTOR_E18
-            * (_overallUSDCollateralsWeighted(_nftId, _interval) - term)
+        uint256 withdrawETH = PRECISION_FACTOR_E18
+            * (_overallETHCollateralsWeighted(_nftId, _interval) - term)
             / WISE_LENDING.lendingPoolData(_poolToken).collateralFactor;
 
-        return WISE_ORACLE.getTokensFromUSD(
+        return WISE_ORACLE.getTokensFromETH(
             _poolToken,
-            withdrawUSD
+            withdrawETH
         );
     }
 
@@ -1072,7 +1062,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
     {
         if (_checkConditions(_poolToken) == true) {
-            revert();
+            revert TokenBlackListed();
         }
     }
 

@@ -14,6 +14,7 @@ import "../OwnableMaster.sol";
 
 error AlreadySet();
 error InvalidValue();
+error InvalidAction();
 error FailedInnerCall();
 
 contract Declarations is OwnableMaster, AaveEvents {

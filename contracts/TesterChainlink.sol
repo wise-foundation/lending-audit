@@ -4,25 +4,23 @@ pragma solidity =0.8.21;
 
 contract TesterChainlink {
 
-    uint8 decimalsUSDValue = 18;
+    uint8 decimalsETHValue = 18;
 
-    uint256 usdValuePerToken;
+    uint256 ethValuePerToken;
     uint256 lastUpdateGlobal;
 
     uint80 public globalRoundId;
-    uint16 public phaseId;
-
-    address master;
+    address public master;
 
     mapping(uint80 => uint256) timeStampByroundId;
 
     constructor(
-        uint256 _usdValue,
+        uint256 _ethValue,
         uint8 _decimals
     )
     {
-        usdValuePerToken = _usdValue;
-        decimalsUSDValue = _decimals;
+        ethValuePerToken = _ethValue;
+        decimalsETHValue = _decimals;
 
         master = msg.sender;
     }
@@ -33,7 +31,7 @@ contract TesterChainlink {
         view
         returns (uint256)
     {
-        return usdValuePerToken;
+        return ethValuePerToken;
     }
 
     function decimals()
@@ -41,7 +39,7 @@ contract TesterChainlink {
         view
         returns (uint8)
     {
-        return decimalsUSDValue;
+        return decimalsETHValue;
     }
 
     function latestRoundData()
@@ -60,7 +58,7 @@ contract TesterChainlink {
 
         return (
             roundId,
-            int256(usdValuePerToken),
+            int256(ethValuePerToken),
             startedAt,
             updatedAt,
             answerdInRound
@@ -76,7 +74,7 @@ contract TesterChainlink {
     }
 
     function setValue(
-        uint256 _usdValue
+        uint256 _ethValue
     )
         public
     {
@@ -84,15 +82,7 @@ contract TesterChainlink {
             revert("testerChainlink: NOT_MASTER");
         }
 
-        usdValuePerToken = _usdValue;
-    }
-
-    function updatePhaseId(
-        uint16 _phaseId
-    )
-        external
-    {
-        phaseId = _phaseId;
+        ethValuePerToken = _ethValue;
     }
 
     function getRoundData(
@@ -112,7 +102,7 @@ contract TesterChainlink {
 
         return (
             _roundId,
-            int256(usdValuePerToken),
+            int256(ethValuePerToken),
             startedAt,
             updatedAt,
             answeredInRound

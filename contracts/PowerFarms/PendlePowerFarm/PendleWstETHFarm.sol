@@ -144,8 +144,11 @@ abstract contract PendleWstETHFarm is PendleWstETHLeverageLogic {
         internal
     {
         uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
-            address(HYBRID_TOKEN),
-            _withdrawShares
+            {
+                _poolToken: AAVE_WETH_ADDRESS,
+                _shares: _withdrawShares,
+                _maxAmount: false
+            }
         );
 
         if (_checkBorrowLimit(_nftId, withdrawAmount) == false) {

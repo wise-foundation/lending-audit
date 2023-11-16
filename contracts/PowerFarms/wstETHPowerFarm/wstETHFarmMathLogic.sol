@@ -114,7 +114,7 @@ abstract contract wstETHFarmMathLogic is wstETHFarmDeclarations {
      * @dev Internal function converting
      * lending shares into tokens.
      */
-    function _getPostionCollateralToken(
+    function _getPostionCollateralTokenAmount(
         uint256 _nftId
     )
         internal
@@ -122,10 +122,13 @@ abstract contract wstETHFarmMathLogic is wstETHFarmDeclarations {
         returns(uint256)
     {
         return WISE_LENDING.cashoutAmount(
-            WST_ETH_ADDRESS,
-            _getPositionLendingShares(
-                _nftId
-            )
+            {
+                _poolToken: WST_ETH_ADDRESS,
+                _shares: _getPositionLendingShares(
+                    _nftId
+                )
+                // _maxAmount: false
+            }
         );
     }
 
@@ -159,9 +162,9 @@ abstract contract wstETHFarmMathLogic is wstETHFarmDeclarations {
         view
         returns (uint256)
     {
-        return  ORACLE_HUB.getTokensInUSD(
+        return ORACLE_HUB.getTokensInUSD(
             WST_ETH_ADDRESS,
-            _getPostionCollateralToken(_nftId)
+            _getPostionCollateralTokenAmount(_nftId)
         )
             * collateralFactor
             / PRECISION_FACTOR_E18;

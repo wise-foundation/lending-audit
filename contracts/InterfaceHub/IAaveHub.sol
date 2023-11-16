@@ -61,4 +61,20 @@ interface IAaveHub {
         external
         payable
         returns (uint256);
+    
+    function withdrawExactShares(
+        uint256 _nftId,
+        address _underlyingAsset,
+        uint256 _shares
+    )
+        external
+        returns (uint256);
+    
+    function withdrawExactAmount(
+        uint256 _nftId,
+        address _token,
+        uint256 _amount
+    )
+        external
+        returns (uint256);
 }

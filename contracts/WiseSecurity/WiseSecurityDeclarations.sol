@@ -14,11 +14,12 @@ import "../InterfaceHub/IAaveHub.sol";
 import "../FeeManager/FeeManager.sol";
 import "../OwnableMaster.sol";
 
-error NotAllowedWiseSecurity();
+
 error ChainlinkDead();
-error PositionLocked();
+error TokenBlackListed();
+error NotAllowedWiseSecurity();
+error PositionLockedWiseSecurity();
 error ResultsInBadDebt();
-error DepositCapReached();
 error NotEnoughCollateral();
 error NotAllowedToBorrow();
 error OpenBorrowPosition();
@@ -90,8 +91,8 @@ contract WiseSecurityDeclarations is OwnableMaster {
         baseRewardLiquidation = 10 * PRECISION_FACTOR_E16;
         baseRewardLiquidationFarm = 3 * PRECISION_FACTOR_E16;
 
-        maxFeeUSD = 50000 * PRECISION_FACTOR_E18;
-        maxFeeFarmUSD = 50000 * PRECISION_FACTOR_E18;
+        maxFeeETH = 3 * PRECISION_FACTOR_E18;
+        maxFeeFarmETH = 3 * PRECISION_FACTOR_E18;
     }
 
     // ---- Variables ----
@@ -116,6 +117,7 @@ contract WiseSecurityDeclarations is OwnableMaster {
     // Interface wiseLiquidation contract
     IWiseLiquidation public immutable WISE_LIQUIDATION;
 
+
     // Threshold values
     uint256 internal constant MAX_LIQUIDATION_50 = 50E16;
     uint256 internal constant BAD_DEBT_THRESHOLD = 89E16;
@@ -129,8 +131,7 @@ contract WiseSecurityDeclarations is OwnableMaster {
     uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
     uint256 internal constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
 
-
-    // ---- Mappings ----
+    // ---- Mapping Variables ----
 
     // Mapping pool token to blacklist bool
     mapping(address => bool) public wasBlacklisted;
@@ -143,13 +144,11 @@ contract WiseSecurityDeclarations is OwnableMaster {
 
     // ---- Liquidation Variables ----
 
-    // @TODO - store all 4 in a struct:
+    // Max reward ETH for liquidator power farm liquidation
+    uint256 public maxFeeETH;
 
-    // Max reward USD for liquidator power farm liquidation
-    uint256 public maxFeeUSD;
-
-    // Max reward USD for liquidator normal liquidation
-    uint256 public maxFeeFarmUSD;
+    // Max reward ETH for liquidator normal liquidation
+    uint256 public maxFeeFarmETH;
 
     // Base reward for liquidator normal liquidation
     uint256 public baseRewardLiquidation;

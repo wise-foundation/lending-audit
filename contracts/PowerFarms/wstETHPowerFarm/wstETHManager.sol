@@ -83,7 +83,7 @@ contract wstETHManager is OwnableMaster, wstETHFarm, MinterReserver {
         view
         returns (uint256)
     {
-        uint256 collateral = _getPostionCollateralToken(
+        uint256 collateral = _getPostionCollateralTokenAmount(
             farmingKeys[_keyId]
         );
 

@@ -280,8 +280,11 @@ contract sDaiFarmManager is sDaiFarm, MinterReserver {
         );
 
         uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
-            SDAI_ADDRESS,
-            _withdrawShares
+            {
+                _poolToken: SDAI_ADDRESS,
+                _shares: _withdrawShares
+                // _maxAmount: true
+            }
         );
 
         if (_checkBorrowLimit(nftId, SDAI_ADDRESS, withdrawAmount) == false) {

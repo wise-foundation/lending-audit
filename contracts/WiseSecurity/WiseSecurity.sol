@@ -65,7 +65,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         view
         returns (uint256)
     {
-        uint256 overallCollateral = overallUSDCollateralsWeighted(
+        uint256 overallCollateral = overallETHCollateralsWeighted(
             _nftId
         );
 
@@ -73,7 +73,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return 0;
         }
 
-        return overallUSDBorrow(_nftId)
+        return overallETHBorrow(_nftId)
             * PRECISION_FACTOR_E18
             / overallCollateral;
     }
@@ -86,8 +86,8 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     function setLiquidationSettings(
         uint256 _baseReward,
         uint256 _baseRewardFarm,
-        uint256 _newMaxFeeUSD,
-        uint256 _newMaxFeeFarmUSD
+        uint256 _newMaxFeeETH,
+        uint256 _newMaxFeeFarmETH
     )
         external
         onlyMaster
@@ -100,12 +100,12 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             baseRewardLiquidationFarm = _baseRewardFarm;
         }
 
-        if (_newMaxFeeUSD > 0) {
-            maxFeeUSD = _newMaxFeeUSD;
+        if (_newMaxFeeETH > 0) {
+            maxFeeETH = _newMaxFeeETH;
         }
 
-        if (_newMaxFeeFarmUSD > 0) {
-            maxFeeFarmUSD = _newMaxFeeFarmUSD;
+        if (_newMaxFeeFarmETH > 0) {
+            maxFeeFarmETH = _newMaxFeeFarmETH;
         }
     }
 
@@ -121,27 +121,27 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         view
     {
         (
-            uint256 weightedCollateralUSD,
-            uint256 unweightedCollateralUSD
+            uint256 weightedCollateralETH,
+            uint256 unweightedCollateralETH
 
-        ) = overallUSDCollateralsBoth(
+        ) = overallETHCollateralsBoth(
             _nftIdLiquidate
         );
 
-        uint256 borrowUSDTotal = overallUSDBorrowHeartbeat(
+        uint256 borrowETHTotal = overallETHBorrowHeartbeat(
             _nftIdLiquidate
         );
 
         canLiquidate(
-            borrowUSDTotal,
-            weightedCollateralUSD
+            borrowETHTotal,
+            weightedCollateralETH
         );
 
         checkMaxShares(
             _nftIdLiquidate,
             _tokenToPayback,
-            borrowUSDTotal,
-            unweightedCollateralUSD,
+            borrowETHTotal,
+            unweightedCollateralETH,
             _shareAmountToPay
         );
     }
@@ -255,7 +255,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     {
         if (_checkConditions(_poolToken) == true) {
 
-            if (_overallUSDBorrowBare(_nftId) > 0) {
+            if (_overallETHBorrowBare(_nftId) > 0) {
                 revert OpenBorrowPosition();
             }
 
@@ -299,7 +299,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     {
         if (_checkConditions(_poolToken) == true) {
 
-            if (_overallUSDBorrowBare(_nftId) > 0) {
+            if (_overallETHBorrowBare(_nftId) > 0) {
                 revert OpenBorrowPosition();
             }
 
@@ -431,7 +431,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     {
         if (_checkConditions(_poolToken) == true) {
 
-            if (_overallUSDBorrowBare(_nftId) > 0) {
+            if (_overallETHBorrowBare(_nftId) > 0) {
                 revert OpenBorrowPosition();
             }
 
@@ -447,7 +447,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
 
     /**
      * @dev Checks for bad debt logic. Compares
-     * total USD of borrow and collateral.
+     * total ETH of borrow and collateral.
      */
     function checkBadDebt(
         uint256 _nftId
@@ -456,11 +456,11 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         onlyWiseLending
     {
 
-        uint256 bareCollateral = overallUSDCollateralsBare(
+        uint256 bareCollateral = overallETHCollateralsBare(
             _nftId
         );
 
-        uint256 totalBorrow = _overallUSDBorrowBare(
+        uint256 totalBorrow = _overallETHBorrowBare(
             _nftId
         );
 
@@ -505,8 +505,8 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         uint256 i;
         address token;
         uint256 amount;
-        uint256 usdValue;
-        uint256 overallUSD;
+        uint256 ethValue;
+        uint256 overallETH;
         uint256 weightedRate;
 
         for (i; i < len;) {
@@ -521,15 +521,15 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                 token
             );
 
-            usdValue = WISE_ORACLE.getTokensInUSD(
+            ethValue = WISE_ORACLE.getTokensInETH(
                 token,
                 amount
             );
 
-            weightedRate += usdValue
+            weightedRate += ethValue
                 * getLendingRate(token);
 
-            overallUSD += usdValue;
+            overallETH += ethValue;
 
             unchecked {
                 ++i;
@@ -537,7 +537,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         }
 
         return weightedRate
-            / overallUSD;
+            / overallETH;
     }
 
     /**
@@ -562,8 +562,8 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         uint256 i;
         address token;
         uint256 amount;
-        uint256 usdValue;
-        uint256 overallUSD;
+        uint256 ethValue;
+        uint256 overallETH;
         uint256 weightedRate;
 
         for (i; i < len;) {
@@ -578,15 +578,15 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                 token
             );
 
-            usdValue = WISE_ORACLE.getTokensInUSD(
+            ethValue = WISE_ORACLE.getTokensInETH(
                 token,
                 amount
             );
 
-            weightedRate += usdValue
+            weightedRate += ethValue
                 * getBorrowRate(token);
 
-            overallUSD += usdValue;
+            overallETH += ethValue;
 
             unchecked {
                 ++i;
@@ -594,7 +594,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         }
 
         return weightedRate
-            / overallUSD;
+            / overallETH;
     }
 
     /**
@@ -610,10 +610,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     {
         uint256 i;
         address token;
-        uint256 usdValue;
-        uint256 usdValueDebt;
-        uint256 usdValueGain;
-        uint256 totalUsdSupply;
+        uint256 ethValue;
+        uint256 ethValueDebt;
+        uint256 ethValueGain;
+        uint256 totalETHSupply;
 
         uint256 netAPY;
 
@@ -632,12 +632,12 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                 i
             );
 
-            usdValue = getUSDBorrow(
+            ethValue = getETHBorrow(
                 _nftId,
                 token
             );
 
-            usdValueDebt += usdValue
+            ethValueDebt += ethValue
                 * getBorrowRate(token);
 
             unchecked {
@@ -652,13 +652,13 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
                 i
             );
 
-            usdValue = getUSDCollateral(
+            ethValue = getETHCollateral(
                 _nftId,
                 token
             );
 
-            totalUsdSupply += usdValue;
-            usdValueGain += usdValue
+            totalETHSupply += ethValue;
+            ethValueGain += ethValue
                 * getLendingRate(token);
 
             unchecked {
@@ -666,16 +666,16 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             }
         }
 
-        if (usdValueGain >= usdValueDebt) {
+        if (ethValueGain >= ethValueDebt) {
 
-            netAPY = (usdValueGain - usdValueDebt)
-                / totalUsdSupply;
+            netAPY = (ethValueGain - ethValueDebt)
+                / totalETHSupply;
 
             return (netAPY, false);
         }
 
-        netAPY = (usdValueDebt - usdValueGain)
-                / totalUsdSupply;
+        netAPY = (ethValueDebt - ethValueGain)
+                / totalETHSupply;
 
         return (netAPY, true);
     }
@@ -723,7 +723,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             }
 
             buffer += WISE_LENDING.lendingPoolData(token).collateralFactor
-                * getFullCollateralUSD(
+                * getFullCollateralETH(
                     _nftId,
                     token
                 ) / PRECISION_FACTOR_E18;
@@ -920,19 +920,19 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         view
         returns (uint256 tokenAmount)
     {
-        uint256 term = _overallUSDCollateralsWeighted(_nftId, _interval)
+        uint256 term = _overallETHCollateralsWeighted(_nftId, _interval)
             * borrowPercentageCap
             / PRECISION_FACTOR_E18;
 
-        uint256 borrowUSD = term
-            - _overallUSDBorrow(
+        uint256 borrowETH = term
+            - _overallETHBorrow(
                 _nftId,
                 _interval
             );
 
-        tokenAmount = WISE_ORACLE.getTokensFromUSD(
+        tokenAmount = WISE_ORACLE.getTokensFromETH(
             _poolToken,
-            borrowUSD
+            borrowETH
         );
 
         uint256 maxPoolAmount = WISE_LENDING.getTotalPool(

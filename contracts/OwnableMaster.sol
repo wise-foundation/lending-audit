@@ -9,7 +9,7 @@ error NotProposed();
 contract OwnableMaster {
 
     address public master;
-    address public proposedMaster;
+    address private proposedMaster;
 
     address internal constant ZERO_ADDRESS = address(0x0);
 

@@ -30,7 +30,8 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
      */
     function calculateLendingShares(
         address _poolToken,
-        uint256 _amount
+        uint256 _amount,
+        bool _maxSharePrice
     )
         public
         view
@@ -55,9 +56,11 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 product = _amount
             * shares;
 
-        return product % pseudo == 0
-            ? product / pseudo
-            : product / pseudo + 1;
+        return _maxSharePrice == true
+            ? product % pseudo == 0
+                ? product / pseudo
+                : product / pseudo + 1
+            : product / pseudo;
     }
 
     /**
@@ -70,7 +73,8 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
      */
     function calculateBorrowShares(
         address _poolToken,
-        uint256 _amount
+        uint256 _amount,
+        bool _maxSharePrice
     )
         public
         view
@@ -95,9 +99,11 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 product = _amount
             * shares;
 
-        return product % pseudo == 0
-            ? product / pseudo
-            : product / pseudo + 1;
+        return _maxSharePrice == true
+            ? product % pseudo == 0
+                ? product / pseudo
+                : product / pseudo + 1
+            : product / pseudo;
     }
 
     /**
@@ -110,15 +116,25 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
      */
     function cashoutAmount(
         address _poolToken,
-        uint256 _shares
+        uint256 _shares,
+        bool _maxAmount
     )
         public
         view
         returns (uint256)
     {
-        return _shares
-            * getPseudoTotalPool(_poolToken)
-            / getTotalDepositShares(_poolToken);
+        uint256 product = _shares
+            * getPseudoTotalPool(_poolToken);
+
+        uint256 totalDepositShares = getTotalDepositShares(
+            _poolToken
+        );
+
+        return _maxAmount == true
+            ? product % totalDepositShares == 0
+                ? product / totalDepositShares
+                : product / totalDepositShares + 1
+            : product / totalDepositShares;
     }
 
     /**
@@ -137,9 +153,16 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (uint256)
     {
-        return _shares
-            * getPseudoTotalBorrowAmount(_poolToken)
-            / getTotalBorrowShares(_poolToken);
+        uint256 product = _shares
+            * getPseudoTotalBorrowAmount(_poolToken);
+
+        uint256 totalBorrowShares = getTotalBorrowShares(
+            _poolToken
+        );
+
+        return product % totalBorrowShares == 0
+            ? product / totalBorrowShares
+            : product / totalBorrowShares + 1;
     }
 
     /**
@@ -163,8 +186,11 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         );
 
         return calculateLendingShares(
-            _poolToken,
-            _amount
+            {
+                _poolToken: _poolToken,
+                _amount: _amount,
+                _maxSharePrice: true
+            }
         );
     }
 
@@ -401,7 +427,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     function _updatePseudoTotalAmounts(
         address _poolToken
     )
-        internal
+        private
     {
         uint256 currentTime = block.timestamp;
 
@@ -410,7 +436,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             * getPseudoTotalBorrowAmount(_poolToken)
             + bufferIncrease[_poolToken];
 
-        if (bareIncrease < PRECISION_FACTOR_E18_YEAR) {
+        if (bareIncrease < PRECISION_FACTOR_YEAR) {
             bufferIncrease[_poolToken] = bareIncrease;
 
             _setTimeStamp(
@@ -424,7 +450,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         delete bufferIncrease[_poolToken];
 
         uint256 amountInterest = bareIncrease
-            / PRECISION_FACTOR_E18_YEAR;
+            / PRECISION_FACTOR_YEAR;
 
         uint256 feeAmount = amountInterest
             * globalPoolData[_poolToken].poolFee
@@ -545,7 +571,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 _nftId,
         address _poolToken
     )
-        internal
+        private
         pure
         returns (bytes32)
     {
@@ -629,7 +655,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 _nftId,
         address _poolToken
     )
-        internal
+        private
     {
         positionLendingTokenData[_nftId].pop();
         hashMapPositionLending[
@@ -676,35 +702,15 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     }
 
     /**
-     * @dev Internal helper function calculating
-     * the borrow share amount corresponding to
-     * certain {_lendingShares}.
-     */
-    function _borrowShareEquivalent(
-        address _poolToken,
-        uint256 _lendingShares
-    )
-        internal
-        view
-        returns (uint256)
-    {
-        return _lendingShares
-            * getPseudoTotalPool(_poolToken)
-            * getTotalBorrowShares(_poolToken)
-            / getTotalDepositShares(_poolToken)
-            / getPseudoTotalBorrowAmount(_poolToken);
-    }
-
-    /**
      * @dev Internal helper function
      * checking if {_nftId} as no
      * {_poolToken} left.
      */
-    function checkLendingDataEmpty(
+    function _checkLendingDataEmpty(
         uint256 _nftId,
         address _poolToken
     )
-        public
+        private
         view
         returns (bool)
     {
@@ -908,7 +914,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             _shareValue
         );
 
-        _revertDirectionSteppingState(
+        _revertDirectionState(
             _poolToken
         );
     }
@@ -916,7 +922,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     /**
      * @dev Reverts the flag for stepping direction from LASA.
      */
-    function _revertDirectionSteppingState(
+    function _revertDirectionState(
         address _poolToken
     )
         private
@@ -937,15 +943,17 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     )
         private
     {
-        _shareValues < THRESHOLD_SWITCH_DIRECTION * algorithmData[_poolToken].previousValue / PRECISION_FACTOR_E18
-            ? _reversedChangingResonanceFactor(_poolToken)
+        _shareValues < THRESHOLD_SWITCH_DIRECTION
+            * algorithmData[_poolToken].previousValue
+            / PRECISION_FACTOR_E18
+            ? _reversedResonanceFactor(_poolToken)
             : _changingResonanceFactor(_poolToken);
     }
 
     /**
      * @dev Does a revert stepping and swaps stepping state in opposite flag.
      */
-    function _reversedChangingResonanceFactor(
+    function _reversedResonanceFactor(
         address _poolToken
     )
         private
@@ -954,7 +962,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             ? _decreaseResonanceFactor(_poolToken)
             : _increaseResonanceFactor(_poolToken);
 
-        _revertDirectionSteppingState(
+        _revertDirectionState(
             _poolToken
         );
     }
@@ -1049,7 +1057,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             return;
         }
 
-        if (checkLendingDataEmpty(_nftId, _poolToken) == false) {
+        if (_checkLendingDataEmpty(_nftId, _poolToken) == false) {
             return;
         }
 

@@ -13,9 +13,8 @@ import "./OwnableMaster.sol";
 error DeadOracle();
 error InvalidAction();
 error InvalidCaller();
-error AlreadyCreated();
 error PositionLocked();
-error DepositCapReached();
+error NotVerfiedPool();
 error CollateralTooSmall();
 
 contract WiseLendingDeclaration is OwnableMaster {
@@ -98,15 +97,6 @@ contract WiseLendingDeclaration is OwnableMaster {
         uint256 timestamp
     );
 
-    event FundsReturnedWithLendingShares(
-        address indexed sender,
-        address indexed token,
-        uint256 indexed nftId,
-        uint256 totalPayment,
-        uint256 totalPaymentShares,
-        uint256 timestamp
-    );
-
     event Approve(
         address indexed sender,
         address indexed token,
@@ -118,12 +108,6 @@ contract WiseLendingDeclaration is OwnableMaster {
     event PoolSynced(
         address indexed pool,
         uint256 indexed timestamp
-    );
-
-    event RegisteredForIsolationPool(
-        address indexed user,
-        uint256 indexed timestamp,
-        bool indexed registration
     );
 
     constructor(
@@ -180,6 +164,8 @@ contract WiseLendingDeclaration is OwnableMaster {
         );
 
         AAVE_HUB = WISE_SECURITY.AAVE_HUB();
+
+        whiteListOnBehalf[AAVE_HUB] = true;
     }
 
     /**
@@ -210,6 +196,8 @@ contract WiseLendingDeclaration is OwnableMaster {
         );
     }
 
+    bool internal sendingProgress;
+
     function _sendValue(
         address _recipient,
         uint256 _amount
@@ -220,9 +208,13 @@ contract WiseLendingDeclaration is OwnableMaster {
             revert InvalidAction();
         }
 
+        sendingProgress = true;
+
         (bool success, ) = payable(_recipient).call{
             value: _amount
         }("");
+
+        sendingProgress = false;
 
         if (success == false) {
             revert InvalidAction();
@@ -236,7 +228,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     address public immutable WETH_ADDRESS;
 
     // Nft id for feeManager
-    uint256 public immutable FEE_MANAGER_NFT;
+    uint256 immutable FEE_MANAGER_NFT;
 
     // WiseSecurity interface
     IWiseSecurity public WISE_SECURITY;
@@ -297,7 +289,36 @@ contract WiseLendingDeclaration is OwnableMaster {
         uint256 timeStampScaling;
     }
 
+    modifier onlyWhiteList() {
+        _onlyWhiteList();
+        _;
+    }
+
+    function _onlyWhiteList()
+        private
+        view
+    {
+        if (whiteListOnBehalf[msg.sender] == false) {
+            revert InvalidCaller();
+        }
+    }
+
+
+    /**
+     * Allows to set whitelist contract
+     */
+    function setOnBehalf(
+        address _contract,
+        bool _status
+    )
+        external
+        onlyMaster
+    {
+        whiteListOnBehalf[_contract] = _status;
+    }
+
     // Position mappings ------------------------------------------
+    mapping(address => bool) internal whiteListOnBehalf;
     mapping(address => uint256) internal bufferIncrease;
     mapping(address => uint256) public maxDepositValueToken;
 
@@ -336,7 +357,7 @@ contract WiseLendingDeclaration is OwnableMaster {
     // TIME CONSTANTS --------------------------------------
     uint256 internal constant ONE_YEAR = 52 weeks;
     uint256 internal constant THREE_HOURS = 3 hours;
-    uint256 internal constant PRECISION_FACTOR_E18_YEAR = PRECISION_FACTOR_E18 * ONE_YEAR;
+    uint256 internal constant PRECISION_FACTOR_YEAR = PRECISION_FACTOR_E18 * ONE_YEAR;
 
     // Two months in seconds:
     // Norming change in pole value that it steps from min to max value

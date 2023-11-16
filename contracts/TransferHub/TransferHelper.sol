@@ -6,14 +6,6 @@ import "./CallOptionalReturn.sol";
 
 contract TransferHelper is CallOptionalReturn {
 
-    bytes4 private constant transferSelector = IERC20
-        .transfer
-        .selector;
-
-    bytes4 private constant transferFromSelector = IERC20
-        .transferFrom
-        .selector;
-
     /**
      * @dev
      * Allows to execute safe transfer for a token
@@ -28,7 +20,7 @@ contract TransferHelper is CallOptionalReturn {
         _callOptionalReturn(
             _token,
             abi.encodeWithSelector(
-                transferSelector,
+                IERC20.transfer.selector,
                 _to,
                 _value
             )
@@ -50,7 +42,7 @@ contract TransferHelper is CallOptionalReturn {
         _callOptionalReturn(
             _token,
             abi.encodeWithSelector(
-                transferFromSelector,
+                IERC20.transferFrom.selector,
                 _from,
                 _to,
                 _value

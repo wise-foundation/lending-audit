@@ -77,7 +77,9 @@ contract WiseIsolationMode is WiseIsolationHelper {
             msg.sender
         );
 
-        uint256 previousIndex = nftToIndex[_nftId];
+        uint256 previousIndex = nftToIndex[
+            _nftId
+        ];
 
         nftToIndex[_nftId] = 0;
 
@@ -192,8 +194,11 @@ contract WiseIsolationMode is WiseIsolationHelper {
         returns (uint256 amount)
     {
         amount = WISE_LENDING.cashoutAmount(
-            COLLATERAL_TOKEN_ADDRESS,
-            _share
+            {
+                _poolToken: COLLATERAL_TOKEN_ADDRESS,
+                _shares: _share,
+                _maxAmount: false
+            }
         );
 
         if (checkDebtratioWithdraw(_nftId, amount)) {

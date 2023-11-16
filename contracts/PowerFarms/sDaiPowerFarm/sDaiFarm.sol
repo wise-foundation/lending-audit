@@ -78,8 +78,7 @@ abstract contract sDaiFarm is sDaiFarmLeverageLogic {
             / totalCollateral;
     }
 
-    /**
-     * @dev Internal function combining the core
+    /* @dev Internal function combining the core
      * logic for {openPosition()}.
      *
      * Note: {_minOutAmount} passed through UI by querring
@@ -122,7 +121,7 @@ abstract contract sDaiFarm is sDaiFarmLeverageLogic {
             );
         }
 
-        if (_aboveMinDepositAmount(leveragedAmount) == false){
+        if (_aboveMinDepositAmount(leveragedAmount) == false) {
             revert AmountTooSmall();
         }
 

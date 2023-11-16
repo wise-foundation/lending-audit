@@ -90,7 +90,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
     )
         internal
     {
-        totalBadDebtUSD += _amount;
+        totalBadDebtETH += _amount;
 
         emit TotalBadDebtIncreased(
             _amount,
@@ -106,7 +106,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
     )
         internal
     {
-        totalBadDebtUSD -= _amount;
+        totalBadDebtETH -= _amount;
 
         emit TotalBadDebtDecreased(
             _amount,
@@ -126,8 +126,8 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
     }
 
     /**
-     * @dev Internal function updating bad debt amount of a position and global one (in USD).
-     * Compares totalBorrow and totalCollateral of the postion in USD anadjustes bad debt
+     * @dev Internal function updating bad debt amount of a position and global one (in ETH).
+     * Compares totalBorrow and totalCollateral of the postion in ETH and adjustes bad debt
      * variables. Pseudo pool amounts needed to be updated before this function is called.
      */
     function _updateUserBadDebt(
@@ -135,11 +135,11 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
     )
         internal
     {
-        uint256 currentBorrowUSD = WISE_SECURITY.overallUSDBorrowHeartbeat(
+        uint256 currentBorrowETH = WISE_SECURITY.overallETHBorrowHeartbeat(
             _nftId
         );
 
-        uint256 currentCollateralBareUSD = WISE_SECURITY.overallUSDCollateralsBare(
+        uint256 currentCollateralBareETH = WISE_SECURITY.overallETHCollateralsBare(
             _nftId
         );
 
@@ -147,7 +147,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             _nftId
         ];
 
-        if (currentBorrowUSD < currentCollateralBareUSD) {
+        if (currentBorrowETH < currentCollateralBareETH) {
 
             _eraseBadDebtUser(
                 _nftId
@@ -167,8 +167,8 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
         }
 
         unchecked {
-            uint256 newBadDebt = currentBorrowUSD
-                - currentCollateralBareUSD;
+            uint256 newBadDebt = currentBorrowETH
+                - currentCollateralBareETH;
 
             _setBadDebtPosition(
                 _nftId,
@@ -226,6 +226,16 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
         allowedTokens[_user][_feeToken] = _state;
     }
 
+    function _setAaveFlag(
+        address _poolToken,
+        address _underlyingToken
+    )
+        internal
+    {
+        isAaveToken[_poolToken] = true;
+        underlyingToken[_poolToken] = _underlyingToken;
+    }
+
     /**
      * @dev Internal function calculating receive amount for the caller.
      * paybackIncentive is set to 5E16 => 5% incentive for paying back bad debt.
@@ -243,9 +253,9 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             * (PRECISION_FACTOR_E18 + paybackIncentive)
             / PRECISION_FACTOR_E18;
 
-        return ORACLE_HUB.getTokensFromUSD(
+        return ORACLE_HUB.getTokensFromETH(
             _receivingToken,
-            ORACLE_HUB.getTokensInUSD(
+            ORACLE_HUB.getTokensInETH(
                 _paybackToken,
                 increasedAmount
             )
@@ -288,7 +298,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
     {
         uint256 reduceAmount;
 
-        if (incentiveUSD[incentiveOwnerA] > 0) {
+        if (incentiveETH[incentiveOwnerA] > 0) {
 
             reduceAmount += _gatherIncentives(
                 _poolToken,
@@ -298,7 +308,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             );
         }
 
-        if (incentiveUSD[incentiveOwnerB] > 0) {
+        if (incentiveETH[incentiveOwnerB] > 0) {
 
             reduceAmount += _gatherIncentives(
                 _poolToken,
@@ -329,18 +339,18 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             * INCENTIVE_PORTION
             / WISE_LENDING.globalPoolData(_poolToken).poolFee;
 
-        uint256 usdEquivalent = ORACLE_HUB.getTokensInUSD(
+        uint256 ethEquivalent = ORACLE_HUB.getTokensInETH(
             _poolToken,
             incentiveAmount
         );
 
-        uint256 reduceUSD = usdEquivalent < incentiveUSD[_incentiveOwner]
-            ? usdEquivalent
-            : incentiveUSD[_incentiveOwner];
+        uint256 reduceETH = ethEquivalent < incentiveETH[_incentiveOwner]
+            ? ethEquivalent
+            : incentiveETH[_incentiveOwner];
 
-        if (reduceUSD == usdEquivalent) {
+        if (reduceETH == ethEquivalent) {
 
-            incentiveUSD[_incentiveOwner] -= usdEquivalent;
+            incentiveETH[_incentiveOwner] -= ethEquivalent;
 
             gatheredIncentiveToken
                 [_incentiveOwner]
@@ -349,12 +359,12 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             return incentiveAmount;
         }
 
-        incentiveAmount = ORACLE_HUB.getTokensFromUSD(
+        incentiveAmount = ORACLE_HUB.getTokensFromETH(
             _poolToken,
-            reduceUSD
+            reduceETH
         );
 
-        delete incentiveUSD[
+        delete incentiveETH[
             _incentiveOwner
         ];
 

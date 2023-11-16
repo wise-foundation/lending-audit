@@ -2,7 +2,6 @@
 
 pragma solidity =0.8.21;
 
-
 import "./sDaiFarmManager.sol";
 
 contract sDaiFarmTester is sDaiFarmManager {

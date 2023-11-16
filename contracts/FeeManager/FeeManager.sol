@@ -70,8 +70,35 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyMaster
     {
-        isAaveToken[_poolToken] = true;
-        underlyingToken[_poolToken] = _underlyingToken;
+        _setAaveFlag(
+            _poolToken,
+            _underlyingToken
+        );
+    }
+
+    /**
+     * @dev Bulk function for setting aave flag for multiple pools.
+     */
+    function setAaveFlagBulk(
+        address[] calldata _poolTokens,
+        address[] calldata _underlyingTokens
+    )
+        external
+        onlyMaster
+    {
+        uint256 i;
+        uint256 l = _poolTokens.length;
+
+        for (i; i < l;) {
+            _setAaveFlag(
+                _poolTokens[i],
+                _underlyingTokens[i]
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /**
@@ -99,6 +126,43 @@ contract FeeManager is FeeManagerHelper {
             _newFee,
             block.timestamp
         );
+    }
+
+    /**
+    * @dev Function to adjust pool fees in bulk. Fee for each pool can not be
+    * greater than 100% or lower than 1%. Can be adjusted for each pool individually.
+    */
+    function setPoolFeeBulk(
+        address[] calldata _poolTokens,
+        uint256[] calldata _newFees
+    )
+        external
+        onlyMaster
+    {
+        uint256 i;
+        uint256 l = _poolTokens.length;
+
+        for (i; i < l;) {
+
+            _checkValue(
+                _newFees[i]
+            );
+
+            WISE_LENDING.setPoolFee(
+                _poolTokens[i],
+                _newFees[i]
+            );
+
+            emit PoolFeeChanged(
+                _poolTokens[i],
+                _newFees[i],
+                block.timestamp
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /**
@@ -149,7 +213,7 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyIncentiveMaster
     {
-        incentiveUSD[incentiveOwnerA] += _value;
+        incentiveETH[incentiveOwnerA] += _value;
 
         emit IncentiveIncreasedA(
             _value,
@@ -167,7 +231,7 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyIncentiveMaster
     {
-        incentiveUSD[incentiveOwnerB] += _value;
+        incentiveETH[incentiveOwnerB] += _value;
 
         emit IncentiveIncreasedB(
             _value,
@@ -234,10 +298,10 @@ contract FeeManager is FeeManagerHelper {
     }
 
     /**
-     * @dev Function chaning incentiveOwnerA! Only callable by
+     * @dev Function changing incentiveOwnerA! Only callable by
      * incentiveOwnerA.
      */
-    function changeIncentiveUSDA(
+    function changeIncentiveETHA(
         address _newOwner
     )
         external
@@ -254,11 +318,11 @@ contract FeeManager is FeeManagerHelper {
             revert NotAllowed();
         }
 
-        incentiveUSD[_newOwner] = incentiveUSD[
+        incentiveETH[_newOwner] = incentiveETH[
             incentiveOwnerA
         ];
 
-        delete incentiveUSD[
+        delete incentiveETH[
             incentiveOwnerA
         ];
 
@@ -271,10 +335,10 @@ contract FeeManager is FeeManagerHelper {
     }
 
     /**
-     * @dev Function chaning incentiveOwnerB! Only callable by
+     * @dev Function changing incentiveOwnerB! Only callable by
      * incentiveOwnerB.
      */
-    function changeIncentiveUSDB(
+    function changeIncentiveETHB(
         address _newOwner
     )
         external
@@ -291,11 +355,13 @@ contract FeeManager is FeeManagerHelper {
             revert NotAllowed();
         }
 
-        incentiveUSD[_newOwner] = incentiveUSD[
+        incentiveETH[_newOwner] = incentiveETH[
             incentiveOwnerB
         ];
 
-        delete incentiveUSD[incentiveOwnerB];
+        delete incentiveETH[
+            incentiveOwnerB
+        ];
 
         incentiveOwnerB = _newOwner;
 
@@ -474,7 +540,7 @@ contract FeeManager is FeeManagerHelper {
      */
     function revokeBeneficial(
         address _user,
-        address[] calldata _feeTokens
+        address[] memory _feeTokens
     )
         external
         onlyMaster
@@ -564,7 +630,7 @@ contract FeeManager is FeeManagerHelper {
             );
         }
 
-        if (totalBadDebtUSD == 0) {
+        if (totalBadDebtETH == 0) {
 
             tokenAmount = _distributeIncentives(
                 tokenAmount,
@@ -598,7 +664,7 @@ contract FeeManager is FeeManagerHelper {
     {
         address caller = msg.sender;
 
-        if (totalBadDebtUSD > 0) {
+        if (totalBadDebtETH > 0) {
             revert ExistingBadDebt();
         }
 
@@ -629,9 +695,9 @@ contract FeeManager is FeeManagerHelper {
      * @dev Function for paying back bad debt of a position. Caller
      * chooses postion, token and receive token. Only gathered fee token
      * can be distributed as receive token. Caller gets 5% more
-     * in USDC value as incentive.
+     * in ETH value as incentive.
      */
-    function payBackBadDebtForToken(
+    function paybackBadDebtForToken(
         uint256 _nftId,
         address _paybackToken,
         address _receivingToken,

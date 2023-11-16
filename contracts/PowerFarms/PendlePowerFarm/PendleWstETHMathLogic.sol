@@ -157,7 +157,7 @@ abstract contract PendleWstETHMathLogic is PendleWstETHDeclarations {
      * @dev Internal function converting
      * lending shares into tokens.
      */
-    function _getPostionCollateralToken(
+    function _getPostionCollateralTokenAmount(
         uint256 _nftId
     )
         internal
@@ -165,10 +165,13 @@ abstract contract PendleWstETHMathLogic is PendleWstETHDeclarations {
         returns(uint256)
     {
         return WISE_LENDING.cashoutAmount(
-            address(HYBRID_TOKEN),
-            _getPositionLendingShares(
-                _nftId
-            )
+            {
+                _poolToken: address(HYBRID_TOKEN),
+                _shares: _getPositionLendingShares(
+                    _nftId
+                )
+                // _maxAmount: false
+            }
         );
     }
 
@@ -204,8 +207,10 @@ abstract contract PendleWstETHMathLogic is PendleWstETHDeclarations {
     {
         return ORACLE_HUB.getTokensInUSD(
             address(HYBRID_TOKEN),
-            _getPostionCollateralToken(_nftId)
-        ) * collateralFactor / PRECISION_FACTOR_E18;
+            _getPostionCollateralTokenAmount(_nftId)
+        )
+            * collateralFactor
+            / PRECISION_FACTOR_E18;
     }
 
     /**

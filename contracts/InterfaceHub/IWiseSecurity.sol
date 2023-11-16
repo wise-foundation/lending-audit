@@ -25,12 +25,27 @@ interface IWiseSecurity {
         view
         returns (uint256 buffer);
 
+    function overallETHBorrowHeartbeat(
+        uint256 _nftId
+    )
+        external
+        view
+        returns (uint256 buffer);
+
     function checkBadDebt(
         uint256 _nftId
     )
         external;
 
     function getFullCollateralUSD(
+        uint256 _nftId,
+        address _poolToken
+    )
+        external
+        view
+        returns (uint256);
+
+    function getFullCollateralETH(
         uint256 _nftId,
         address _poolToken
     )
@@ -70,6 +85,13 @@ interface IWiseSecurity {
         returns (uint256);
 
     function overallUSDCollateralsBare(
+        uint256 _nftId
+    )
+        external
+        view
+        returns (uint256 amount);
+
+    function overallETHCollateralsBare(
         uint256 _nftId
     )
         external
@@ -141,8 +163,8 @@ interface IWiseSecurity {
     function calculateWishPercentage(
         uint256 _nftId,
         address _receiveToken,
-        uint256 _paybackUSD,
-        uint256 _maxFeeUSD,
+        uint256 _paybackETH,
+        uint256 _maxFeeETH,
         uint256 _baseRewardLiquidation
     )
         external
@@ -181,12 +203,12 @@ interface IWiseSecurity {
         external
         view;
 
-    function maxFeeUSD()
+    function maxFeeETH()
         external
         view
         returns (uint256);
 
-    function maxFeeFarmUSD()
+    function maxFeeFarmETH()
         external
         view
         returns (uint256);
