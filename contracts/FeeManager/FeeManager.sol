@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 /**
  * @author Christoph Krpoun
@@ -89,7 +89,7 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 l = _poolTokens.length;
 
-        for (i; i < l;) {
+        while (i < l) {
             _setAaveFlag(
                 _poolTokens[i],
                 _underlyingTokens[i]
@@ -142,7 +142,7 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 l = _poolTokens.length;
 
-        for (i; i < l;) {
+        while (i < l) {
 
             _checkValue(
                 _newFees[i]
@@ -176,6 +176,10 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyIncentiveMaster
     {
+        if (_proposedIncentiveMaster == ZERO_ADDRESS) {
+            revert ZeroAddress();
+        }
+
         proposedIncentiveMaster = _proposedIncentiveMaster;
 
         emit IncentiveMasterProposed(
@@ -213,7 +217,7 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyIncentiveMaster
     {
-        incentiveETH[incentiveOwnerA] += _value;
+        incentiveUSD[incentiveOwnerA] += _value;
 
         emit IncentiveIncreasedA(
             _value,
@@ -231,7 +235,7 @@ contract FeeManager is FeeManagerHelper {
         external
         onlyIncentiveMaster
     {
-        incentiveETH[incentiveOwnerB] += _value;
+        incentiveUSD[incentiveOwnerB] += _value;
 
         emit IncentiveIncreasedB(
             _value,
@@ -250,7 +254,7 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 l = getPoolTokenAddressesLength();
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = poolTokenAddresses[i];
 
@@ -282,18 +286,25 @@ contract FeeManager is FeeManagerHelper {
     )
         public
     {
-        _safeTransfer(
-            _feeToken,
-            msg.sender,
-            gatheredIncentiveToken[msg.sender][_feeToken]
-        );
+        uint256 amount = gatheredIncentiveToken[msg.sender][_feeToken];
+
+        if (amount == 0) {
+            revert NoIncentive();
+        }
 
         delete gatheredIncentiveToken[msg.sender][_feeToken];
 
         emit ClaimedIncentives(
             msg.sender,
             _feeToken,
+            amount,
             block.timestamp
+        );
+
+        _safeTransfer(
+            _feeToken,
+            msg.sender,
+            amount
         );
     }
 
@@ -301,7 +312,7 @@ contract FeeManager is FeeManagerHelper {
      * @dev Function changing incentiveOwnerA! Only callable by
      * incentiveOwnerA.
      */
-    function changeIncentiveETHA(
+    function changeIncentiveUSDA(
         address _newOwner
     )
         external
@@ -318,11 +329,11 @@ contract FeeManager is FeeManagerHelper {
             revert NotAllowed();
         }
 
-        incentiveETH[_newOwner] = incentiveETH[
+        incentiveUSD[_newOwner] = incentiveUSD[
             incentiveOwnerA
         ];
 
-        delete incentiveETH[
+        delete incentiveUSD[
             incentiveOwnerA
         ];
 
@@ -338,7 +349,7 @@ contract FeeManager is FeeManagerHelper {
      * @dev Function changing incentiveOwnerB! Only callable by
      * incentiveOwnerB.
      */
-    function changeIncentiveETHB(
+    function changeIncentiveUSDB(
         address _newOwner
     )
         external
@@ -355,11 +366,11 @@ contract FeeManager is FeeManagerHelper {
             revert NotAllowed();
         }
 
-        incentiveETH[_newOwner] = incentiveETH[
+        incentiveUSD[_newOwner] = incentiveUSD[
             incentiveOwnerB
         ];
 
-        delete incentiveETH[
+        delete incentiveUSD[
             incentiveOwnerB
         ];
 
@@ -433,27 +444,46 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 len = getPoolTokenAddressesLength();
         uint256 lastEntry = len - 1;
+        bool found;
 
-        for (i; i < len; ++i) {
+        if (poolTokenAdded[_poolToken] == false) {
+            revert PoolNotPresent();
+        }
+
+        while (i < len) {
 
             if (_poolToken != poolTokenAddresses[i]) {
+
+                unchecked {
+                    ++i;
+                }
+
                 continue;
             }
+
+            found = true;
 
             if (i != lastEntry) {
                 poolTokenAddresses[i] = poolTokenAddresses[lastEntry];
             }
 
-            poolTokenAddresses.pop();
-            poolTokenAdded[_poolToken] = false;
-
             break;
         }
 
-        emit PoolTokenRemoved(
-            _poolToken,
-            block.timestamp
-        );
+        if (found == true) {
+
+            poolTokenAddresses.pop();
+            poolTokenAdded[_poolToken] = false;
+
+            emit PoolTokenRemoved(
+                _poolToken,
+                block.timestamp
+            );
+
+            return;
+        }
+
+        revert PoolNotPresent();
     }
 
     /**
@@ -515,7 +545,7 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 l = _feeTokens.length;
 
-        for (i; i < l;) {
+        while (i < l) {
             _setAllowedTokens(
                 _user,
                 _feeTokens[i],
@@ -548,7 +578,7 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 l = _feeTokens.length;
 
-        for (i; i < l;) {
+        while (i < l) {
             _setAllowedTokens(
                 _user,
                 _feeTokens[i],
@@ -576,7 +606,7 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 l = getPoolTokenAddressesLength();
 
-        for (i; i < l;) {
+        while (i < l) {
             claimWiseFees(
                 poolTokenAddresses[i]
             );
@@ -623,7 +653,7 @@ contract FeeManager is FeeManagerHelper {
                 _poolToken
             ];
 
-            AAVE.withdraw(
+            tokenAmount = AAVE.withdraw(
                 underlyingTokenAddress,
                 tokenAmount,
                 address(this)
@@ -720,6 +750,14 @@ contract FeeManager is FeeManagerHelper {
             );
         }
 
+        if (WISE_LENDING.getTotalDepositShares(_receivingToken) == 0) {
+            revert PoolNotActive();
+        }
+
+        if (WISE_LENDING.getTotalDepositShares(_paybackToken) == 0) {
+            revert PoolNotActive();
+        }
+
         paybackAmount = WISE_LENDING.paybackAmount(
             _paybackToken,
             _shares
@@ -775,7 +813,7 @@ contract FeeManager is FeeManagerHelper {
      * chooses postion, token and receive token. Caller gets no
      * receive token!
      */
-    function paybackBadDebtForFree(
+    function paybackBadDebtNoReward(
         uint256 _nftId,
         address _paybackToken,
         uint256 _shares
@@ -789,6 +827,10 @@ contract FeeManager is FeeManagerHelper {
 
         if (badDebtPosition[_nftId] == 0) {
             return 0;
+        }
+
+        if (WISE_LENDING.getTotalDepositShares(_paybackToken) == 0) {
+            revert PoolNotActive();
         }
 
         paybackAmount = WISE_LENDING.paybackAmount(
@@ -807,19 +849,19 @@ contract FeeManager is FeeManagerHelper {
             _nftId
         );
 
-        _safeTransferFrom(
-            _paybackToken,
-            msg.sender,
-            address(WISE_LENDING),
-            paybackAmount
-        );
-
         emit PayedBackBadDebtFree(
             _nftId,
             msg.sender,
             _paybackToken,
             paybackAmount,
             block.timestamp
+        );
+
+        _safeTransferFrom(
+            _paybackToken,
+            msg.sender,
+            address(WISE_LENDING),
+            paybackAmount
         );
     }
 
@@ -859,7 +901,7 @@ contract FeeManager is FeeManagerHelper {
         uint256 i;
         uint256 l = poolTokenAddresses.length;
 
-        for (i; i < l;) {
+        while (i < l) {
             WISE_LENDING.syncManually(
                 poolTokenAddresses[i]
             );

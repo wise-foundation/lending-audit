@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 /**
  * @author Christoph Krpoun
@@ -125,15 +125,10 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _amount
     )
         public
-        syncPool(_underlyingAsset)
+        nonReentrant
+        validToken(_underlyingAsset)
         returns (uint256)
     {
-        _checkDeposit(
-            _nftId,
-            _underlyingAsset,
-            _amount
-        );
-
         _safeTransferFrom(
             _underlyingAsset,
             msg.sender,
@@ -179,15 +174,9 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     )
         public
         payable
-        syncPool(WETH_ADDRESS)
+        nonReentrant
         returns (uint256)
     {
-        _checkDeposit(
-            _nftId,
-            WETH_ADDRESS,
-            msg.value
-        );
-
         _wrapETH(
             msg.value
         );
@@ -216,17 +205,12 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _withdrawAmount
     )
         external
-        syncPool(_underlyingAsset)
+        nonReentrant
+        validToken(_underlyingAsset)
         returns (uint256)
     {
         _checkOwner(
             _nftId
-        );
-
-        _checksWithdraw(
-            _nftId,
-            _underlyingAsset,
-            _withdrawAmount
         );
 
         uint256 withdrawnShares = _wrapWithdrawExactAmount(
@@ -253,17 +237,11 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _withdrawAmount
     )
         external
-        syncPool(WETH_ADDRESS)
+        nonReentrant
         returns (uint256)
     {
         _checkOwner(
             _nftId
-        );
-
-        _checksWithdraw(
-            _nftId,
-            WETH_ADDRESS,
-            _withdrawAmount
         );
 
         uint256 withdrawnShares = _wrapWithdrawExactAmount(
@@ -300,7 +278,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _shareAmount
     )
         external
-        syncPool(_underlyingAsset)
+        nonReentrant
+        validToken(_underlyingAsset)
         returns (uint256)
     {
         _checkOwner(
@@ -331,7 +310,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _shareAmount
     )
         external
-        syncPool(WETH_ADDRESS)
+        nonReentrant
         returns (uint256)
     {
         _checkOwner(
@@ -375,17 +354,12 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _borrowAmount
     )
         external
-        syncPool(_underlyingAsset)
+        nonReentrant
+        validToken(_underlyingAsset)
         returns (uint256)
     {
         _checkOwner(
             _nftId
-        );
-
-        _checksBorrow(
-            _nftId,
-            _underlyingAsset,
-            _borrowAmount
         );
 
         uint256 borrowShares = _wrapBorrowExactAmount(
@@ -415,17 +389,11 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _borrowAmount
     )
         external
-        syncPool(WETH_ADDRESS)
+        nonReentrant
         returns (uint256)
     {
         _checkOwner(
             _nftId
-        );
-
-        _checksBorrow(
-            _nftId,
-            WETH_ADDRESS,
-            _borrowAmount
         );
 
         uint256 borrowShares = _wrapBorrowExactAmount(
@@ -462,7 +430,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _paybackAmount
     )
         external
-        syncPool(_underlyingAsset)
+        nonReentrant
+        validToken(_underlyingAsset)
         returns (uint256)
     {
         _checkPositionLocked(
@@ -509,7 +478,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     )
         external
         payable
-        syncPool(WETH_ADDRESS)
+        nonReentrant
         returns (uint256)
     {
         _checkPositionLocked(
@@ -522,6 +491,10 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
 
         uint256 userBorrowShares = WISE_LENDING.getPositionBorrowShares(
             _nftId,
+            aaveWrappedETH
+        );
+
+        WISE_LENDING.syncManually(
             aaveWrappedETH
         );
 
@@ -580,7 +553,8 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         uint256 _shares
     )
         external
-        syncPool(_underlyingAsset)
+        nonReentrant
+        validToken(_underlyingAsset)
         returns (uint256)
     {
         _checkPositionLocked(
@@ -590,6 +564,10 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         address aaveToken = aaveTokenAddress[
             _underlyingAsset
         ];
+
+        WISE_LENDING.syncManually(
+            aaveToken
+        );
 
         uint256 paybackAmount = WISE_LENDING.paybackAmount(
             aaveToken,
@@ -603,7 +581,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             paybackAmount
         );
 
-        AAVE.deposit(
+        AAVE.supply(
             _underlyingAsset,
             paybackAmount,
             address(this),
@@ -622,198 +600,6 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         );
 
         return paybackAmount;
-    }
-
-    /**
-     * @dev Allows to deposit ERC20 token in
-     * private mode. These funds are saved from
-     * borrowed out. User can withdraw private funds
-     * anytime even the pools are empty. Private funds
-     * do not earn any APY! Also a postion NFT is minted
-     * to reduce transactions.
-     */
-    function solelyDepositMint(
-        address _underlyingAsset,
-        uint256 _depositAmount
-    )
-        external
-    {
-        solelyDeposit(
-            _reservePosition(),
-            _underlyingAsset,
-            _depositAmount
-        );
-    }
-
-    /**
-     * @dev Allows to deposit ERC20 token in
-     * private mode. These funds are saved from
-     * borrowing by other users. User can withdraw
-     * private funds anytime even the pools are empty.
-     * Private funds do not earn any APY!
-     */
-    function solelyDeposit(
-        uint256 _nftId,
-        address _underlyingAsset,
-        uint256 _depositAmount
-    )
-        public
-        syncPool(_underlyingAsset)
-    {
-        _checkDeposit(
-            _nftId,
-            _underlyingAsset,
-            _depositAmount
-        );
-
-        _safeTransferFrom(
-            _underlyingAsset,
-            msg.sender,
-            address(this),
-            _depositAmount
-        );
-
-        _wrapSolelyDeposit(
-            _nftId,
-            _underlyingAsset,
-            _depositAmount
-        );
-
-        emit IsSolelyDepositAave(
-            _nftId,
-            block.timestamp
-        );
-    }
-
-    /**
-     * @dev Allows to withdraw ERC20 token from
-     * private mode.
-     */
-    function solelyWithdraw(
-        uint256 _nftId,
-        address _underlyingAsset,
-        uint256 _withdrawAmount
-    )
-        external
-        syncPool(_underlyingAsset)
-    {
-        _checkOwner(
-            _nftId
-        );
-
-        _checksSolelyWithdraw(
-            _nftId,
-            _underlyingAsset,
-            _withdrawAmount
-        );
-
-        _wrapSolelyWithdraw(
-            _nftId,
-            _underlyingAsset,
-            msg.sender,
-            _withdrawAmount
-        );
-
-        emit IsSolelyWithdrawAave(
-            _nftId,
-            block.timestamp
-        );
-    }
-
-    /**
-     * @dev Allows to deposit ETH token in
-     * private mode. These funds are saved from
-     * borrowing by other users. User can withdraw
-     * private funds anytime even the pools are empty.
-     * Private funds do not earn any APY! Also a position
-     * NFT is minted to reduce transactions.
-     */
-    function solelyDepositETHMint()
-        external
-        payable
-    {
-        solelyDepositETH(
-            _reservePosition()
-        );
-    }
-
-    /**
-     * @dev Allows to deposit ETH token in
-     * private mode. These funds are saved from
-     * borrowing by other users. User can withdraw
-     * private funds anytime even the pools are empty.
-     * Private funds do not earn any APY!
-     */
-    function solelyDepositETH(
-        uint256 _nftId
-    )
-        public
-        payable
-        syncPool(WETH_ADDRESS)
-    {
-        _checkDeposit(
-            _nftId,
-            WETH_ADDRESS,
-            msg.value
-        );
-
-        _wrapETH(
-            msg.value
-        );
-
-        _wrapSolelyDeposit(
-            _nftId,
-            WETH_ADDRESS,
-            msg.value
-        );
-
-        emit IsSolelyDepositAave(
-            _nftId,
-            block.timestamp
-        );
-    }
-
-    /**
-     * @dev Allows to withdraw ETH token from
-     * private mode.
-     */
-    function solelyWithdrawETH(
-        uint256 _nftId,
-        uint256 _withdrawAmount
-    )
-        external
-        syncPool(WETH_ADDRESS)
-    {
-        _checkOwner(
-            _nftId
-        );
-
-        _checksSolelyWithdraw(
-            _nftId,
-            WETH_ADDRESS,
-            _withdrawAmount
-        );
-
-        _wrapSolelyWithdraw(
-            _nftId,
-            WETH_ADDRESS,
-            address(this),
-            _withdrawAmount
-        );
-
-        _unwrapETH(
-            _withdrawAmount
-        );
-
-        _sendValue(
-            msg.sender,
-            _withdrawAmount
-        );
-
-        emit IsSolelyWithdrawAave(
-            _nftId,
-            block.timestamp
-        );
     }
 
     /**

@@ -1,14 +1,37 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "../InterfaceHub/IPriceFeed.sol";
 
 interface IOracleHubTest {
 
+    function priceFeed(
+        address _tokenAddress
+    )
+        external
+        view
+        returns (IPriceFeed);
+
+    function getTokensFromETH(
+        address _tokenAddress,
+        uint256 _usdValue
+    )
+        external
+        view
+        returns (uint256);
+
     function getTokensFromUSD(
         address _tokenAddress,
         uint256 _usdValue
+    )
+        external
+        view
+        returns (uint256);
+
+    function getTokensInETH(
+        address _tokenAddress,
+        uint256 _amount
     )
         external
         view
@@ -43,4 +66,13 @@ interface IOracleHubTest {
         view
         returns (bool);
 
+    function recalibrateBulk(
+        address[] memory _tokenAddresses
+    )
+        external;
+
+    function recalibrate(
+        address _tokenAddress
+    )
+        external;
 }

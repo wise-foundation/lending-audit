@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 /**
  * @author Christoph Krpoun
@@ -188,7 +188,7 @@ contract PowerFarmNFTs is ERC721Enumerable, OwnableMaster {
         returns (string memory)
     {
         require(
-            _exists(_tokenId) == true,
+            ownerOf(_tokenId) > ZERO_ADDRESS,
             "PowerFarmsNFTs: WRONG_TOKEN"
         );
 

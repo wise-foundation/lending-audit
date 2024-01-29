@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "./WiseLowLevelHelper.sol";
-import "./TransferHub/TransferHelper.sol";
 
-abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
+abstract contract MainHelper is WiseLowLevelHelper {
 
     /**
      * @dev Internal helper function for reservating a
@@ -37,30 +36,27 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (uint256)
     {
-        uint256 shares = getTotalDepositShares(
-            _poolToken
+        return _calculateShares(
+            lendingPoolData[_poolToken].totalDepositShares * _amount,
+            lendingPoolData[_poolToken].pseudoTotalPool,
+            _maxSharePrice
         );
+    }
 
-        if (shares <= 1) {
-            return _amount;
-        }
-
-        uint256 pseudo = getPseudoTotalPool(
-            _poolToken
-        );
-
-        if (pseudo == 0) {
-            return _amount;
-        }
-
-        uint256 product = _amount
-            * shares;
-
+    function _calculateShares(
+        uint256 _product,
+        uint256 _pseudo,
+        bool _maxSharePrice
+    )
+        private
+        pure
+        returns (uint256)
+    {
         return _maxSharePrice == true
-            ? product % pseudo == 0
-                ? product / pseudo
-                : product / pseudo + 1
-            : product / pseudo;
+            ? _product % _pseudo == 0
+                ? _product / _pseudo
+                : _product / _pseudo + 1
+            : _product / _pseudo;
     }
 
     /**
@@ -80,30 +76,11 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (uint256)
     {
-        uint256 shares = getTotalBorrowShares(
-            _poolToken
+        return _calculateShares(
+            borrowPoolData[_poolToken].totalBorrowShares * _amount,
+            borrowPoolData[_poolToken].pseudoTotalBorrowAmount,
+            _maxSharePrice
         );
-
-        uint256 pseudo = getPseudoTotalBorrowAmount(
-            _poolToken
-        );
-
-        if (shares <= 1) {
-            return _amount;
-        }
-
-        if (pseudo == 0) {
-            return _amount;
-        }
-
-        uint256 product = _amount
-            * shares;
-
-        return _maxSharePrice == true
-            ? product % pseudo == 0
-                ? product / pseudo
-                : product / pseudo + 1
-            : product / pseudo;
     }
 
     /**
@@ -116,25 +93,29 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
      */
     function cashoutAmount(
         address _poolToken,
-        uint256 _shares,
-        bool _maxAmount
+        uint256 _shares
     )
-        public
+        external
         view
         returns (uint256)
     {
-        uint256 product = _shares
-            * getPseudoTotalPool(_poolToken);
-
-        uint256 totalDepositShares = getTotalDepositShares(
-            _poolToken
+        return _cashoutAmount(
+            _poolToken,
+            _shares
         );
+    }
 
-        return _maxAmount == true
-            ? product % totalDepositShares == 0
-                ? product / totalDepositShares
-                : product / totalDepositShares + 1
-            : product / totalDepositShares;
+    function _cashoutAmount(
+        address _poolToken,
+        uint256 _shares
+    )
+        internal
+        view
+        returns (uint256)
+    {
+        return _shares
+            * lendingPoolData[_poolToken].pseudoTotalPool
+            / lendingPoolData[_poolToken].totalDepositShares;
     }
 
     /**
@@ -154,11 +135,9 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         returns (uint256)
     {
         uint256 product = _shares
-            * getPseudoTotalBorrowAmount(_poolToken);
+            * borrowPoolData[_poolToken].pseudoTotalBorrowAmount;
 
-        uint256 totalBorrowShares = getTotalBorrowShares(
-            _poolToken
-        );
+        uint256 totalBorrowShares = borrowPoolData[_poolToken].totalBorrowShares;
 
         return product % totalBorrowShares == 0
             ? product / totalBorrowShares
@@ -180,7 +159,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (uint256)
     {
-        WISE_SECURITY.checkOwnerPosition(
+        _checkOwnerPosition(
             _nftId,
             _caller
         );
@@ -195,9 +174,8 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     }
 
     /**
-     * @dev Internal helper calculating utilization
-     * of pool with {_poolToken}. Includes math underflow
-     * check.
+     * @dev Internal helper calculating {_poolToken}
+     * utilization. Includes math underflow check.
      */
     function _getValueUtilization(
         address _poolToken
@@ -206,13 +184,16 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (uint256)
     {
-        if (getTotalPool(_poolToken) >= getPseudoTotalPool(_poolToken)) {
+        uint256 totalPool = globalPoolData[_poolToken].totalPool;
+        uint256 pseudoPool = lendingPoolData[_poolToken].pseudoTotalPool;
+
+        if (totalPool >= pseudoPool) {
             return 0;
         }
 
         return PRECISION_FACTOR_E18 - (PRECISION_FACTOR_E18
-            * getTotalPool(_poolToken)
-            / getPseudoTotalPool(_poolToken)
+            * totalPool
+            / pseudoPool
         );
     }
 
@@ -248,6 +229,68 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     }
 
     /**
+     * @dev Wrapper for isolation pool check.
+     */
+    function _onlyIsolationPool(
+        address _poolAddress
+    )
+        internal
+        view
+    {
+        if (verifiedIsolationPool[_poolAddress] == false) {
+            revert InvalidAction();
+        }
+    }
+
+    /**
+     * @dev Internal helper function checking if
+     * user inputs are safe.
+     */
+    function _validateIsolationPoolLiquidation(
+        address _caller,
+        uint256 _nftId,
+        uint256 _nftIdLiquidator
+    )
+        internal
+        view
+    {
+        _onlyIsolationPool(
+            _caller
+        );
+
+        if (positionLocked[_nftId] == false) {
+            revert NotPowerFarm();
+        }
+
+        _checkLiquidatorNft(
+            _nftIdLiquidator
+        );
+    }
+
+    function _checkLiquidatorNft(
+        uint256 _nftIdLiquidator
+    )
+        internal
+        view
+    {
+        if (positionLocked[_nftIdLiquidator] == true) {
+            revert LiquidatorIsInPowerFarm();
+        }
+    }
+
+    function _getBalance(
+        address _tokenAddress
+    )
+        internal
+        view
+        returns (uint256)
+    {
+        return IERC20(_tokenAddress).balanceOf(
+            address(this)
+        );
+    }
+
+    /**
      * @dev Internal helper function checking if falsely
      * sent token are inside the contract for the pool with
      * {_poolToken}. If this is the case it adds those token
@@ -260,64 +303,67 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     )
         internal
     {
-        uint256 amountContract = IERC20(_poolToken).balanceOf(
-            address(this)
-        );
+        if (lendingPoolData[_poolToken].totalDepositShares == 0) {
+            revert InvalidAction();
+        }
 
-        uint256 totalPool = getTotalPool(
+        uint256 amountContract = _getBalance(
             _poolToken
         );
 
-        uint256 bareToken = getTotalBareToken(
-            _poolToken
-        );
+        uint256 totalPool = globalPoolData[_poolToken].totalPool;
+        uint256 bareToken = globalPoolData[_poolToken].totalBareToken;
 
         if (_checkCleanUp(amountContract, totalPool, bareToken)) {
             return;
         }
 
         unchecked {
-            uint256 diff = amountContract - (
+
+            uint256 difference = amountContract - (
                 totalPool + bareToken
             );
 
+            uint256 allowedDifference = _getAllowedDifference(
+                _poolToken
+            );
+
+            if (difference > allowedDifference) {
+
+                _increaseTotalAndPseudoTotalPool(
+                    _poolToken,
+                    allowedDifference
+                );
+
+                return;
+            }
+
             _increaseTotalAndPseudoTotalPool(
                 _poolToken,
-                diff
+                difference
             );
         }
     }
 
     /**
-     * @dev External wrapper for {_preparePole}
-     * Only callable by powerFarms, feeManager
-     * and aaveHub.
-     */
-    function preparePool(
+     * @dev Internal helper function calculating
+     * allowed increase of pseudoTotalPool to
+     * contain shareprice increase reasoanbly.
+    */
+    function _getAllowedDifference(
         address _poolToken
     )
-        external
-        onlyAllowedContracts
+        private
+        view
+        returns (uint256)
     {
-        _preparePool(
-            _poolToken
-        );
-    }
+        uint256 timeDifference = block.timestamp
+            - timestampsPoolData[_poolToken].timeStamp;
 
-    /**
-     * @dev External wrapper for {_newBorrowRate}
-     * Only callable by powerFarms, feeManager
-     * and aaveHub.
-     */
-    function newBorrowRate(
-        address _poolToken
-    )
-        external
-        onlyAllowedContracts
-    {
-        _newBorrowRate(
-            _poolToken
-        );
+        return timeDifference
+            * lendingPoolData[_poolToken].pseudoTotalPool
+            * PRECISION_FACTOR_E18
+            / PRECISION_FACTOR_YEAR;
     }
 
     /**
@@ -331,10 +377,6 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     )
         internal
     {
-        WISE_SECURITY.curveSecurityCheck(
-            _poolToken
-        );
-
         _cleanUp(
             _poolToken
         );
@@ -346,36 +388,27 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
 
     /**
      * @dev Internal helper function for
-     * updating all borrow tokens of a
-     * position.
-     */
-    function _preparationBorrows(
-        uint256 _nftId,
-        address _poolToken
-    )
-        internal
-    {
-        _prepareTokens(
-            _poolToken,
-            positionBorrowTokenData[_nftId]
-        );
-    }
-
-    /**
-     * @dev Internal helper function for
      * updating all lending tokens of a
      * position.
      */
-    function _preparationCollaterals(
+    function _preparationTokens(
+        mapping(uint256 => address[]) storage _userTokenData,
         uint256 _nftId,
         address _poolToken
     )
         internal
+        returns (address[] memory)
     {
+        address[] memory tokens = _userTokenData[
+            _nftId
+        ];
+
         _prepareTokens(
             _poolToken,
-            positionLendingTokenData[_nftId]
+            tokens
         );
+
+        return tokens;
     }
 
     /**
@@ -386,18 +419,18 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
      */
     function _prepareTokens(
         address _poolToken,
-        address[] memory tokens
+        address[] memory _tokens
     )
         private
     {
         address currentAddress;
 
         uint256 i;
-        uint256 l = tokens.length;
+        uint256 l = _tokens.length;
 
-        for (i; i < l;) {
+        while (i < l) {
 
-            currentAddress = tokens[i];
+            currentAddress = _tokens[i];
 
             unchecked {
                 ++i;
@@ -418,6 +451,49 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     }
 
     /**
+     * @dev Internal helper function for iterating
+     * over all tokens which may contain curvePools.
+     */
+    function _curveSecurityChecks(
+        address[] memory _lendTokens,
+        address[] memory _borrowTokens
+    )
+        internal
+    {
+        _whileLoopCurveSecurity(
+            _lendTokens
+        );
+
+        _whileLoopCurveSecurity(
+            _borrowTokens
+        );
+    }
+
+    /**
+     * @dev Internal helper function for executing while loops
+     * iterating over all tokens which may contain curvePools.
+     */
+    function _whileLoopCurveSecurity(
+        address[] memory _tokens
+    )
+        private
+    {
+        uint256 i;
+        uint256 l = _tokens.length;
+
+        while (i < l) {
+
+            WISE_SECURITY.curveSecurityCheck(
+                _tokens[i]
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
      * @dev Internal helper function
      * updating pseudo amounts and
      * printing fee shares for the
@@ -432,8 +508,8 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 currentTime = block.timestamp;
 
         uint256 bareIncrease = borrowPoolData[_poolToken].borrowRate
-            * (currentTime - getTimeStamp(_poolToken))
-            * getPseudoTotalBorrowAmount(_poolToken)
+            * (currentTime - timestampsPoolData[_poolToken].timeStamp)
+            * borrowPoolData[_poolToken].pseudoTotalBorrowAmount
             + bufferIncrease[_poolToken];
 
         if (bareIncrease < PRECISION_FACTOR_YEAR) {
@@ -475,8 +551,8 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         }
 
         uint256 feeShares = feeAmount
-            * getTotalDepositShares(_poolToken)
-            / (getPseudoTotalPool(_poolToken) - feeAmount);
+            * lendingPoolData[_poolToken].totalDepositShares
+            / (lendingPoolData[_poolToken].pseudoTotalPool - feeAmount);
 
         if (feeShares == 0) {
             _setTimeStamp(
@@ -595,7 +671,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         function(uint256, address) internal _deleteLastPositionData,
         bool isLending
     )
-        internal
+        private
     {
         uint256 length = _getPositionTokenLength(
             _nftId
@@ -610,12 +686,12 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
             return;
         }
 
-        uint8 index;
+        uint8 i;
         uint256 endPosition = length - 1;
 
-        while (index < length) {
+        while (i < length) {
 
-            if (index == endPosition) {
+            if (i == endPosition) {
                 _deleteLastPositionData(
                     _nftId,
                     _poolToken
@@ -624,8 +700,10 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
                 break;
             }
 
-            if (_getPositionTokenByIndex(_nftId, index) != _poolToken) {
-                index += 1;
+            if (_getPositionTokenByIndex(_nftId, i) != _poolToken) {
+                unchecked {
+                    ++i;
+                }
                 continue;
             }
 
@@ -634,9 +712,9 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
                 endPosition
             );
 
-            isLending
-                ? positionLendingTokenData[_nftId][index] = poolToken
-                : positionBorrowTokenData[_nftId][index] = poolToken;
+            isLending == true
+                ? positionLendTokenData[_nftId][i] = poolToken
+                : positionBorrowTokenData[_nftId][i] = poolToken;
 
             _deleteLastPositionData(
                 _nftId,
@@ -657,13 +735,55 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     )
         private
     {
-        positionLendingTokenData[_nftId].pop();
+        positionLendTokenData[_nftId].pop();
         hashMapPositionLending[
             _getHash(
                 _nftId,
                 _poolToken
             )
         ] = false;
+    }
+
+    /**
+     * @dev Core function combining payback
+     * logic with security checks.
+     */
+    function _corePayback(
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount,
+        uint256 _shares
+    )
+        internal
+    {
+        _updatePoolStorage(
+            _poolToken,
+            _amount,
+            _shares,
+            _increaseTotalPool,
+            _decreasePseudoTotalBorrowAmount,
+            _decreaseTotalBorrowShares
+        );
+
+        _decreasePositionMappingValue(
+            userBorrowShares,
+            _nftId,
+            _poolToken,
+            _shares
+        );
+
+        if (userBorrowShares[_nftId][_poolToken] > 0) {
+            return;
+        }
+
+        _removePositionData({
+            _nftId: _nftId,
+            _poolToken: _poolToken,
+            _getPositionTokenLength: getPositionBorrowTokenLength,
+            _getPositionTokenByIndex: getPositionBorrowTokenByIndex,
+            _deleteLastPositionData: _deleteLastPositionBorrowData,
+            isLending: false
+        });
     }
 
     /**
@@ -674,7 +794,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 _nftId,
         address _poolToken
     )
-        internal
+        private
     {
         positionBorrowTokenData[_nftId].pop();
         hashMapPositionBorrow[
@@ -694,7 +814,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 _nftId,
         address _poolToken
     )
-        public
+        external
         view
         returns (bool)
     {
@@ -715,7 +835,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         returns (bool)
     {
         return userLendingData[_nftId][_poolToken].shares == 0
-            && positionPureCollateralAmount[_nftId][_poolToken] == 0;
+            && pureCollateralAmount[_nftId][_poolToken] == 0;
     }
 
     /**
@@ -727,7 +847,6 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
      * p > 1E18 the {pole} and
      * a the {mulFactor}.
      */
-
     function _calculateNewBorrowRate(
         address _poolToken
     )
@@ -739,13 +858,11 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 baseDivider = pole
             * (pole - utilization);
 
-        _setBorrowRate(
-            _poolToken,
+        borrowPoolData[_poolToken].borrowRate =
             borrowRatesData[_poolToken].multiplicativeFactor
                 * PRECISION_FACTOR_E18
                 * utilization
-                / baseDivider
-        );
+                / baseDivider;
     }
 
     /**
@@ -790,7 +907,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         view
         returns (bool)
     {
-        return block.timestamp - _getTimeStampScaling(_poolToken) >= THREE_HOURS;
+        return block.timestamp - timestampsPoolData[_poolToken].timeStampScaling >= THREE_HOURS;
     }
 
     /**
@@ -803,9 +920,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     )
         private
     {
-        uint256 totalShares = getTotalDepositShares(
-            _poolToken
-        );
+        uint256 totalShares = lendingPoolData[_poolToken].totalDepositShares;
 
         if (algorithmData[_poolToken].maxValue <= totalShares) {
 
@@ -864,10 +979,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
     )
         private
     {
-        _setPreviousValue(
-            _poolToken,
-            _shareValue
-        );
+        algorithmData[_poolToken].previousValue = _shareValue;
 
         _setTimeStampScaling(
             _poolToken,
@@ -996,7 +1108,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         ];
 
         uint256 delta = borrowData.deltaPole
-            * (block.timestamp - _getTimeStampScaling(_poolToken));
+            * (block.timestamp - timestampsPoolData[_poolToken].timeStampScaling);
 
         uint256 sum = delta
             + borrowData.pole;
@@ -1025,7 +1137,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
         uint256 minValue = borrowRatesData[_poolToken].minPole;
 
         uint256 delta = borrowRatesData[_poolToken].deltaPole
-            * (block.timestamp - _getTimeStampScaling(_poolToken));
+            * (block.timestamp - timestampsPoolData[_poolToken].timeStampScaling);
 
         uint256 sub = borrowRatesData[_poolToken].pole > delta
             ? borrowRatesData[_poolToken].pole - delta
@@ -1045,7 +1157,7 @@ abstract contract MainHelper is WiseLowLevelHelper, TransferHelper {
      * @dev Internal helper function for removing token address
      * from lending data array if all shares are removed. When
      * feeManager (nftId = 0) is calling this function is skipped
-     * to save gase for continues fee accounting.
+     * to save gas for continues fee accounting.
      */
     function _removeEmptyLendingData(
         uint256 _nftId,

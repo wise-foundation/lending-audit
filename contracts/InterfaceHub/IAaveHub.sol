@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IAaveHub {
 
     function AAVE_ADDRESS()
+        external
+        view
+        returns (address);
+
+    function WETH_ADDRESS()
         external
         view
         returns (address);
@@ -15,6 +20,12 @@ interface IAaveHub {
         external
         view
         returns (address);
+
+    function setAaveTokenAddress(
+        address _underlyingToken,
+        address _aaveToken
+    )
+        external;
 
     function borrowExactAmount(
         uint256 _nftId,
@@ -61,7 +72,12 @@ interface IAaveHub {
         external
         payable
         returns (uint256);
-    
+
+    function depositExactAmountETHMint()
+        external
+        payable
+        returns (uint256);
+
     function withdrawExactShares(
         uint256 _nftId,
         address _underlyingAsset,
@@ -69,7 +85,7 @@ interface IAaveHub {
     )
         external
         returns (uint256);
-    
+
     function withdrawExactAmount(
         uint256 _nftId,
         address _token,
@@ -77,4 +93,9 @@ interface IAaveHub {
     )
         external
         returns (uint256);
+
+    function sendingProgressAaveHub()
+        external
+        view
+        returns (bool);
 }

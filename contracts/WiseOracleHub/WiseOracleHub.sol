@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 /**
- * @author Christoph Krpoun
  * @author René Hochmuth
+ * @author Christoph Krpoun
  * @author Vitally Marinchenko
  */
 
@@ -26,7 +26,6 @@ import "./OracleHelper.sol";
  *
  * Additionally, the oracleHub provides so called heartbeat checks if a token gets
  * still updated in expected time interval.
- *
  */
 
 contract WiseOracleHub is OracleHelper {
@@ -65,7 +64,7 @@ contract WiseOracleHub is OracleHelper {
 
         uint256 fetchTwapValue;
 
-        if (uniTwapPoolInfoStruct.oracle > ZERO_ADDRESS){
+        if (uniTwapPoolInfoStruct.oracle > ZERO_ADDRESS) {
             fetchTwapValue = latestResolverTwap(
                 _tokenAddress
             );
@@ -131,6 +130,30 @@ contract WiseOracleHub is OracleHelper {
         return _tokenDecimals[_tokenAddress];
     }
 
+    // @TODO: Delete later, keep for backward compatibility
+    function getTokensInUSD(
+        address _tokenAddress,
+        uint256 _tokenAmount
+    )
+        external
+        view
+        returns (uint256)
+    {
+        uint8 tokenDecimals = _tokenDecimals[
+            _tokenAddress
+        ];
+
+        return _decimalsETH < tokenDecimals
+            ? _tokenAmount
+                * latestResolver(_tokenAddress)
+                / 10 ** decimals(_tokenAddress)
+                / 10 ** (tokenDecimals - _decimalsETH)
+            : _tokenAmount
+                * 10 ** (_decimalsETH - tokenDecimals)
+                * latestResolver(_tokenAddress)
+                / 10 ** decimals(_tokenAddress);
+    }
+
     /**
      * @dev Returns USD value of a given token
      * amount in order of 1E18 decimal precision.
@@ -180,6 +203,30 @@ contract WiseOracleHub is OracleHelper {
                 * 10 ** (_decimalsETH - tokenDecimals)
                 * latestResolver(_tokenAddress)
                 / 10 ** decimals(_tokenAddress);
+    }
+
+    // @TODO: Delete later, keep for backward compatibility
+    function getTokensFromUSD(
+        address _tokenAddress,
+        uint256 _usdValue
+    )
+        external
+        view
+        returns (uint256)
+    {
+        uint8 tokenDecimals = _tokenDecimals[
+            _tokenAddress
+        ];
+
+        return _decimalsETH < tokenDecimals
+            ? _usdValue
+                * 10 ** (tokenDecimals - _decimalsETH)
+                * 10 ** decimals(_tokenAddress)
+                / latestResolver(_tokenAddress)
+            : _usdValue
+                * 10 ** decimals(_tokenAddress)
+                / latestResolver(_tokenAddress)
+                / 10 ** (_decimalsETH - tokenDecimals);
     }
 
     /**
@@ -251,8 +298,8 @@ contract WiseOracleHub is OracleHelper {
     }
 
     /**
-     * @dev Adds a new token address to the oracleHub Twap as derivative.
-     * Can't overwrite existing mappings.
+     * @dev Adds a new token address to TWAP as derivative.
+     * Not permitted to overwrite existing mappings.
      */
     function addTwapOracleDerivative(
         address _tokenAddress,
@@ -283,7 +330,7 @@ contract WiseOracleHub is OracleHelper {
         address pool;
         uint256 length = _uniPools.length;
 
-        for (i; i < length; ++i) {
+        while (i < length) {
             pool = _getPool(
                 _token0Array[i],
                 _token1Array[i],
@@ -294,6 +341,10 @@ contract WiseOracleHub is OracleHelper {
                 pool,
                 _uniPools[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
 
         _writeUniTwapPoolInfoStructDerivative(
@@ -374,7 +425,7 @@ contract WiseOracleHub is OracleHelper {
         uint256 i;
         uint256 l = _tokenAddresses.length;
 
-        for (i; i < l;) {
+        while (i < l) {
             _addOracle(
                 _tokenAddresses[i],
                 _priceFeedAddresses[i],
@@ -419,9 +470,14 @@ contract WiseOracleHub is OracleHelper {
         view
         returns (bool state)
     {
+        uint256 i;
         uint256 length = underlyingFeedTokens[
             _tokenAddress
         ].length;
+
+        if (sequencerIsDead() == true) {
+            return true;
+        }
 
         if (length == 0) {
             return _chainLinkIsDead(
@@ -429,7 +485,7 @@ contract WiseOracleHub is OracleHelper {
             );
         }
 
-        for (uint256 i = 0; i < length;) {
+        while (i < length) {
 
             state = _chainLinkIsDead(
                 underlyingFeedTokens[_tokenAddress][i]
@@ -473,7 +529,7 @@ contract WiseOracleHub is OracleHelper {
         uint256 i;
         uint256 l = _tokenAddresses.length;
 
-        for (i; i < l;) {
+        while (i < l) {
             _recalibrate(
                 _tokenAddresses[i]
             );

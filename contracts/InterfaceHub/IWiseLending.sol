@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 struct GlobalPoolEntry {
     uint256 totalPool;
@@ -187,7 +187,7 @@ interface IWiseLending {
         view
         returns (uint256);
 
-    function positionPureCollateralAmount(
+    function pureCollateralAmount(
         uint256 _nftId,
         address _poolToken
     )
@@ -260,13 +260,6 @@ interface IWiseLending {
     )
         external;
 
-    function solelyWithdrawOnBehalf(
-        uint256 _nftId,
-        address _poolToken,
-        uint256 _amount
-    )
-        external;
-
     function paybackExactAmount(
         uint256 _nftId,
         address _poolToken,
@@ -296,13 +289,13 @@ interface IWiseLending {
         external
         view
         returns (uint256);
-    
+
     function collateralizeDeposit(
         uint256 _nftId,
         address _poolToken
     )
         external;
-    
+
     function approve(
         address _spender,
         address _poolToken,
@@ -317,7 +310,7 @@ interface IWiseLending {
     )
         external
         returns (uint256);
-    
+
     function withdrawExactAmount(
         uint256 _nftId,
         address _poolToken,
@@ -337,6 +330,11 @@ interface IWiseLending {
         uint256 _shares
     )
         external;
+
+    function sendingProgress()
+        external
+        view
+        returns (bool);
 
     function depositExactAmountETH(
         uint256 _nftId
@@ -456,15 +454,6 @@ interface IWiseLending {
     function getPositionLendingShares(
         address _user,
         address _token
-    )
-        external
-        view
-        returns (uint256);
-
-    function cashoutAmount(
-        address _poolToken,
-        uint256 _shares,
-        bool _maxAmount
     )
         external
         view

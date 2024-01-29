@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "node_modules/@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./OwnableMaster.sol";
 
@@ -22,7 +22,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     constructor(
         string memory _name,
         string memory _symbol,
-        string memory _initBaseURI
+        string memory _baseURI
     )
         ERC721(
             _name,
@@ -32,7 +32,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
             msg.sender
         )
     {
-        baseURI = _initBaseURI;
+        baseURI = _baseURI;
 
         FEE_MANAGER_NFT = _mintPositionForUser(
             address(this)
@@ -128,7 +128,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         view
         returns (address)
     {
-        if (_exists(tokenId) == false) {
+        if (ownerOf(tokenId) > ZERO_ADDRESS) {
             return ZERO_ADDRESS;
         }
 
@@ -265,7 +265,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
 
         uint256 i;
 
-        for (i; i < ownerTokenCount;) {
+        while (i < ownerTokenCount) {
             tokenIds[i] = tokenOfOwnerByIndex(
                 _owner,
                 i
@@ -316,7 +316,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         returns (string memory)
     {
         require(
-            _exists(_tokenId) == true,
+            ownerOf(_tokenId) > ZERO_ADDRESS,
             "PositionNFTs: WRONG_TOKEN"
         );
 

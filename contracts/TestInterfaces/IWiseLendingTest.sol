@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 struct CreatePool {
     bool allowBorrow;
@@ -11,6 +11,16 @@ struct CreatePool {
 }
 
 interface IWiseLendingTest {
+
+    function depositExactAmountETHMint()
+        external
+        payable
+        returns (uint256);
+
+    function master()
+        external
+        view
+        returns (address);
 
     function getPositionBorrowShares(
         uint256 _nftId,
@@ -45,6 +55,12 @@ interface IWiseLendingTest {
         external
         view
         returns (uint256);
+
+    function setVerifiedIsolationPool(
+        address _isolationPool,
+        bool _state
+    )
+        external;
 
     function setVeryfiedIsolationPool(
         address _isolationPool,

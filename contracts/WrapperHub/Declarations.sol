@@ -1,26 +1,28 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity = 0.8.21;
+pragma solidity =0.8.24;
 
 import "./AaveEvents.sol";
 
-import "../InterfaceHub/IWETH.sol";
 import "../InterfaceHub/IAave.sol";
 import "../InterfaceHub/IWiseLending.sol";
 import "../InterfaceHub/IWiseSecurity.sol";
 import "../InterfaceHub/IPositionNFTs.sol";
 
 import "../OwnableMaster.sol";
+import "../TransferHub/WrapperHelper.sol";
 
 error AlreadySet();
 error InvalidValue();
 error InvalidAction();
 error FailedInnerCall();
+error InvalidToken();
 
-contract Declarations is OwnableMaster, AaveEvents {
+contract Declarations is OwnableMaster, AaveEvents, WrapperHelper {
 
     IAave internal immutable AAVE;
-    IWETH internal immutable WETH;
+
+    bool public sendingProgressAaveHub;
 
     uint16 internal constant REF_CODE = 0;
 
@@ -46,6 +48,11 @@ contract Declarations is OwnableMaster, AaveEvents {
         OwnableMaster(
             _master
         )
+        WrapperHelper(
+            IWiseLending(
+                _lendingAddress
+            ).WETH_ADDRESS()
+        )
     {
         if (_aaveAddress == ZERO_ADDRESS) {
             revert NoValue();
@@ -56,7 +63,6 @@ contract Declarations is OwnableMaster, AaveEvents {
         }
 
         AAVE_ADDRESS = _aaveAddress;
-
         WISE_LENDING = IWiseLending(
             _lendingAddress
         );
@@ -65,10 +71,6 @@ contract Declarations is OwnableMaster, AaveEvents {
 
         AAVE = IAave(
             AAVE_ADDRESS
-        );
-
-        WETH = IWETH(
-            WETH_ADDRESS
         );
 
         POSITION_NFT = IPositionNFTs(
@@ -97,80 +99,6 @@ contract Declarations is OwnableMaster, AaveEvents {
         WISE_LENDING.checkPositionLocked(
             _nftId,
             msg.sender
-        );
-    }
-
-    function _checkDeposit(
-        uint256 _nftId,
-        address _underlyingToken,
-        uint256 _depositAmount
-    )
-        internal
-        view
-    {
-        WISE_LENDING.checkDeposit(
-            _nftId,
-            msg.sender,
-            aaveTokenAddress[_underlyingToken],
-            _depositAmount
-        );
-    }
-
-    function _checksWithdraw(
-        uint256 _nftId,
-        address _underlyingToken,
-        uint256 _withdrawAmount
-    )
-        internal
-        view
-    {
-        WISE_SECURITY.checksWithdraw(
-            _nftId,
-            msg.sender,
-            aaveTokenAddress[_underlyingToken],
-            _withdrawAmount
-        );
-    }
-
-    function _checksBorrow(
-        uint256 _nftId,
-        address _underlyingToken,
-        uint256 _borrowAmount
-    )
-        internal
-        view
-    {
-        WISE_SECURITY.checksBorrow(
-            _nftId,
-            msg.sender,
-            aaveTokenAddress[_underlyingToken],
-            _borrowAmount
-        );
-    }
-
-    function _checksSolelyWithdraw(
-        uint256 _nftId,
-        address _underlyingToken,
-        uint256 _withdrawAmount
-    )
-        internal
-        view
-    {
-        WISE_SECURITY.checksSolelyWithdraw(
-            _nftId,
-            msg.sender,
-            aaveTokenAddress[_underlyingToken],
-            _withdrawAmount
-        );
-    }
-
-    function _syncPool(
-        address _underlyingToken
-    )
-        private
-    {
-        WISE_LENDING.preparePool(
-            aaveTokenAddress[_underlyingToken]
         );
     }
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
-pragma solidity =0.8.21;
+
+pragma solidity =0.8.24;
 
 import "./DeclarationsFeeManager.sol";
 import "../TransferHub/TransferHelper.sol";
@@ -21,14 +22,14 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             address currentAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
                 i
             );
 
-            WISE_LENDING.preparePool(
+            WISE_LENDING.syncManually(
                 currentAddress
             );
 
@@ -53,14 +54,14 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             address currentAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
                 i
             );
 
-            WISE_LENDING.preparePool(
+            WISE_LENDING.syncManually(
                 currentAddress
             );
 
@@ -298,7 +299,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
     {
         uint256 reduceAmount;
 
-        if (incentiveETH[incentiveOwnerA] > 0) {
+        if (incentiveUSD[incentiveOwnerA] > 0) {
 
             reduceAmount += _gatherIncentives(
                 _poolToken,
@@ -308,7 +309,7 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             );
         }
 
-        if (incentiveETH[incentiveOwnerB] > 0) {
+        if (incentiveUSD[incentiveOwnerB] > 0) {
 
             reduceAmount += _gatherIncentives(
                 _poolToken,
@@ -333,24 +334,24 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
         uint256 _amount
     )
         internal
-        returns (uint256 )
+        returns (uint256)
     {
         uint256 incentiveAmount = _amount
             * INCENTIVE_PORTION
             / WISE_LENDING.globalPoolData(_poolToken).poolFee;
 
-        uint256 ethEquivalent = ORACLE_HUB.getTokensInETH(
+        uint256 usdEquivalent = ORACLE_HUB.getTokensPriceInUSD(
             _poolToken,
             incentiveAmount
         );
 
-        uint256 reduceETH = ethEquivalent < incentiveETH[_incentiveOwner]
-            ? ethEquivalent
-            : incentiveETH[_incentiveOwner];
+        uint256 reduceUSD = usdEquivalent < incentiveUSD[_incentiveOwner]
+            ? usdEquivalent
+            : incentiveUSD[_incentiveOwner];
 
-        if (reduceETH == ethEquivalent) {
+        if (reduceUSD == usdEquivalent) {
 
-            incentiveETH[_incentiveOwner] -= ethEquivalent;
+            incentiveUSD[_incentiveOwner] -= usdEquivalent;
 
             gatheredIncentiveToken
                 [_incentiveOwner]
@@ -359,16 +360,18 @@ abstract contract FeeManagerHelper is DeclarationsFeeManager, TransferHelper {
             return incentiveAmount;
         }
 
-        incentiveAmount = ORACLE_HUB.getTokensFromETH(
+        incentiveAmount = ORACLE_HUB.getTokensPriceFromUSD(
             _poolToken,
-            reduceETH
+            reduceUSD
         );
 
-        delete incentiveETH[
+        delete incentiveUSD[
             _incentiveOwner
         ];
 
-        gatheredIncentiveToken[_incentiveOwner][_underlyingToken] += incentiveAmount;
+        gatheredIncentiveToken
+            [_incentiveOwner]
+            [_underlyingToken] += incentiveAmount;
 
         return incentiveAmount;
     }

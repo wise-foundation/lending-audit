@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "../InterfaceHub/IERC20.sol";
 import "../InterfaceHub/ICurve.sol";
@@ -9,12 +9,14 @@ import "../InterfaceHub/IWiseOracleHub.sol";
 import "../InterfaceHub/IFeeManager.sol";
 import "../InterfaceHub/IWiseLending.sol";
 import "../InterfaceHub/IWiseLiquidation.sol";
-import "../InterfaceHub/IAaveHub.sol";
+import {
+    IAaveHub as IAaveHubWiseSecurity
+} from "../InterfaceHub/IAaveHub.sol";
 
 import "../FeeManager/FeeManager.sol";
 import "../OwnableMaster.sol";
 
-
+error NotAllowedEntity();
 error ChainlinkDead();
 error TokenBlackListed();
 error NotAllowedWiseSecurity();
@@ -30,14 +32,26 @@ error TooManyShares();
 error NotRegistered();
 error Blacklisted();
 error SecuritySwapFailed();
+error BaseRewardTooHigh();
+error BaseRewardTooLow();
+error BaseRewardFarmTooHigh();
+error BaseRewardFarmTooLow();
+error MaxFeeEthTooHigh();
+error MaxFeeEthTooLow();
+error MaxFeeFarmEthTooHigh();
+error MaxFeeFarmEthTooLow();
 
 contract WiseSecurityDeclarations is OwnableMaster {
+
+    event SecurityShutdown(
+        address indexed caller,
+        uint256 indexed timestamp
+    );
 
     constructor(
         address _master,
         address _wiseLendingAddress,
-        address _aaveHubAddress,
-        uint256 _borrowPercentageCap
+        address _aaveHubAddress
     )
         OwnableMaster(
             _master
@@ -51,19 +65,21 @@ contract WiseSecurityDeclarations is OwnableMaster {
             revert NoValue();
         }
 
+        securityWorker[_master] = true;
+
         WISE_LENDING = IWiseLending(
             _wiseLendingAddress
         );
 
         AAVE_HUB = _aaveHubAddress;
 
-        address master = WISE_LENDING.master();
+        address lendingMaster = WISE_LENDING.master();
         address oracleHubAddress = WISE_LENDING.WISE_ORACLE();
         address positionNFTAddress = WISE_LENDING.POSITION_NFT();
 
         FeeManager feeManagerContract = new FeeManager(
-            master,
-            IAaveHub(AAVE_HUB).AAVE_ADDRESS(),
+            lendingMaster,
+            IAaveHubWiseSecurity(AAVE_HUB).AAVE_ADDRESS(),
             _wiseLendingAddress,
             oracleHubAddress,
             address(this),
@@ -86,18 +102,86 @@ contract WiseSecurityDeclarations is OwnableMaster {
             positionNFTAddress
         );
 
-        borrowPercentageCap = _borrowPercentageCap;
+        IS_ETH_MAINNET = block.chainid == 1;
 
-        baseRewardLiquidation = 10 * PRECISION_FACTOR_E16;
-        baseRewardLiquidationFarm = 3 * PRECISION_FACTOR_E16;
+        _setLiquidationSettings(
+            {
+                _baseReward: 10 * PRECISION_FACTOR_E16,
+                _baseRewardFarm: 3 * PRECISION_FACTOR_E16,
+                _newMaxFeeETH: 3 * PRECISION_FACTOR_E18,
+                _newMaxFeeFarmETH: 3 * PRECISION_FACTOR_E18
+            }
+        );
+    }
 
-        maxFeeETH = 3 * PRECISION_FACTOR_E18;
-        maxFeeFarmETH = 3 * PRECISION_FACTOR_E18;
+    function _setLiquidationSettings(
+        uint256 _baseReward,
+        uint256 _baseRewardFarm,
+        uint256 _newMaxFeeETH,
+        uint256 _newMaxFeeFarmETH
+    )
+        internal
+    {
+        if (_baseReward > LIQUIDATION_INCENTIVE_MAX) {
+            revert BaseRewardTooHigh();
+        }
+
+        if (_baseReward < LIQUIDATION_INCENTIVE_MIN) {
+            revert BaseRewardTooLow();
+        }
+
+        baseRewardLiquidation = _baseReward;
+
+        if (_baseRewardFarm > LIQUIDATION_INCENTIVE_POWERFARM_MAX) {
+            revert BaseRewardFarmTooHigh();
+        }
+
+        if (_baseRewardFarm < LIQUIDATION_INCENTIVE_MIN) {
+            revert BaseRewardFarmTooLow();
+        }
+
+        baseRewardLiquidationFarm = _baseRewardFarm;
+
+        uint256 maxFee = IS_ETH_MAINNET == true
+            ? LIQUIDATION_FEE_MAX_ETH
+            : LIQUIDATION_FEE_MAX_NON_ETH;
+
+        uint256 minFee = IS_ETH_MAINNET == true
+            ? LIQUIDATION_FEE_MIN_ETH
+            : LIQUIDATION_FEE_MIN_NON_ETH;
+
+        if (_newMaxFeeETH > maxFee) {
+            revert MaxFeeEthTooHigh();
+        }
+
+        if (_newMaxFeeETH < minFee) {
+            revert MaxFeeEthTooLow();
+        }
+
+        maxFeeETH = _newMaxFeeETH;
+
+        uint256 maxFeeFarm = IS_ETH_MAINNET == true
+            ? LIQUIDATION_FEE_MAX_ETH
+            : LIQUIDATION_FEE_MAX_NON_ETH;
+
+        uint256 minFeeFarm = IS_ETH_MAINNET == true
+            ? LIQUIDATION_FEE_MIN_ETH
+            : LIQUIDATION_FEE_MIN_NON_ETH;
+
+        if (_newMaxFeeFarmETH > maxFeeFarm) {
+            revert MaxFeeFarmEthTooHigh();
+        }
+
+        if (_newMaxFeeFarmETH < minFeeFarm) {
+            revert MaxFeeFarmEthTooLow();
+        }
+
+        maxFeeFarmETH = _newMaxFeeFarmETH;
     }
 
     // ---- Variables ----
 
-    uint256 public borrowPercentageCap;
+    uint256 public constant BORROW_PERCENTAGE_CAP = 95 * PRECISION_FACTOR_E16;
     address public immutable AAVE_HUB;
 
     // ---- Interfaces ----
@@ -117,30 +201,44 @@ contract WiseSecurityDeclarations is OwnableMaster {
     // Interface wiseLiquidation contract
     IWiseLiquidation public immutable WISE_LIQUIDATION;
 
-
     // Threshold values
     uint256 internal constant MAX_LIQUIDATION_50 = 50E16;
     uint256 internal constant BAD_DEBT_THRESHOLD = 89E16;
 
-    uint256 internal constant TARGET_DEC = 18;
     uint256 internal constant UINT256_MAX = type(uint256).max;
     uint256 internal constant ONE_YEAR = 52 weeks;
 
     // Precision factors for computations
     uint256 internal constant PRECISION_FACTOR_E16 = 1E16;
     uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
-    uint256 internal constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
+
+    // Chain - ID bool for Ethereum mainnet check
+    bool immutable IS_ETH_MAINNET;
+
+    // Liquidation Incentive threshholds
+    uint256 internal constant LIQUIDATION_INCENTIVE_MAX = 11 * PRECISION_FACTOR_E16;
+    uint256 internal constant LIQUIDATION_INCENTIVE_MIN = 2 * PRECISION_FACTOR_E16;
+    uint256 internal constant LIQUIDATION_INCENTIVE_POWERFARM_MAX = 4 * PRECISION_FACTOR_E16;
+
+    // Liquidation Fee threshholds
+    uint256 internal constant LIQUIDATION_FEE_MIN_ETH = 3 * PRECISION_FACTOR_E18;
+    uint256 internal constant LIQUIDATION_FEE_MAX_ETH = 100 * PRECISION_FACTOR_E18;
+    uint256 internal constant LIQUIDATION_FEE_MAX_NON_ETH = 10 * PRECISION_FACTOR_E18;
+    uint256 internal constant LIQUIDATION_FEE_MIN_NON_ETH = 30 * PRECISION_FACTOR_E16;
 
     // ---- Mapping Variables ----
 
     // Mapping pool token to blacklist bool
     mapping(address => bool) public wasBlacklisted;
 
-    // Mapping basic swap data for s curve swaps to pool token
+    // Mapping basic swap data for curve swaps to pool token
     mapping(address => CurveSwapStructData) public curveSwapInfoData;
 
     // Mapping swap info of swap token for reentrency guard to pool token
     mapping(address => CurveSwapStructToken) public curveSwapInfoToken;
+
+    // Mapping addresses which are allowed to perform a security lock.
+    mapping(address => bool) public securityWorker;
 
     // ---- Liquidation Variables ----
 

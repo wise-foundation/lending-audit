@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "forge-std/Test.sol";
 import "./../contracts/WiseOracleHub/TesterWiseOracleHub.sol";
@@ -13,7 +13,7 @@ import {
 } from "./../contracts/WrapperHub/AaveHub.sol";
 
 import "./PositionNFTs.sol";
-import "./TesterLending.sol";
+import "./Tests/TesterLending.t.sol";
 import "./../contracts/WiseSecurity/WiseSecurity.sol";
 
 contract BaseDeploymentTest is Test {
@@ -34,7 +34,17 @@ contract BaseDeploymentTest is Test {
     string public _symbolPositionNFT = "wisetoken";
     string public _baseURIPositionNFT = "WiseLendingNFTs";
 
-    function setUp () public {
+    function setUp()
+        public
+    {
+        _setupIndividualTest();
+    }
+
+    function _setupIndividualTest()
+        internal
+        virtual
+    {
+
     }
 
     function _startPrank(
@@ -94,8 +104,8 @@ contract BaseDeploymentTest is Test {
             address(POSITION_NFTS_INSTANCE)
         );
 
-        address[] memory aaveUnderlyingAssetsArray = new address[](17);
-        address[] memory aaveTokenArray = new address[](17);
+        address[] memory aaveUnderlyingAssetsArray = new address[](5);
+        address[] memory aaveTokenArray = new address[](5);
 
         aaveTokenArray[0] = 0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8;
         aaveUnderlyingAssetsArray[0] = WETH_ADDRESS;
@@ -129,8 +139,7 @@ contract BaseDeploymentTest is Test {
         LENDING_INSTANCE = new TesterLending(
             master,
             wiseOracleHub,
-            nftContract,
-            WETH_ADDRESS
+            nftContract
         );
 
         AAVE_HUB_INSTANCE = new AaveHub(
@@ -139,13 +148,10 @@ contract BaseDeploymentTest is Test {
             address(LENDING_INSTANCE)
         );
 
-        uint256 borrowPercentageCap = 950000000000000000;
-
         SECURITY_INSTANCE = new WiseSecurity(
             master,
             address(LENDING_INSTANCE),
-            address(AAVE_HUB_INSTANCE),
-            borrowPercentageCap
+            address(AAVE_HUB_INSTANCE)
         );
 
         LENDING_INSTANCE.setSecurity(

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IAave {
 
@@ -56,7 +56,7 @@ interface IAave {
         uint256 data;
     }
 
-    function deposit(
+    function supply(
         address _token,
         uint256 _amount,
         address _owner,

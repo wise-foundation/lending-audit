@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "./WiseLendingDeclaration.sol";
 
@@ -15,26 +15,6 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         private
         view
     {
-        if (msg.sender == address(FEE_MANAGER)) {
-            return;
-        }
-
-        revert InvalidCaller();
-    }
-
-    modifier onlyAllowedContracts() {
-        _onlyAllowedContracts();
-        _;
-    }
-
-    function _onlyAllowedContracts()
-        private
-        view
-    {
-        if (_byPassCase(msg.sender) == true) {
-            return;
-        }
-
         if (msg.sender == address(FEE_MANAGER)) {
             return;
         }
@@ -67,7 +47,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
     function getTotalBareToken(
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
@@ -77,7 +57,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
     function getPseudoTotalBorrowAmount(
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
@@ -87,7 +67,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
     function getTotalDepositShares(
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
@@ -97,7 +77,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
     function getTotalBorrowShares(
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
@@ -108,7 +88,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         uint256 _nftId,
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
@@ -119,7 +99,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         uint256 _nftId,
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
@@ -130,11 +110,11 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         uint256 _nftId,
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
-        return positionPureCollateralAmount[_nftId][_poolToken];
+        return pureCollateralAmount[_nftId][_poolToken];
     }
 
     // --- Basic Internal Get Functions ----
@@ -142,21 +122,11 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
     function getTimeStamp(
         address _poolToken
     )
-        public
+        external
         view
         returns (uint256)
     {
         return timestampsPoolData[_poolToken].timeStamp;
-    }
-
-    function _getTimeStampScaling(
-        address _poolToken
-    )
-        internal
-        view
-        returns (uint256)
-    {
-        return timestampsPoolData[_poolToken].timeStampScaling;
     }
 
     function getPositionLendingTokenByIndex(
@@ -167,7 +137,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         view
         returns (address)
     {
-        return positionLendingTokenData[_nftId][_index];
+        return positionLendTokenData[_nftId][_index];
     }
 
     function getPositionLendingTokenLength(
@@ -177,7 +147,7 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         view
         returns (uint256)
     {
-        return positionLendingTokenData[_nftId].length;
+        return positionLendTokenData[_nftId].length;
     }
 
     function getPositionBorrowTokenByIndex(
@@ -210,15 +180,6 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         internal
     {
         algorithmData[_poolToken].maxValue = _value;
-    }
-
-    function _setPreviousValue(
-        address _poolToken,
-        uint256 _value
-    )
-        internal
-    {
-        algorithmData[_poolToken].previousValue = _value;
     }
 
     function _setBestPole(
@@ -338,15 +299,6 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         lendingPoolData[_poolToken].pseudoTotalPool -= _amount;
     }
 
-    function _setBorrowRate(
-        address _poolToken,
-        uint256 _amount
-    )
-        internal
-    {
-        borrowPoolData[_poolToken].borrowRate = _amount;
-    }
-
     function _setTimeStamp(
         address _poolToken,
         uint256 _time
@@ -383,25 +335,25 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         globalPoolData[_poolToken].totalBareToken -= _amount;
     }
 
-    function _reduceAllowance(
-        uint256 _nftId,
-        address _poolToken,
-        address _spender,
-        uint256 _amount
-    )
+    function _checkReentrancy()
         internal
+        view
     {
-        if (POSITION_NFT.getApproved(_nftId) == _spender) {
-            return;
+        if (sendingProgress == true) {
+            revert InvalidAction();
         }
 
-        address owner = POSITION_NFT.ownerOf(
-            _nftId
-        );
-
-        if (allowance[owner][_poolToken][_spender] != type(uint256).max) {
-            allowance[owner][_poolToken][_spender] -= _amount;
+        if (_sendingProgressAaveHub() == true) {
+            revert InvalidAction();
         }
+    }
+
+    function _sendingProgressAaveHub()
+        private
+        view
+        returns (bool)
+    {
+        return IAaveHubLite(AAVE_HUB_ADDRESS).sendingProgressAaveHub();
     }
 
     function _decreasePositionMappingValue(
@@ -433,10 +385,6 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         view
         returns (bool)
     {
-        if (_sender == AAVE_HUB) {
-            return true;
-        }
-
         if (verifiedIsolationPool[_sender] == true) {
             return true;
         }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "./WiseOracleHub.sol";
 
@@ -25,11 +25,18 @@ contract TesterWiseOracleHub is WiseOracleHub {
     )
         external
     {
-        for (uint256 i = 0; i < _tokenAddresses.length; ++i) {
+        uint256 i;
+        uint256 l = _tokenAddresses.length;
+
+        while (i < l) {
             setHeartBeat(
                 _tokenAddresses[i],
                 _values[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 /**
- * @author Christoph Krpoun
  * @author René Hochmuth
+ * @author Christoph Krpoun
  * @author Vitally Marinchenko
  */
 
@@ -61,6 +61,35 @@ contract WiseLending is PoolManager {
     }
 
     /**
+     * @dev Checks if position is healthy
+     * after all state changes are done.
+     */
+    modifier healthStateCheck(
+        uint256 _nftId
+    ) {
+        _;
+
+        _healthStateCheck(
+            _nftId
+        );
+    }
+
+    function _healthStateCheck(
+        uint256 _nftId
+    )
+        private
+    {
+        _checkHealthState(
+            _nftId,
+            powerFarmCheck
+        );
+
+        if (powerFarmCheck == true) {
+            powerFarmCheck = false;
+        }
+    }
+
+    /**
      * @dev Runs the LASA algorithm known as
      * Lending Automated Scaling Algorithm
      * and updates pool data based on token
@@ -71,25 +100,163 @@ contract WiseLending is PoolManager {
         _syncPoolBeforeCodeExecution(
             _poolToken
         );
-        _;
-        _syncPoolAfterCodeExecution(
+
+        (
+            uint256 lendSharePrice,
+            uint256 borrowSharePrice
+        ) = _getSharePrice(
             _poolToken
+        );
+
+        _;
+
+        _syncPoolAfterCodeExecution(
+            _poolToken,
+            lendSharePrice,
+            borrowSharePrice
         );
     }
 
     constructor(
         address _master,
         address _wiseOracleHubAddress,
-        address _nftContract,
-        address _wethContract
+        address _nftContract
     )
         WiseLendingDeclaration(
             _master,
             _wiseOracleHubAddress,
-            _nftContract,
-            _wethContract
+            _nftContract
         )
     {}
+
+    function _emitFundsSolelyWithdrawn(
+        address _caller,
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount
+    )
+        private
+    {
+        emit FundsSolelyWithdrawn(
+            _caller,
+            _nftId,
+            _poolToken,
+            _amount,
+            block.timestamp
+        );
+    }
+
+    function _emitFundsSolelyDeposited(
+        address _caller,
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount
+    )
+        private
+    {
+        emit FundsSolelyDeposited(
+            _caller,
+            _nftId,
+            _poolToken,
+            _amount,
+            block.timestamp
+        );
+    }
+
+    /**
+     * @dev Fetches share price of lending shares.
+     */
+    function _getSharePrice(
+        address _poolToken
+    )
+        private
+        view
+        returns (
+            uint256,
+            uint256
+        )
+    {
+        return (
+            lendingPoolData[_poolToken].pseudoTotalPool
+                * PRECISION_FACTOR_E18
+                / lendingPoolData[_poolToken].totalDepositShares,
+            borrowPoolData[_poolToken].pseudoTotalBorrowAmount
+                * PRECISION_FACTOR_E18
+                / borrowPoolData[_poolToken].totalBorrowShares
+        );
+    }
+
+    function _checkHealthState(
+        uint256 _nftId,
+        bool _powerFarm
+    )
+        internal
+        view
+    {
+        WISE_SECURITY.checkHealthState(
+            _nftId,
+            _powerFarm
+        );
+    }
+
+    /**
+     * @dev Compares share prices before and after
+     * execution. If borrow share price increased
+     * or lending share price decreased, revert.
+     */
+    function _compareSharePrices(
+        address _poolToken,
+        uint256 _lendSharePriceBefore,
+        uint256 _borrowSharePriceBefore
+    )
+        private
+        view
+    {
+        (
+            uint256 lendSharePriceAfter,
+            uint256 borrowSharePriceAfter
+        ) = _getSharePrice(_poolToken);
+
+        if (lendSharePriceAfter < _lendSharePriceBefore) {
+            revert SharePriceDecreased();
+        }
+
+        uint256 currentSharePriceMax = _getCurrentSharePriceMax(
+            _poolToken
+        );
+
+        if (lendSharePriceAfter > currentSharePriceMax) {
+            revert SharePriceIncreasedTooMuch();
+        }
+
+        if (_borrowSharePriceBefore > currentSharePriceMax) {
+            revert SharePriceIncreasedTooMuch();
+        }
+
+        if (borrowSharePriceAfter > _borrowSharePriceBefore) {
+            revert SharePriceIncreased();
+        }
+    }
+
+    /**
+    * @dev Since pool inception share price
+    * increase for both lending and borrow shares
+    * is capped at 500% apr max in between a transaction.
+    */
+    function _getCurrentSharePriceMax(
+        address _poolToken
+    )
+        private
+        view
+        returns (uint256)
+    {
+        uint256 timeDifference = block.timestamp
+            - timestampsPoolData[_poolToken].initialTimeStamp;
+
+        return timeDifference
+            * RESTRICTION_FACTOR
+            + PRECISION_FACTOR_E18;
+    }
 
     /**
      * @dev First part of pool sync updating pseudo
@@ -101,13 +268,7 @@ contract WiseLending is PoolManager {
     )
         private
     {
-        if (sendingProgress == true) {
-            revert InvalidAction();
-        }
-
-        if (_byPassCase(msg.sender) == true) {
-            return;
-        }
+        _checkReentrancy();
 
         _preparePool(
             _poolToken
@@ -116,38 +277,23 @@ contract WiseLending is PoolManager {
 
     /**
      * @dev Second part of pool sync updating
-     * the borrow rate of the pool.
+     * the borrow pool rate and share price.
      */
     function _syncPoolAfterCodeExecution(
-        address _poolToken
+        address _poolToken,
+        uint256 _lendSharePriceBefore,
+        uint256 _borrowSharePriceBefore
     )
         private
     {
         _newBorrowRate(
             _poolToken
         );
-    }
 
-    /**
-     * @dev Allows to give permission for onBehalf function
-     * execution, allowing 3rd party to perform actions such as
-     * borrowOnBehalf and withdrawOnBehalf with amount limit
-     */
-    function approve(
-        address _spender,
-        address _poolToken,
-        uint256 _amount
-    )
-        external
-    {
-        allowance[msg.sender][_poolToken][_spender] = _amount;
-
-        emit Approve(
-            _spender,
+        _compareSharePrices(
             _poolToken,
-            msg.sender,
-            _amount,
-            block.timestamp
+            _lendSharePriceBefore,
+            _borrowSharePriceBefore
         );
     }
 
@@ -187,7 +333,8 @@ contract WiseLending is PoolManager {
 
         _prepareAssociatedTokens(
             _nftId,
-            _poolToken
+            _poolToken,
+            ZERO_ADDRESS
         );
 
         userLendingData[_nftId][_poolToken].unCollateralized = true;
@@ -220,23 +367,14 @@ contract WiseLending is PoolManager {
     function _depositExactAmountETH(
         uint256 _nftId
     )
-        internal
+        private
         returns (uint256)
     {
-        uint256 shareAmount = calculateLendingShares(
-            {
-                _poolToken: WETH_ADDRESS,
-                _amount: msg.value,
-                _maxSharePrice: false
-            }
-        );
-
-        _handleDeposit(
+        uint256 shareAmount = _handleDeposit(
             msg.sender,
             _nftId,
             WETH_ADDRESS,
-            msg.value,
-            shareAmount
+            msg.value
         );
 
         _wrapETH(
@@ -254,6 +392,7 @@ contract WiseLending is PoolManager {
     function depositExactAmountETHMint()
         external
         payable
+        syncPool(WETH_ADDRESS)
         returns (uint256)
     {
         return _depositExactAmountETH(
@@ -293,20 +432,11 @@ contract WiseLending is PoolManager {
         syncPool(_poolToken)
         returns (uint256)
     {
-        uint256 shareAmount = calculateLendingShares(
-            {
-                _poolToken: _poolToken,
-                _amount: _amount,
-                _maxSharePrice: false
-            }
-        );
-
-        _handleDeposit(
+        uint256 shareAmount = _handleDeposit(
             msg.sender,
             _nftId,
             _poolToken,
-            _amount,
-            shareAmount
+            _amount
         );
 
         _safeTransferFrom(
@@ -359,12 +489,51 @@ contract WiseLending is PoolManager {
             msg.value
         );
 
-        emit FundsSolelyDeposited(
+        _emitFundsSolelyDeposited(
             msg.sender,
             _nftId,
             WETH_ADDRESS,
-            msg.value,
-            block.timestamp
+            msg.value
+        );
+    }
+
+    /**
+     * @dev Core function combining
+     * supply logic with security
+     * checks for solely deposit.
+     */
+    function _handleSolelyDeposit(
+        address _caller,
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount
+    )
+        private
+    {
+        _checkDeposit(
+            _nftId,
+            _caller,
+            _poolToken,
+            _amount
+        );
+
+        _increaseMappingValue(
+            pureCollateralAmount,
+            _nftId,
+            _poolToken,
+            _amount
+        );
+
+        _increaseTotalBareToken(
+            _poolToken,
+            _amount
+        );
+
+        _addPositionTokenData(
+            _nftId,
+            _poolToken,
+            hashMapPositionLending,
+            positionLendTokenData
         );
     }
 
@@ -409,19 +578,18 @@ contract WiseLending is PoolManager {
             _amount
         );
 
+        _emitFundsSolelyDeposited(
+            msg.sender,
+            _nftId,
+            _poolToken,
+            _amount
+        );
+
         _safeTransferFrom(
             _poolToken,
             msg.sender,
             address(this),
             _amount
-        );
-
-        emit FundsSolelyDeposited(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _amount,
-            block.timestamp
         );
     }
 
@@ -437,22 +605,22 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(WETH_ADDRESS)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
-        uint256 withdrawShares = _preparationsWithdraw(
-            _nftId,
-            msg.sender,
-            WETH_ADDRESS,
-            _amount
+        uint256 withdrawShares = _handleWithdrawAmount(
+            {
+                _caller: msg.sender,
+                _nftId: _nftId,
+                _poolToken: WETH_ADDRESS,
+                _amount: _amount,
+                _onBehalf: false
+            }
         );
 
-        _coreWithdrawToken(
-            msg.sender,
-            _nftId,
-            WETH_ADDRESS,
-            _amount,
-            withdrawShares
-        );
+        if (withdrawShares == 0) {
+            revert WithdrawSharesZero();
+        }
 
         _unwrapETH(
             _amount
@@ -461,15 +629,6 @@ contract WiseLending is PoolManager {
         _sendValue(
             msg.sender,
             _amount
-        );
-
-        emit FundsWithdrawn(
-            msg.sender,
-            _nftId,
-            WETH_ADDRESS,
-            _amount,
-            withdrawShares,
-            block.timestamp
         );
 
         return withdrawShares;
@@ -485,28 +644,22 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(WETH_ADDRESS)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
-        _checkOwnerPosition(
-            _nftId,
-            msg.sender
-        );
-
-        uint256 withdrawAmount = cashoutAmount(
+        uint256 withdrawAmount = _handleWithdrawShares(
             {
+                _caller: msg.sender,
+                _nftId: _nftId,
                 _poolToken: WETH_ADDRESS,
                 _shares: _shares,
-                _maxAmount: true
+                _onBehalf: false
             }
         );
 
-        _coreWithdrawToken(
-            msg.sender,
-            _nftId,
-            WETH_ADDRESS,
-            withdrawAmount,
-            _shares
-        );
+        if (withdrawAmount == 0) {
+            revert WithdrawAmountZero();
+        }
 
         _unwrapETH(
             withdrawAmount
@@ -515,15 +668,6 @@ contract WiseLending is PoolManager {
         _sendValue(
             msg.sender,
             withdrawAmount
-        );
-
-        emit FundsWithdrawn(
-            msg.sender,
-            _nftId,
-            WETH_ADDRESS,
-            withdrawAmount,
-            _shares,
-            block.timestamp
         );
 
         return withdrawAmount;
@@ -540,36 +684,27 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
-        uint256 withdrawShares = _preparationsWithdraw(
-            _nftId,
-            msg.sender,
-            _poolToken,
-            _withdrawAmount
+        uint256 withdrawShares = _handleWithdrawAmount(
+            {
+                _caller: msg.sender,
+                _nftId: _nftId,
+                _poolToken: _poolToken,
+                _amount: _withdrawAmount,
+                _onBehalf: false
+            }
         );
 
-        _coreWithdrawToken(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _withdrawAmount,
-            withdrawShares
-        );
+        if (withdrawShares == 0) {
+            revert WithdrawSharesZero();
+        }
 
         _safeTransfer(
             _poolToken,
             msg.sender,
             _withdrawAmount
-        );
-
-        emit FundsWithdrawn(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _withdrawAmount,
-            withdrawShares,
-            block.timestamp
         );
 
         return withdrawShares;
@@ -581,38 +716,26 @@ contract WiseLending is PoolManager {
      */
     function solelyWithdrawETH(
         uint256 _nftId,
-        uint256 withdrawAmount
+        uint256 _withdrawAmount
     )
         external
         syncPool(WETH_ADDRESS)
+        healthStateCheck(_nftId)
     {
-        _checkOwnerPosition(
-            _nftId,
-            msg.sender
-        );
-
-        _coreSolelyWithdraw(
+        _handleSolelyWithdraw(
             msg.sender,
             _nftId,
             WETH_ADDRESS,
-            withdrawAmount
+            _withdrawAmount
         );
 
         _unwrapETH(
-            withdrawAmount
+            _withdrawAmount
         );
 
         _sendValue(
             msg.sender,
-            withdrawAmount
-        );
-
-        emit FundsSolelyWithdrawn(
-            msg.sender,
-            _nftId,
-            WETH_ADDRESS,
-            withdrawAmount,
-            block.timestamp
+            _withdrawAmount
         );
     }
 
@@ -627,13 +750,9 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        healthStateCheck(_nftId)
     {
-        _checkOwnerPosition(
-            _nftId,
-            msg.sender
-        );
-
-        _coreSolelyWithdraw(
+        _handleSolelyWithdraw(
             msg.sender,
             _nftId,
             _poolToken,
@@ -644,57 +763,57 @@ contract WiseLending is PoolManager {
             _poolToken,
             msg.sender,
             _withdrawAmount
-        );
-
-        emit FundsSolelyWithdrawn(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _withdrawAmount,
-            block.timestamp
         );
     }
 
     /**
-     * @dev Allows to withdraw privately
-     * deposited ERC20 on behalf of owner.
-     * Requires approval by _nftId owner.
+     * @dev Core function combining
+     * withdraw logic for solely
+     * withdraw with security checks.
      */
-    function solelyWithdrawOnBehalf(
+    function _coreSolelyWithdraw(
+        address _caller,
         uint256 _nftId,
         address _poolToken,
-        uint256 _withdrawAmount
+        uint256 _amount
     )
-        external
-        onlyWhiteList
-        syncPool(_poolToken)
+        private
     {
-        _reduceAllowance(
+        (
+            address[] memory lendTokens,
+            address[] memory borrowTokens
+        ) = _prepareAssociatedTokens(
             _nftId,
             _poolToken,
-            msg.sender,
-            _withdrawAmount
+            ZERO_ADDRESS
         );
 
-        _coreSolelyWithdraw(
-            msg.sender,
+        powerFarmCheck = WISE_SECURITY.checksSolelyWithdraw(
+            _nftId,
+            _caller,
+            _poolToken
+        );
+
+        _decreasePositionMappingValue(
+            pureCollateralAmount,
             _nftId,
             _poolToken,
-            _withdrawAmount
+            _amount
         );
 
-        _safeTransfer(
+        _decreaseTotalBareToken(
             _poolToken,
-            msg.sender,
-            _withdrawAmount
+            _amount
         );
 
-        emit FundsSolelyWithdrawnOnBehalf(
-            msg.sender,
+        _removeEmptyLendingData(
             _nftId,
-            _poolToken,
-            _withdrawAmount,
-            block.timestamp
+            _poolToken
+        );
+
+        _curveSecurityChecks(
+            lendTokens,
+            borrowTokens
         );
     }
 
@@ -709,17 +828,11 @@ contract WiseLending is PoolManager {
         uint256 _withdrawAmount
     )
         external
-        onlyWhiteList
+        onlyAaveHub
         syncPool(_poolToken)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
-        _reduceAllowance(
-            _nftId,
-            _poolToken,
-            msg.sender,
-            _withdrawAmount
-        );
-
         uint256 withdrawShares = calculateLendingShares(
             {
                 _poolToken: _poolToken,
@@ -729,26 +842,20 @@ contract WiseLending is PoolManager {
         );
 
         _coreWithdrawToken(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _withdrawAmount,
-            withdrawShares
+            {
+                _caller: msg.sender,
+                _nftId: _nftId,
+                _poolToken: _poolToken,
+                _amount: _withdrawAmount,
+                _shares: withdrawShares,
+                _onBehalf: true
+            }
         );
 
         _safeTransfer(
             _poolToken,
             msg.sender,
             _withdrawAmount
-        );
-
-        emit FundsWithdrawnOnBehalf(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _withdrawAmount,
-            withdrawShares,
-            block.timestamp
         );
 
         return withdrawShares;
@@ -765,42 +872,27 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
-        _checkOwnerPosition(
-            _nftId,
-            msg.sender
-        );
-
-        uint256 withdrawAmount = cashoutAmount(
+        uint256 withdrawAmount = _handleWithdrawShares(
             {
+                _caller: msg.sender,
+                _nftId: _nftId,
                 _poolToken: _poolToken,
                 _shares: _shares,
-                _maxAmount: true
+                _onBehalf: false
             }
         );
 
-        _coreWithdrawToken(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            withdrawAmount,
-            _shares
-        );
+        if (withdrawAmount == 0) {
+            revert WithdrawAmountZero();
+        }
 
         _safeTransfer(
             _poolToken,
             msg.sender,
             withdrawAmount
-        );
-
-        emit FundsWithdrawn(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            withdrawAmount,
-            _shares,
-            block.timestamp
         );
 
         return withdrawAmount;
@@ -816,46 +908,25 @@ contract WiseLending is PoolManager {
         uint256 _shares
     )
         external
-        onlyWhiteList
+        onlyAaveHub
         syncPool(_poolToken)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
-        uint256 withdrawAmount = cashoutAmount(
+        uint256 withdrawAmount = _handleWithdrawShares(
             {
+                _caller: msg.sender,
+                _nftId: _nftId,
                 _poolToken: _poolToken,
                 _shares: _shares,
-                _maxAmount: true
+                _onBehalf: true
             }
-        );
-
-        _reduceAllowance(
-            _nftId,
-            _poolToken,
-            msg.sender,
-            withdrawAmount
-        );
-
-        _coreWithdrawToken(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            withdrawAmount,
-            _shares
         );
 
         _safeTransfer(
             _poolToken,
             msg.sender,
             withdrawAmount
-        );
-
-        emit FundsWithdrawnOnBehalf(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            withdrawAmount,
-            _shares,
-            block.timestamp
         );
 
         return withdrawAmount;
@@ -873,6 +944,7 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(WETH_ADDRESS)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
         _checkOwnerPosition(
@@ -880,21 +952,16 @@ contract WiseLending is PoolManager {
             msg.sender
         );
 
-        uint256 shares = calculateBorrowShares(
-            {
-                _poolToken: WETH_ADDRESS,
-                _amount: _amount,
-                _maxSharePrice: true
-            }
-        );
+        uint256 shares = _handleBorrowExactAmount({
+            _nftId: _nftId,
+            _poolToken: WETH_ADDRESS,
+            _amount: _amount,
+            _onBehalf: false
+        });
 
-        _coreBorrowTokens(
-            msg.sender,
-            _nftId,
-            WETH_ADDRESS,
-            _amount,
-            shares
-        );
+        if (shares == 0) {
+            revert BorrowSharesZero();
+        }
 
         _unwrapETH(
             _amount
@@ -903,15 +970,6 @@ contract WiseLending is PoolManager {
         _sendValue(
             msg.sender,
             _amount
-        );
-
-        emit FundsBorrowed(
-            msg.sender,
-            _nftId,
-            WETH_ADDRESS,
-            _amount,
-            shares,
-            block.timestamp
         );
 
         return shares;
@@ -928,6 +986,7 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
         _checkOwnerPosition(
@@ -935,35 +994,21 @@ contract WiseLending is PoolManager {
             msg.sender
         );
 
-        uint256 shares = calculateBorrowShares(
-            {
-                _poolToken: _poolToken,
-                _amount: _amount,
-                _maxSharePrice: true
-            }
-        );
+        uint256 shares = _handleBorrowExactAmount({
+            _nftId: _nftId,
+            _poolToken: _poolToken,
+            _amount: _amount,
+            _onBehalf: false
+        });
 
-        _coreBorrowTokens(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _amount,
-            shares
-        );
+        if (shares == 0) {
+            revert BorrowSharesZero();
+        }
 
         _safeTransfer(
             _poolToken,
             msg.sender,
             _amount
-        );
-
-        emit FundsBorrowed(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _amount,
-            shares,
-            block.timestamp
         );
 
         return shares;
@@ -979,46 +1024,22 @@ contract WiseLending is PoolManager {
         uint256 _amount
     )
         external
-        onlyWhiteList
+        onlyAaveHub
         syncPool(_poolToken)
+        healthStateCheck(_nftId)
         returns (uint256)
     {
-        _reduceAllowance(
-            _nftId,
-            _poolToken,
-            msg.sender,
-            _amount
-        );
-
-        uint256 shares = calculateBorrowShares(
-            {
-                _poolToken: _poolToken,
-                _amount: _amount,
-                _maxSharePrice: true
-            }
-        );
-
-        _coreBorrowTokens(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _amount,
-            shares
-        );
+        uint256 shares = _handleBorrowExactAmount({
+            _nftId: _nftId,
+            _poolToken: _poolToken,
+            _amount: _amount,
+            _onBehalf: true
+        });
 
         _safeTransfer(
             _poolToken,
             msg.sender,
             _amount
-        );
-
-        emit FundsBorrowedOnBehalf(
-            msg.sender,
-            _nftId,
-            _poolToken,
-            _amount,
-            shares,
-            block.timestamp
         );
 
         return shares;
@@ -1038,15 +1059,11 @@ contract WiseLending is PoolManager {
         syncPool(WETH_ADDRESS)
         returns (uint256)
     {
-        _checkPositionLocked(
-            _nftId,
-            msg.sender
-        );
+        uint256 maxBorrowShares = userBorrowShares[_nftId][WETH_ADDRESS];
 
-        uint256 maxBorrowShares = getPositionBorrowShares(
-            _nftId,
-            WETH_ADDRESS
-        );
+        if (maxBorrowShares == 0) {
+            revert NoBorrowShares();
+        }
 
         uint256 maxPaybackAmount = paybackAmount(
             WETH_ADDRESS,
@@ -1060,6 +1077,10 @@ contract WiseLending is PoolManager {
                 _maxSharePrice: false
             }
         );
+
+        if (paybackShares == 0) {
+            revert PaybackSharesZero();
+        }
 
         uint256 refundAmount;
         uint256 requiredAmount = msg.value;
@@ -1112,11 +1133,6 @@ contract WiseLending is PoolManager {
         syncPool(_poolToken)
         returns (uint256)
     {
-        _checkPositionLocked(
-            _nftId,
-            msg.sender
-        );
-
         uint256 paybackShares = calculateBorrowShares(
             {
                 _poolToken: _poolToken,
@@ -1124,6 +1140,10 @@ contract WiseLending is PoolManager {
                 _maxSharePrice: false
             }
         );
+
+        if (paybackShares == 0) {
+            revert PaybackSharesZero();
+        }
 
         _handlePayback(
             msg.sender,
@@ -1156,21 +1176,20 @@ contract WiseLending is PoolManager {
         syncPool(_poolToken)
         returns (uint256)
     {
-        _checkPositionLocked(
-            _nftId,
-            msg.sender
-        );
-
-        uint256 paybackAmount = paybackAmount(
+        uint256 repaymentAmount = paybackAmount(
             _poolToken,
             _shares
         );
+
+        if (repaymentAmount == 0) {
+            revert RepaymentAmountZero();
+        }
 
         _handlePayback(
             msg.sender,
             _nftId,
             _poolToken,
-            paybackAmount,
+            repaymentAmount,
             _shares
         );
 
@@ -1178,10 +1197,10 @@ contract WiseLending is PoolManager {
             _poolToken,
             msg.sender,
             address(this),
-            paybackAmount
+            repaymentAmount
         );
 
-        return paybackAmount;
+        return repaymentAmount;
     }
 
     // --------------- Liquidation Functions ------------
@@ -1202,21 +1221,46 @@ contract WiseLending is PoolManager {
         uint256 _shareAmountToPay
     )
         external
+        syncPool(_paybackToken)
+        syncPool(_receiveToken)
         returns (uint256)
     {
-        _preparationCollaterals(
+        CoreLiquidationStruct memory data;
+
+        data.nftId = _nftId;
+        data.nftIdLiquidator = _nftIdLiquidator;
+
+        data.caller = msg.sender;
+        data.receiver = msg.sender;
+
+        data.tokenToPayback = _paybackToken;
+        data.tokenToRecieve = _receiveToken;
+        data.shareAmountToPay = _shareAmountToPay;
+
+        data.maxFeeETH = WISE_SECURITY.maxFeeETH();
+        data.baseRewardLiquidation = WISE_SECURITY.baseRewardLiquidation();
+
+        (
+            data.lendTokens,
+            data.borrowTokens
+        ) = _prepareAssociatedTokens(
             _nftId,
-            ZERO_ADDRESS
+            _receiveToken,
+            _paybackToken
         );
 
-        _preparationBorrows(
-            _nftId,
-            ZERO_ADDRESS
+        data.paybackAmount = paybackAmount(
+            _paybackToken,
+            _shareAmountToPay
         );
 
         _checkPositionLocked(
             _nftId,
             msg.sender
+        );
+
+        _checkLiquidatorNft(
+            _nftIdLiquidator
         );
 
         WISE_SECURITY.checksLiquidation(
@@ -1225,28 +1269,13 @@ contract WiseLending is PoolManager {
             _shareAmountToPay
         );
 
-        uint256 paybackAmount = paybackAmount(
-            _paybackToken,
-            _shareAmountToPay
-        );
-
         return _coreLiquidation(
-            _nftId,
-            _nftIdLiquidator,
-            msg.sender,
-            msg.sender,
-            _paybackToken,
-            _receiveToken,
-            paybackAmount,
-            _shareAmountToPay,
-            WISE_SECURITY.maxFeeETH(),
-            WISE_SECURITY.baseRewardLiquidation()
+            data
         );
     }
 
     /**
-     * @dev Wrapper function for liqudaiton flow of
-     * power farms.
+     * @dev Wrapper function for liqudaiton flow
      */
     function coreLiquidationIsolationPools(
         uint256 _nftId,
@@ -1259,23 +1288,43 @@ contract WiseLending is PoolManager {
         uint256 _shareAmountToPay
     )
         external
+        syncPool(_paybackToken)
+        syncPool(_receiveToken)
         returns (uint256)
     {
-        _onlyIsolationPool(
-            msg.sender
+        CoreLiquidationStruct memory data;
+
+        data.nftId = _nftId;
+        data.nftIdLiquidator = _nftIdLiquidator;
+
+        data.caller = _caller;
+        data.receiver = _receiver;
+
+        data.paybackAmount = _paybackAmount;
+        data.tokenToPayback = _paybackToken;
+        data.tokenToRecieve = _receiveToken;
+        data.shareAmountToPay = _shareAmountToPay;
+
+        data.maxFeeETH = WISE_SECURITY.maxFeeFarmETH();
+        data.baseRewardLiquidation = WISE_SECURITY.baseRewardLiquidationFarm();
+
+        _validateIsolationPoolLiquidation(
+            msg.sender,
+            data.nftId,
+            data.nftIdLiquidator
+        );
+
+        (
+            data.lendTokens,
+            data.borrowTokens
+        ) = _prepareAssociatedTokens(
+            data.nftId,
+            data.tokenToRecieve,
+            data.tokenToPayback
         );
 
         return _coreLiquidation(
-            _nftId,
-            _nftIdLiquidator,
-            _caller,
-            _receiver,
-            _paybackToken,
-            _receiveToken,
-            _paybackAmount,
-            _shareAmountToPay,
-            WISE_SECURITY.maxFeeFarmETH(),
-            WISE_SECURITY.baseRewardLiquidationFarm()
+            data
         );
     }
 
@@ -1289,9 +1338,12 @@ contract WiseLending is PoolManager {
         external
         syncPool(_poolToken)
     {
-        emit PoolSynced(
-            _poolToken,
-            block.timestamp
+        address[] memory tokens = new address[](1);
+        tokens[0] = _poolToken;
+
+        _curveSecurityChecks(
+            new address[](0),
+            tokens
         );
     }
 
@@ -1309,20 +1361,191 @@ contract WiseLending is PoolManager {
             msg.sender
         );
 
+        if (WISE_SECURITY.overallETHCollateralsBare(_nftId) > 0) {
+            revert PositionHasCollateral();
+        }
+
+        if (WISE_SECURITY.overallETHBorrowBare(_nftId) > 0) {
+            revert PositionHasBorrow();
+        }
+
         positionLocked[_nftId] = _registerState;
     }
 
     /**
-     * @dev Wrapper for isolation pool check.
+    * @dev External wrapper for
+    * {_corePayback} logic callable
+    * by feeMananger.
+    */
+    function corePaybackFeeManager(
+        address _poolToken,
+        uint256 _nftId,
+        uint256 _amount,
+        uint256 _shares
+    )
+        external
+        onlyFeeManager
+        syncPool(_poolToken)
+    {
+        _corePayback(
+            _nftId,
+            _poolToken,
+            _amount,
+            _shares
+        );
+    }
+
+    /**
+     * @dev Internal function combining payback
+     * logic and emit of an event.
      */
-    function _onlyIsolationPool(
-        address _poolAddress
+    function _handlePayback(
+        address _caller,
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount,
+        uint256 _shares
     )
         private
-        view
     {
-        if (verifiedIsolationPool[_poolAddress] == false) {
-            revert NotVerfiedPool();
+        _corePayback(
+            _nftId,
+            _poolToken,
+            _amount,
+            _shares
+        );
+
+        emit FundsReturned(
+            _caller,
+            _poolToken,
+            _nftId,
+            _amount,
+            _shares,
+            block.timestamp
+        );
+    }
+
+    function _handleWithdrawAmount(
+        address _caller,
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount,
+        bool _onBehalf
+    )
+        private
+        returns (uint256 withdrawShares)
+    {
+        withdrawShares = _preparationsWithdraw(
+            _nftId,
+            msg.sender,
+            _poolToken,
+            _amount
+        );
+
+        _coreWithdrawToken(
+            {
+                _caller: _caller,
+                _nftId: _nftId,
+                _poolToken: _poolToken,
+                _amount: _amount,
+                _shares: withdrawShares,
+                _onBehalf: _onBehalf
+            }
+        );
+    }
+
+    function _handleSolelyWithdraw(
+        address _caller,
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount
+    )
+        private
+    {
+        _checkOwnerPosition(
+            _nftId,
+            _caller
+        );
+
+        _coreSolelyWithdraw(
+            _caller,
+            _nftId,
+            _poolToken,
+            _amount
+        );
+
+        _emitFundsSolelyWithdrawn(
+            _caller,
+            _nftId,
+            _poolToken,
+            _amount
+        );
+    }
+
+    function _handleWithdrawShares(
+        address _caller,
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _shares,
+        bool _onBehalf
+    )
+        private
+        returns (uint256)
+    {
+        if (_onBehalf == false) {
+            _checkOwnerPosition(
+                _nftId,
+                _caller
+            );
         }
+
+        uint256 withdrawAmount = _cashoutAmount(
+            _poolToken,
+            _shares
+        );
+
+        _coreWithdrawToken(
+            {
+                _caller: _caller,
+                _nftId: _nftId,
+                _poolToken: _poolToken,
+                _amount: withdrawAmount,
+                _shares: _shares,
+                _onBehalf: _onBehalf
+            }
+        );
+
+        return withdrawAmount;
+    }
+
+    function _handleBorrowExactAmount(
+        uint256 _nftId,
+        address _poolToken,
+        uint256 _amount,
+        bool _onBehalf
+    )
+        private
+        returns (uint256)
+    {
+        uint256 shares = calculateBorrowShares(
+            {
+                _poolToken: _poolToken,
+                _amount: _amount,
+                _maxSharePrice: true
+            }
+        );
+
+        _coreBorrowTokens(
+            {
+                _caller: msg.sender,
+                _nftId: _nftId,
+                _poolToken: _poolToken,
+                _amount: _amount,
+                _shares: shares,
+                _onBehalf: _onBehalf
+            }
+        );
+
+        return shares;
     }
 }

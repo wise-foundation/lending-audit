@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 contract FeeManagerEvents {
 
@@ -47,6 +47,7 @@ contract FeeManagerEvents {
     event ClaimedIncentives(
         address indexed sender,
         address indexed token,
+        uint256 amount,
         uint256 timestamp
     );
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "./Declarations.sol";
 
@@ -45,7 +45,7 @@ abstract contract OracleHelper is Declarations {
         });
     }
 
-        /**
+    /**
      * @dev Adds uniTwapPoolInfo for a given token and its derivative.
      */
     function _writeUniTwapPoolInfoStructDerivative(
@@ -111,7 +111,6 @@ abstract contract OracleHelper is Declarations {
             int256 answer,
             ,
             ,
-
         ) = priceFeed[_tokenAddress].latestRoundData();
 
         return uint256(
@@ -129,7 +128,6 @@ abstract contract OracleHelper is Declarations {
             int256 answer,
             ,
             ,
-
         ) = ETH_PRICE_FEED.latestRoundData();
 
         return uint256(
@@ -271,17 +269,26 @@ abstract contract OracleHelper is Declarations {
         view
         returns (int24)
     {
-        uint32[] memory secondsAgos = new uint32[](2);
-        secondsAgos[0] = TWAP_PERIOD;
-        secondsAgos[1] = 0;
-
-        (int56[] memory tickCumulatives,) = IUniswapV3Pool(_oracle).observe(
-            secondsAgos
+        uint32[] memory secondsAgo = new uint32[](
+            2
         );
 
-        int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
+        secondsAgo[0] = TWAP_PERIOD;
+        secondsAgo[1] = 0;
 
-        int56 twapPeriodInt56 = int56(int32(TWAP_PERIOD));
+        (
+            int56[] memory tickCumulatives
+            ,
+        ) = IUniswapV3Pool(_oracle).observe(
+            secondsAgo
+        );
+
+        int56 twapPeriodInt56 = int56(
+            int32(TWAP_PERIOD)
+        );
+
+        int56 tickCumulativesDelta = tickCumulatives[1]
+            - tickCumulatives[0];
 
         int24 tick = int24(
             tickCumulativesDelta
@@ -345,7 +352,11 @@ abstract contract OracleHelper is Declarations {
 
         return firstQuote
             * secondQuote
-            / uint256(_getOneUnit(partnerInfo.partnerTokenAddress));
+            / uint256(
+                _getOneUnit(
+                    partnerInfo.partnerTokenAddress
+                )
+            );
     }
 
     /**
@@ -360,6 +371,40 @@ abstract contract OracleHelper is Declarations {
         heartBeat[_tokenAddress] = _recalibratePreview(
             _tokenAddress
         );
+    }
+
+    /**
+     * @dev Check if chainLink
+     * squencer is wroking.
+     */
+    function sequencerIsDead()
+        public
+        view
+        returns (bool)
+    {
+        if (IS_ARBITRUM_CHAIN == false) {
+            return false;
+        }
+
+        (
+            ,
+            int256 answer,
+            uint256 startedAt,
+            ,
+        ) = SEQUENCER.latestRoundData();
+
+        if (answer == 1) {
+            return true;
+        }
+
+        uint256 timeSinceUp = block.timestamp
+            - startedAt;
+
+        if (timeSinceUp <= GRACE_PEROID) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -420,7 +465,7 @@ abstract contract OracleHelper is Declarations {
             latestRoundId
         );
 
-        if (iterationCount < 3) {
+        if (iterationCount < MIN_ITERATION_COUNT) {
             revert SampleTooSmall(
                 {
                     size: iterationCount
@@ -428,11 +473,12 @@ abstract contract OracleHelper is Declarations {
             );
         }
 
+        uint80 i = 1;
         uint256 currentDiff;
         uint256 currentBiggest;
         uint256 currentSecondBiggest;
 
-        for (uint80 i = 1; i < iterationCount;) {
+        while (i < iterationCount) {
 
             uint256 currentTimestamp = _getRoundTimestamp(
                 _tokenAddress,

@@ -1,47 +1,47 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "./Declarations.sol";
 
 abstract contract AaveHelper is Declarations {
 
-    modifier syncPool(
-        address _underlyingToken
-    ) {
-        if (sendingProgress == true) {
-            revert InvalidAction();
-        }
-
-        if (WISE_LENDING.verifiedIsolationPool(msg.sender) == false) {
-            WISE_LENDING.preparePool(
-                aaveTokenAddress[
-                    _underlyingToken
-                ]
-            );
-        }
+    modifier nonReentrant() {
+        _nonReentrantCheck();
         _;
     }
 
-    function _prepareAssetsPosition(
-        uint256 _nftId,
-        address _underlyingToken
+    modifier validToken(
+        address _poolToken
+    ) {
+        _validToken(
+            aaveTokenAddress[_poolToken]
+        );
+        _;
+    }
+
+    function _validToken(
+        address _poolToken
     )
-        private
+        internal
+        view
     {
-        if (WISE_LENDING.verifiedIsolationPool(msg.sender) == true) {
-            return;
+        if (WISE_LENDING.getTotalDepositShares(_poolToken) == 0) {
+            revert InvalidToken();
+        }
+    }
+
+    function _nonReentrantCheck()
+        internal
+        view
+    {
+        if (sendingProgressAaveHub == true) {
+            revert InvalidAction();
         }
 
-        _prepareCollaterals(
-            _nftId,
-            aaveTokenAddress[_underlyingToken]
-        );
-
-        _prepareBorrows(
-            _nftId,
-            aaveTokenAddress[_underlyingToken]
-        );
+        if (WISE_LENDING.sendingProgress() == true) {
+            revert InvalidAction();
+        }
     }
 
     function _reservePosition()
@@ -61,22 +61,16 @@ abstract contract AaveHelper is Declarations {
         internal
         returns (uint256)
     {
-        _prepareAssetsPosition(
-            _nftId,
-            _underlyingAsset
-        );
-
-        AAVE.deposit(
+        uint256 actualDepositAmount = _wrapAaveReturnValueDeposit(
             _underlyingAsset,
             _depositAmount,
-            address(this),
-            REF_CODE
+            address(this)
         );
 
         uint256 lendingShares = WISE_LENDING.depositExactAmount(
             _nftId,
             aaveTokenAddress[_underlyingAsset],
-            _depositAmount
+            actualDepositAmount
         );
 
         return lendingShares;
@@ -91,11 +85,6 @@ abstract contract AaveHelper is Declarations {
         internal
         returns (uint256)
     {
-        _prepareAssetsPosition(
-            _nftId,
-            _underlyingAsset
-        );
-
         uint256 withdrawnShares = WISE_LENDING.withdrawOnBehalfExactAmount(
             _nftId,
             aaveTokenAddress[_underlyingAsset],
@@ -120,37 +109,17 @@ abstract contract AaveHelper is Declarations {
         internal
         returns (uint256)
     {
-        _prepareAssetsPosition(
-            _nftId,
-            _underlyingAsset
-        );
-
         address aaveToken = aaveTokenAddress[
             _underlyingAsset
         ];
 
-        uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
-            {
-                _poolToken: aaveToken,
-                _shares: _shareAmount,
-                _maxAmount: false
-            }
-        );
-
-        WISE_SECURITY.checksWithdraw(
-            _nftId,
-            msg.sender,
-            aaveToken,
-            withdrawAmount
-        );
-
-        WISE_LENDING.withdrawOnBehalfExactShares(
+        uint256 withdrawAmount = WISE_LENDING.withdrawOnBehalfExactShares(
             _nftId,
             aaveToken,
             _shareAmount
         );
 
-        AAVE.withdraw(
+        withdrawAmount = AAVE.withdraw(
             _underlyingAsset,
             withdrawAmount,
             _underlyingAssetRecipient
@@ -168,11 +137,6 @@ abstract contract AaveHelper is Declarations {
         internal
         returns (uint256)
     {
-        _prepareAssetsPosition(
-            _nftId,
-            _underlyingAsset
-        );
-
         uint256 borrowShares = WISE_LENDING.borrowOnBehalfExactAmount(
             _nftId,
             aaveTokenAddress[_underlyingAsset],
@@ -204,7 +168,7 @@ abstract contract AaveHelper is Declarations {
             address(this)
         );
 
-        AAVE.deposit(
+        AAVE.supply(
             _underlyingAsset,
             _depositAmount,
             _targetAddress,
@@ -219,75 +183,6 @@ abstract contract AaveHelper is Declarations {
             - balanceBefore;
     }
 
-    function _wrapSolelyDeposit(
-        uint256 _nftId,
-        address _underlyingAsset,
-        uint256 _depositAmount
-    )
-        internal
-    {
-        AAVE.deposit(
-            _underlyingAsset,
-            _depositAmount,
-            address(this),
-            REF_CODE
-        );
-
-        WISE_LENDING.solelyDeposit(
-            _nftId,
-            aaveTokenAddress[_underlyingAsset],
-            _depositAmount
-        );
-    }
-
-    function _wrapSolelyWithdraw(
-        uint256 _nftId,
-        address _underlyingAsset,
-        address _underlyingAssetRecipient,
-        uint256 _withdrawAmount
-    )
-        internal
-    {
-        _prepareAssetsPosition(
-            _nftId,
-            _underlyingAsset
-        );
-
-        WISE_LENDING.solelyWithdrawOnBehalf(
-            _nftId,
-            aaveTokenAddress[_underlyingAsset],
-            _withdrawAmount
-        );
-
-        AAVE.withdraw(
-            _underlyingAsset,
-            _withdrawAmount,
-            _underlyingAssetRecipient
-        );
-    }
-
-    function _wrapETH(
-        uint256 _value
-    )
-        internal
-    {
-        WETH.deposit{
-            value: _value
-        }();
-    }
-
-    function _unwrapETH(
-        uint256 _value
-    )
-        internal
-    {
-        WETH.withdraw(
-            _value
-        );
-    }
-
-    bool internal sendingProgress;
-
     function _sendValue(
         address _recipient,
         uint256 _amount
@@ -298,13 +193,13 @@ abstract contract AaveHelper is Declarations {
             revert InvalidValue();
         }
 
-        sendingProgress = true;
+        sendingProgressAaveHub = true;
 
         (bool success, ) = payable(_recipient).call{
             value: _amount
         }("");
 
-        sendingProgress = false;
+        sendingProgressAaveHub = false;
 
         if (success == false) {
             revert FailedInnerCall();

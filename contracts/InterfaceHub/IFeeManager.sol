@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IFeeManager {
 
@@ -31,6 +31,7 @@ interface IFeeManager {
 
     function FEE_MANAGER_NFT()
         external
+        view
         returns (uint256);
 
     function addPoolTokenAddress(

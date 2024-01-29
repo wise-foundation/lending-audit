@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IPositionNFTs {
 
@@ -34,7 +34,8 @@ interface IPositionNFTs {
         external;
 
     function mintPosition()
-        external;
+        external
+        returns (uint256);
 
     function tokenOfOwnerByIndex(
         address _owner,
@@ -43,14 +44,14 @@ interface IPositionNFTs {
         external
         view
         returns (uint256);
-    
+
     function walletOfOwner(
         address _owner
     )
         external
         view
         returns (uint256[] memory);
-    
+
     function mintPositionForUser(
         address _user
     )
@@ -67,6 +68,7 @@ interface IPositionNFTs {
         uint256 _nftId
     )
         external
+        view
         returns (address);
 
     function approve(

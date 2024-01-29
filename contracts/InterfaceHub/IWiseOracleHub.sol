@@ -1,8 +1,24 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IWiseOracleHub {
+
+    function getTokensPriceFromUSD(
+        address _tokenAddress,
+        uint256 _usdValue
+    )
+        external
+        view
+        returns (uint256);
+
+    function getTokensPriceInUSD(
+        address _tokenAddress,
+        uint256 _tokenAmount
+    )
+        external
+        view
+        returns (uint256);
 
     function latestResolver(
         address _tokenAddress
@@ -55,11 +71,6 @@ interface IWiseOracleHub {
         pure
         returns (uint8);
 
-    function decimalsETH()
-        external
-        pure
-        returns (uint8);
-
     function addOracle(
         address _tokenAddress,
         address _priceFeedAddress,
@@ -72,10 +83,15 @@ interface IWiseOracleHub {
     )
         external;
 
-    function recalibratePreview(
+    function WETH_ADDRESS()
+        external
+        view
+        returns (address);
+
+    function priceFeed(
         address _tokenAddress
     )
         external
         view
-        returns (uint256);
+        returns (address);
 }

@@ -1,24 +1,44 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
-import "./InterfaceHub/IWETH.sol";
+import "./OwnableMaster.sol";
+
+import "./InterfaceHub/IAaveHubLite.sol";
 import "./InterfaceHub/IPositionNFTs.sol";
 import "./InterfaceHub/IWiseSecurity.sol";
 import "./InterfaceHub/IWiseOracleHub.sol";
 import "./InterfaceHub/IFeeManagerLight.sol";
 
-import "./OwnableMaster.sol";
+import "./TransferHub/WrapperHelper.sol";
+import "./TransferHub/SendValueHelper.sol";
 
 error DeadOracle();
+error NotPowerFarm();
 error InvalidAction();
 error InvalidCaller();
 error PositionLocked();
-error NotVerfiedPool();
 error CollateralTooSmall();
+error ZeroSharesAssigned();
+error LiquidatorIsInPowerFarm();
+error SharePriceDecreased();
+error SharePriceIncreased();
+error SharePriceIncreasedTooMuch();
+error RepaymentAmountZero();
+error PaybackSharesZero();
+error NoBorrowShares();
+error PositionHasCollateral();
+error PositionHasBorrow();
+error BorrowSharesZero();
+error WithdrawAmountZero();
+error WithdrawSharesZero();
+error InvalidAddress();
 
-contract WiseLendingDeclaration is OwnableMaster {
-
+contract WiseLendingDeclaration is
+    OwnableMaster,
+    WrapperHelper,
+    SendValueHelper
+{
     event FundsDeposited(
         address indexed sender,
         uint256 indexed nftId,
@@ -62,14 +82,6 @@ contract WiseLendingDeclaration is OwnableMaster {
         uint256 timestamp
     );
 
-    event FundsSolelyWithdrawnOnBehalf(
-        address indexed sender,
-        uint256 indexed nftId,
-        address indexed token,
-        uint256 amount,
-        uint256 timestamp
-    );
-
     event FundsBorrowed(
         address indexed borrower,
         uint256 indexed nftId,
@@ -97,27 +109,18 @@ contract WiseLendingDeclaration is OwnableMaster {
         uint256 timestamp
     );
 
-    event Approve(
-        address indexed sender,
-        address indexed token,
-        address indexed user,
-        uint256 amount,
-        uint256 timestamp
-    );
-
-    event PoolSynced(
-        address indexed pool,
-        uint256 indexed timestamp
-    );
-
     constructor(
         address _master,
         address _wiseOracleHub,
-        address _nftContract,
-        address _wethContract
+        address _nftContract
     )
         OwnableMaster(
             _master
+        )
+        WrapperHelper(
+            IWiseOracleHub(
+                _wiseOracleHub
+            ).WETH_ADDRESS()
         )
     {
         if (_wiseOracleHub == ZERO_ADDRESS) {
@@ -128,15 +131,11 @@ contract WiseLendingDeclaration is OwnableMaster {
             revert NoValue();
         }
 
-        if (_wethContract == ZERO_ADDRESS) {
-            revert NoValue();
-        }
-
-        WETH_ADDRESS = _wethContract;
-
         WISE_ORACLE = IWiseOracleHub(
             _wiseOracleHub
         );
+
+        WETH_ADDRESS = WISE_ORACLE.WETH_ADDRESS();
 
         POSITION_NFT = IPositionNFTs(
             _nftContract
@@ -163,66 +162,11 @@ contract WiseLendingDeclaration is OwnableMaster {
             WISE_SECURITY.FEE_MANAGER()
         );
 
-        AAVE_HUB = WISE_SECURITY.AAVE_HUB();
-
-        whiteListOnBehalf[AAVE_HUB] = true;
+        AAVE_HUB_ADDRESS = WISE_SECURITY.AAVE_HUB();
     }
 
-    /**
-     * @dev Wrapper for wrapping
-     * ETH call.
-     */
-    function _wrapETH(
-        uint256 _value
-    )
-        internal
-    {
-        IWETH(WETH_ADDRESS).deposit{
-            value: _value
-        }();
-    }
-
-    /**
-     * @dev Wrapper for unwrapping
-     * ETH call.
-     */
-    function _unwrapETH(
-        uint256 _value
-    )
-        internal
-    {
-        IWETH(WETH_ADDRESS).withdraw(
-            _value
-        );
-    }
-
-    bool internal sendingProgress;
-
-    function _sendValue(
-        address _recipient,
-        uint256 _amount
-    )
-        internal
-    {
-        if (address(this).balance < _amount) {
-            revert InvalidAction();
-        }
-
-        sendingProgress = true;
-
-        (bool success, ) = payable(_recipient).call{
-            value: _amount
-        }("");
-
-        sendingProgress = false;
-
-        if (success == false) {
-            revert InvalidAction();
-        }
-    }
-
-    // Aave address
-    address public AAVE_HUB;
+    // AaveHub address
+    address internal AAVE_HUB_ADDRESS;
 
     // Wrapped ETH address
     address public immutable WETH_ADDRESS;
@@ -234,13 +178,15 @@ contract WiseLendingDeclaration is OwnableMaster {
     IWiseSecurity public WISE_SECURITY;
 
     // FeeManager interface
-    IFeeManagerLight public FEE_MANAGER;
+    IFeeManagerLight internal FEE_MANAGER;
 
     // NFT contract interface for positions
     IPositionNFTs public immutable POSITION_NFT;
 
     // OraceHub interface
     IWiseOracleHub public immutable WISE_ORACLE;
+
+    bool internal powerFarmCheck;
 
     // Structs ------------------------------------------
 
@@ -287,50 +233,48 @@ contract WiseLendingDeclaration is OwnableMaster {
     struct TimestampsPoolEntry {
         uint256 timeStamp;
         uint256 timeStampScaling;
+        uint256 initialTimeStamp;
     }
 
-    modifier onlyWhiteList() {
-        _onlyWhiteList();
+    struct CoreLiquidationStruct {
+        uint256 nftId;
+        uint256 nftIdLiquidator;
+        address caller;
+        address receiver;
+        address tokenToPayback;
+        address tokenToRecieve;
+        uint256 paybackAmount;
+        uint256 shareAmountToPay;
+        uint256 maxFeeETH;
+        uint256 baseRewardLiquidation;
+        address[] lendTokens;
+        address[] borrowTokens;
+    }
+
+    modifier onlyAaveHub() {
+        _onlyAaveHub();
         _;
     }
 
-    function _onlyWhiteList()
+    function _onlyAaveHub()
         private
         view
     {
-        if (whiteListOnBehalf[msg.sender] == false) {
+        if (msg.sender != AAVE_HUB_ADDRESS) {
             revert InvalidCaller();
         }
     }
 
-
-    /**
-     * Allows to set whitelist contract
-     */
-    function setOnBehalf(
-        address _contract,
-        bool _status
-    )
-        external
-        onlyMaster
-    {
-        whiteListOnBehalf[_contract] = _status;
-    }
-
     // Position mappings ------------------------------------------
-    mapping(address => bool) internal whiteListOnBehalf;
     mapping(address => uint256) internal bufferIncrease;
     mapping(address => uint256) public maxDepositValueToken;
 
+    mapping(uint256 => address[]) public positionLendTokenData;
     mapping(uint256 => address[]) public positionBorrowTokenData;
-    mapping(uint256 => address[]) public positionLendingTokenData;
 
     mapping(uint256 => mapping(address => uint256)) public userBorrowShares;
+    mapping(uint256 => mapping(address => uint256)) public pureCollateralAmount;
     mapping(uint256 => mapping(address => LendingEntry)) public userLendingData;
-    mapping(uint256 => mapping(address => uint256)) public positionPureCollateralAmount;
-
-    // Owner -> PoolToken -> Spender -> Allowance Value
-    mapping(address => mapping(address => mapping(address => uint256))) public allowance;
 
     // Struct mappings -------------------------------------
     mapping(address => BorrowRatesEntry) public borrowRatesData;
@@ -371,4 +315,13 @@ contract WiseLendingDeclaration is OwnableMaster {
     // LASA CONSTANTS -------------------------
     uint256 internal constant THRESHOLD_SWITCH_DIRECTION = 90 * PRECISION_FACTOR_E16;
     uint256 internal constant THRESHOLD_RESET_RESONANCE_FACTOR = 75 * PRECISION_FACTOR_E16;
+
+    // MORE THRESHHOLD VALUES
+
+    uint256 internal constant MAX_COLLATERAL_FACTOR = 85 * PRECISION_FACTOR_E16;
+
+    // APR RESTRICTIONS
+    uint256 internal constant RESTRICTION_FACTOR = 10
+        * PRECISION_FACTOR_E36
+        / PRECISION_FACTOR_YEAR;
 }

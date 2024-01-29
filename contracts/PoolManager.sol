@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "./WiseCore.sol";
 import "./Babylonian.sol";
 
 abstract contract PoolManager is WiseCore {
+
+    using Babylonian for uint256;
 
     struct CreatePool {
         bool allowBorrow;
@@ -43,12 +45,12 @@ abstract contract PoolManager is WiseCore {
 
         algoData.increasePole = _steppingDirection;
 
-        uint256 staticMinPole = _getMinPole(
+        uint256 staticMinPole = _getPoleValue(
             _poolMulFactor,
             _upperBoundMaxRate
         );
 
-        uint256 staticMaxPole = _getMaxPole(
+        uint256 staticMaxPole = _getPoleValue(
             _poolMulFactor,
             _lowerBoundMaxRate
         );
@@ -63,13 +65,13 @@ abstract contract PoolManager is WiseCore {
             staticMinPole
         );
 
-        borrowRatesData[_poolToken] = BorrowRatesEntry({
-            pole: startValuePole,
-            deltaPole: staticDeltaPole,
-            minPole: staticMinPole,
-            maxPole: staticMaxPole,
-            multiplicativeFactor: _poolMulFactor
-        });
+        borrowRatesData[_poolToken] = BorrowRatesEntry(
+            startValuePole,
+            staticDeltaPole,
+            staticMinPole,
+            staticMaxPole,
+            _poolMulFactor
+        );
 
         algoData.bestPole = startValuePole;
         algoData.maxValue = lendingPoolData[_poolToken].totalDepositShares;
@@ -147,14 +149,22 @@ abstract contract PoolManager is WiseCore {
             revert InvalidAction();
         }
 
+        if(_params.poolToken == ZERO_ADDRESS) {
+            revert InvalidAddress();
+        }
+
+        if (_params.poolCollFactor > MAX_COLLATERAL_FACTOR) {
+            revert InvalidAction();
+        }
+
         // Calculating lower bound for the pole
-        uint256 staticMinPole = _getMinPole(
+        uint256 staticMinPole = _getPoleValue(
             _params.poolMulFactor,
             UPPER_BOUND_MAX_RATE
         );
 
         // Calculating upper bound for the pole
-        uint256 staticMaxPole = _getMaxPole(
+        uint256 staticMaxPole = _getPoleValue(
             _params.poolMulFactor,
             LOWER_BOUND_MAX_RATE
         );
@@ -166,10 +176,6 @@ abstract contract PoolManager is WiseCore {
         );
 
         maxDepositValueToken[_params.poolToken] = _params.maxDepositAmount;
-
-        FEE_MANAGER.addPoolTokenAddress(
-            _params.poolToken
-        );
 
         globalPoolData[_params.poolToken] = GlobalPoolEntry({
             totalPool: 0,
@@ -185,19 +191,19 @@ abstract contract PoolManager is WiseCore {
         );
 
         // Rates Pool Data
-        borrowRatesData[_params.poolToken] = BorrowRatesEntry({
-            pole: startValuePole,
-            deltaPole: staticDeltaPole,
-            minPole: staticMinPole,
-            maxPole: staticMaxPole,
-            multiplicativeFactor: _params.poolMulFactor
-        });
+        borrowRatesData[_params.poolToken] = BorrowRatesEntry(
+            startValuePole,
+            staticDeltaPole,
+            staticMinPole,
+            staticMaxPole,
+            _params.poolMulFactor
+        );
 
         // Borrow Pool Data
         borrowPoolData[_params.poolToken] = BorrowPoolEntry({
             allowBorrow: _params.allowBorrow,
-            pseudoTotalBorrowAmount: 1,
-            totalBorrowShares: 1,
+            pseudoTotalBorrowAmount: 1E3,
+            totalBorrowShares: 1E3,
             borrowRate: 0
         });
 
@@ -209,8 +215,26 @@ abstract contract PoolManager is WiseCore {
             increasePole: false
         });
 
-        uint256 fetchBalance = IERC20(_params.poolToken).balanceOf(
-            address(this)
+        // Lending Pool Data
+        lendingPoolData[_params.poolToken] = LendingPoolEntry({
+            pseudoTotalPool: 1E3,
+            totalDepositShares: 1E3,
+            collateralFactor: _params.poolCollFactor
+        });
+
+        // Timestamp Pool Data
+        timestampsPoolData[_params.poolToken] = TimestampsPoolEntry({
+            timeStamp: block.timestamp,
+            timeStampScaling: block.timestamp,
+            initialTimeStamp: block.timestamp
+        });
+
+        FEE_MANAGER.addPoolTokenAddress(
+            _params.poolToken
+        );
+
+        uint256 fetchBalance = _getBalance(
+            _params.poolToken
         );
 
         if (fetchBalance > 0) {
@@ -220,51 +244,22 @@ abstract contract PoolManager is WiseCore {
                 fetchBalance
             );
         }
-
-        // Lending Pool Data
-        lendingPoolData[_params.poolToken] = LendingPoolEntry({
-            pseudoTotalPool: 1,
-            totalDepositShares: 1,
-            collateralFactor: _params.poolCollFactor
-        });
-
-        // Timestamp Pool Data
-        timestampsPoolData[_params.poolToken] = TimestampsPoolEntry({
-            timeStamp: block.timestamp,
-            timeStampScaling: block.timestamp
-        });
     }
 
-    function _getMaxPole(
+    function _getPoleValue(
         uint256 _poolMulFactor,
-        uint256 _lowerBoundMaxRate
+        uint256 _poleBoundRate
     )
         private
         pure
         returns (uint256)
     {
         return PRECISION_FACTOR_E18 / 2
-            + Babylonian.sqrt(PRECISION_FACTOR_E36 / 4
+            + (PRECISION_FACTOR_E36 / 4
                 + _poolMulFactor
                     * PRECISION_FACTOR_E36
-                    / _lowerBoundMaxRate
-            );
-    }
-
-    function _getMinPole(
-        uint256 _poolMulFactor,
-        uint256 _upperBoundMaxRate
-    )
-        private
-        pure
-        returns (uint256)
-    {
-        return PRECISION_FACTOR_E18 / 2
-            + Babylonian.sqrt(PRECISION_FACTOR_E36 / 4
-                + _poolMulFactor
-                    * PRECISION_FACTOR_E36
-                    / _upperBoundMaxRate
-            );
+                    / _poleBoundRate
+            ).sqrt();
     }
 
     function _getDeltaPole(

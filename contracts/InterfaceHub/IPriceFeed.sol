@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IPriceFeed {
 
@@ -51,9 +51,7 @@ interface IPriceFeed {
     function phaseId()
         external
         view
-        returns(
-            uint16 phaseId
-        );
+        returns (uint16);
 
     function aggregator()
         external

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IAaveTest {
 
@@ -12,4 +12,11 @@ interface IAaveTest {
     )
         external;
 
+    function supply(
+        address _token,
+        uint256 _amount,
+        address _owner,
+        uint16 _referralCode
+    )
+        external;
 }

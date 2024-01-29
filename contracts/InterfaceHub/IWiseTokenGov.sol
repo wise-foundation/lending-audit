@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IWiseTokenGov {
 
@@ -38,7 +38,7 @@ interface IWiseInsuranceGov {
     )
         external
         view
-        returns(
+        returns (
             bytes16,
             uint256,
             uint256,

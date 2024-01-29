@@ -1,35 +1,39 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "./MainHelper.sol";
+import "./TransferHub/TransferHelper.sol";
 
-abstract contract WiseCore is MainHelper {
+abstract contract WiseCore is MainHelper, TransferHelper {
 
     /**
      * @dev Wrapper function combining pool
      * preparations for borrow and collaterals.
-     * Bypassed when called by powerFarms
-     * or aaveHub.
+     * Bypassed when called by powerFarms.
      */
     function _prepareAssociatedTokens(
         uint256 _nftId,
-        address _poolToken
+        address _poolTokenLend,
+        address _poolTokenBorrow
     )
         internal
+        returns (
+            address[] memory,
+            address[] memory
+        )
     {
-        if (_byPassCase(msg.sender) == true) {
-            return;
-        }
-
-        _preparationCollaterals(
-            _nftId,
-            _poolToken
-        );
-
-        _preparationBorrows(
-            _nftId,
-            _poolToken
+        return (
+            _preparationTokens(
+                positionLendTokenData,
+                _nftId,
+                _poolTokenLend
+            ),
+            _preparationTokens(
+                positionBorrowTokenData,
+                _nftId,
+                _poolTokenBorrow
+            )
         );
     }
 
@@ -42,20 +46,24 @@ abstract contract WiseCore is MainHelper {
         uint256 _nftId,
         address _poolToken,
         uint256 _amount,
-        uint256 _shares
+        uint256 _shares,
+        bool _onBehalf
     )
         internal
     {
-        _prepareAssociatedTokens(
+        (
+            address[] memory lendTokens,
+            address[] memory borrowTokens
+        ) = _prepareAssociatedTokens(
             _nftId,
-            _poolToken
+            _poolToken,
+            ZERO_ADDRESS
         );
 
-        WISE_SECURITY.checksWithdraw(
+        powerFarmCheck = WISE_SECURITY.checksWithdraw(
             _nftId,
             _caller,
-            _poolToken,
-            _amount
+            _poolToken
         );
 
         _coreWithdrawBare(
@@ -64,35 +72,30 @@ abstract contract WiseCore is MainHelper {
             _amount,
             _shares
         );
-    }
 
-    /**
-     * @dev Internal function combining payback
-     * logic and emit of an event.
-     */
-    function _handlePayback(
-        address _caller,
-        uint256 _nftId,
-        address _poolToken,
-        uint256 _amount,
-        uint256 _shares
-    )
-        internal
-    {
-        _corePayback(
-            _nftId,
-            _poolToken,
-            _amount,
-            _shares
-        );
+        if (_onBehalf == true) {
+            emit FundsWithdrawnOnBehalf(
+                _caller,
+                _nftId,
+                _poolToken,
+                _amount,
+                _shares,
+                block.timestamp
+            );
+        } else {
+            emit FundsWithdrawn(
+                _caller,
+                _nftId,
+                _poolToken,
+                _amount,
+                _shares,
+                block.timestamp
+            );
+        }
 
-        emit FundsReturned(
-            _caller,
-            _poolToken,
-            _nftId,
-            _amount,
-            _shares,
-            block.timestamp
+        _curveSecurityChecks(
+            lendTokens,
+            borrowTokens
         );
     }
 
@@ -104,11 +107,23 @@ abstract contract WiseCore is MainHelper {
         address _caller,
         uint256 _nftId,
         address _poolToken,
-        uint256 _amount,
-        uint256 _shareAmount
+        uint256 _amount
     )
         internal
+        returns (uint256)
     {
+        uint256 shareAmount = calculateLendingShares(
+            {
+                _poolToken: _poolToken,
+                _amount: _amount,
+                _maxSharePrice: false
+            }
+        );
+
+        if (shareAmount == 0) {
+            revert ZeroSharesAssigned();
+        }
+
         _checkDeposit(
             _nftId,
             _caller,
@@ -119,13 +134,13 @@ abstract contract WiseCore is MainHelper {
         _increasePositionLendingDeposit(
             _nftId,
             _poolToken,
-            _shareAmount
+            shareAmount
         );
 
         _updatePoolStorage(
             _poolToken,
             _amount,
-            _shareAmount,
+            shareAmount,
             _increaseTotalPool,
             _increasePseudoTotalPool,
             _increaseTotalDepositShares
@@ -135,7 +150,7 @@ abstract contract WiseCore is MainHelper {
             _nftId,
             _poolToken,
             hashMapPositionLending,
-            positionLendingTokenData
+            positionLendTokenData
         );
 
         emit FundsDeposited(
@@ -143,15 +158,18 @@ abstract contract WiseCore is MainHelper {
             _nftId,
             _poolToken,
             _amount,
-            _shareAmount,
+            shareAmount,
             block.timestamp
         );
+
+        return shareAmount;
     }
 
     /**
      * @dev External wrapper for
      * {_checkPositionLocked}.
      */
+
     function checkPositionLocked(
         uint256 _nftId,
         address _caller
@@ -171,6 +189,7 @@ abstract contract WiseCore is MainHelper {
      * aaveHub or a powerFarm itself is
      * the {msg.sender}.
      */
+
     function _checkPositionLocked(
         uint256 _nftId,
         address _caller
@@ -223,9 +242,13 @@ abstract contract WiseCore is MainHelper {
         internal
         view
     {
-        _checkPositionLocked(
+       _checkPositionLocked(
             _nftId,
             _caller
+        );
+
+        WISE_SECURITY.checkPoolCondition(
+            _poolToken
         );
 
         if (WISE_ORACLE.chainLinkIsDead(_poolToken) == true) {
@@ -247,57 +270,17 @@ abstract contract WiseCore is MainHelper {
         address _poolToken,
         uint256 _amount
     )
-        internal
+        private
         view
     {
         bool state = maxDepositValueToken[_poolToken]
-            < getTotalBareToken(_poolToken)
-            + getPseudoTotalPool(_poolToken)
+            < globalPoolData[_poolToken].totalBareToken
+            + lendingPoolData[_poolToken].pseudoTotalPool
             + _amount;
 
         if (state == true) {
             revert InvalidAction();
         }
-    }
-
-    /**
-     * @dev Core function combining
-     * supply logic with security
-     * checks for solely deposit.
-     */
-    function _handleSolelyDeposit(
-        address _caller,
-        uint256 _nftId,
-        address _poolToken,
-        uint256 _amount
-    )
-        internal
-    {
-        _checkDeposit(
-            _nftId,
-            _caller,
-            _poolToken,
-            _amount
-        );
-
-        _increaseMappingValue(
-            positionPureCollateralAmount,
-            _nftId,
-            _poolToken,
-            _amount
-        );
-
-        _increaseTotalBareToken(
-            _poolToken,
-            _amount
-        );
-
-        _addPositionTokenData(
-            _nftId,
-            _poolToken,
-            hashMapPositionLending,
-            positionLendingTokenData
-        );
     }
 
     /**
@@ -311,7 +294,7 @@ abstract contract WiseCore is MainHelper {
         uint256 _amount,
         uint256 _shares
     )
-        internal
+        private
     {
         _updatePoolStorage(
             _poolToken,
@@ -343,20 +326,24 @@ abstract contract WiseCore is MainHelper {
         uint256 _nftId,
         address _poolToken,
         uint256 _amount,
-        uint256 _shares
+        uint256 _shares,
+        bool _onBehalf
     )
         internal
     {
-        _prepareAssociatedTokens(
+        (
+            address[] memory lendTokens,
+            address[] memory borrowTokens
+        ) = _prepareAssociatedTokens(
             _nftId,
+            ZERO_ADDRESS,
             _poolToken
         );
 
-        WISE_SECURITY.checksBorrow(
+        powerFarmCheck = WISE_SECURITY.checksBorrow(
             _nftId,
             _caller,
-            _poolToken,
-            _amount
+            _poolToken
         );
 
         _updatePoolStorage(
@@ -381,126 +368,30 @@ abstract contract WiseCore is MainHelper {
             hashMapPositionBorrow,
             positionBorrowTokenData
         );
-    }
 
-    /**
-     * @dev Core function combining payback
-     * logic with security checks.
-     */
-    function _corePayback(
-        uint256 _nftId,
-        address _poolToken,
-        uint256 _amount,
-        uint256 _shares
-    )
-        internal
-    {
-        _updatePoolStorage(
-            _poolToken,
-            _amount,
-            _shares,
-            _increaseTotalPool,
-            _decreasePseudoTotalBorrowAmount,
-            _decreaseTotalBorrowShares
-        );
-
-        _decreasePositionMappingValue(
-            userBorrowShares,
-            _nftId,
-            _poolToken,
-            _shares
-        );
-
-        if (getPositionBorrowShares(_nftId, _poolToken) > 0) {
-            return;
+        if (_onBehalf == true) {
+            emit FundsBorrowedOnBehalf(
+                _caller,
+                _nftId,
+                _poolToken,
+                _amount,
+                _shares,
+                block.timestamp
+            );
+        } else {
+            emit FundsBorrowed(
+                _caller,
+                _nftId,
+                _poolToken,
+                _amount,
+                _shares,
+                block.timestamp
+            );
         }
 
-        _removePositionData({
-            _nftId: _nftId,
-            _poolToken: _poolToken,
-            _getPositionTokenLength: getPositionBorrowTokenLength,
-            _getPositionTokenByIndex: getPositionBorrowTokenByIndex,
-            _deleteLastPositionData: _deleteLastPositionBorrowData,
-            isLending: false
-        });
-    }
-
-    /**
-     * @dev External wrapper for
-     * {_corePayback} logic callable
-     * by feeMananger.
-     */
-    function corePaybackFeeManager(
-        address _poolToken,
-        uint256 _nftId,
-        uint256 _amount,
-        uint256 _shares
-    )
-        external
-        onlyFeeManager
-    {
-        _corePayback(
-            _nftId,
-            _poolToken,
-            _amount,
-            _shares
-        );
-    }
-
-    /**
-     * @dev Core function combining
-     * withdraw logic for solely
-     * withdraw with security checks.
-     */
-    function _coreSolelyWithdraw(
-        address _caller,
-        uint256 _nftId,
-        address _poolToken,
-        uint256 _amount
-    )
-        internal
-    {
-        WISE_SECURITY.checksSolelyWithdraw(
-            _nftId,
-            _caller,
-            _poolToken,
-            _amount
-        );
-
-        _solelyWithdrawBase(
-            _poolToken,
-            _nftId,
-            _amount
-        );
-    }
-
-    /**
-     * @dev Low level core function with
-     * withdraw logic for solely
-     * withdraw. (Without security checks)
-     */
-    function _solelyWithdrawBase(
-        address _poolToken,
-        uint256 _nftId,
-        uint256 _amount
-    )
-        internal
-    {
-        _decreasePositionMappingValue(
-            positionPureCollateralAmount,
-            _nftId,
-            _poolToken,
-            _amount
-        );
-
-        _decreaseTotalBareToken(
-            _poolToken,
-            _amount
-        );
-
-        _removeEmptyLendingData(
-            _nftId,
-            _poolToken
+        _curveSecurityChecks(
+            lendTokens,
+            borrowTokens
         );
     }
 
@@ -514,15 +405,15 @@ abstract contract WiseCore is MainHelper {
         address _poolToken,
         uint256 _percentLiquidation
     )
-        internal
+        private
         returns (uint256 transferAmount)
     {
         transferAmount = _percentLiquidation
-            * positionPureCollateralAmount[_nftId][_poolToken]
+            * pureCollateralAmount[_nftId][_poolToken]
             / PRECISION_FACTOR_E18;
 
         _decreasePositionMappingValue(
-            positionPureCollateralAmount,
+            pureCollateralAmount,
             _nftId,
             _poolToken,
             transferAmount
@@ -546,37 +437,30 @@ abstract contract WiseCore is MainHelper {
         address _poolToken,
         uint256 _percentWishCollateral
     )
-        internal
+        private
         returns (uint256)
     {
         uint256 cashoutShares = _percentWishCollateral
-            * getPositionLendingShares(
-                _nftId,
-                _poolToken
-            ) / PRECISION_FACTOR_E18;
+            * userLendingData[_nftId][_poolToken].shares
+            / PRECISION_FACTOR_E18;
 
-        uint256 cashoutAmount = cashoutAmount(
-            {
-                _poolToken: _poolToken,
-                _shares: cashoutShares,
-                _maxAmount: false
-            }
+        uint256 withdrawAmount = _cashoutAmount(
+            _poolToken,
+            cashoutShares
         );
 
-        uint256 totalPoolToken = getTotalPool(
-            _poolToken
-        );
+        uint256 totalPoolToken = globalPoolData[_poolToken].totalPool;
 
-        if (cashoutAmount <= totalPoolToken) {
+        if (withdrawAmount <= totalPoolToken) {
 
             _coreWithdrawBare(
                 _nftId,
                 _poolToken,
-                cashoutAmount,
+                withdrawAmount,
                 cashoutShares
             );
 
-            return cashoutAmount;
+            return withdrawAmount;
         }
 
         uint256 totalPoolInShares = calculateLendingShares(
@@ -613,7 +497,7 @@ abstract contract WiseCore is MainHelper {
             _nftId,
             _poolToken,
             hashMapPositionLending,
-            positionLendingTokenData
+            positionLendTokenData
         );
 
         return totalPoolToken;
@@ -630,7 +514,7 @@ abstract contract WiseCore is MainHelper {
         address _receiveTokens,
         uint256 _removePercentage
     )
-        internal
+        private
         returns (uint256)
     {
         uint256 receiveAmount = _withdrawPureCollateralLiquidation(
@@ -639,7 +523,7 @@ abstract contract WiseCore is MainHelper {
             _removePercentage
         );
 
-        if (isUncollateralized(_nftId, _receiveTokens) == true) {
+        if (userLendingData[_nftId][_receiveTokens].unCollateralized == true) {
             return receiveAmount;
         }
 
@@ -656,31 +540,20 @@ abstract contract WiseCore is MainHelper {
      * security checks and liquidation math.
      */
     function _coreLiquidation(
-        uint256 _nftId,
-        uint256 _nftIdLiquidator,
-        address _caller,
-        address _receiver,
-        address _tokenToPayback,
-        address _tokenToRecieve,
-        uint256 _paybackAmount,
-        uint256 _shareAmountToPay,
-        uint256 _maxFeeETH,
-        uint256 _baseRewardLiquidation
+        CoreLiquidationStruct memory _data
     )
         internal
         returns (uint256 receiveAmount)
     {
-        uint256 paybackETH = WISE_ORACLE.getTokensInETH(
-            _tokenToPayback,
-            _paybackAmount
-        );
-
         uint256 collateralPercentage = WISE_SECURITY.calculateWishPercentage(
-            _nftId,
-            _tokenToRecieve,
-            paybackETH,
-            _maxFeeETH,
-            _baseRewardLiquidation
+            _data.nftId,
+            _data.tokenToRecieve,
+            WISE_ORACLE.getTokensInETH(
+                _data.tokenToPayback,
+                _data.paybackAmount
+            ),
+            _data.maxFeeETH,
+            _data.baseRewardLiquidation
         );
 
         if (collateralPercentage > PRECISION_FACTOR_E18) {
@@ -688,33 +561,38 @@ abstract contract WiseCore is MainHelper {
         }
 
         _corePayback(
-            _nftId,
-            _tokenToPayback,
-            _paybackAmount,
-            _shareAmountToPay
+            _data.nftId,
+            _data.tokenToPayback,
+            _data.paybackAmount,
+            _data.shareAmountToPay
         );
 
         receiveAmount = _calculateReceiveAmount(
-            _nftId,
-            _nftIdLiquidator,
-            _tokenToRecieve,
+            _data.nftId,
+            _data.nftIdLiquidator,
+            _data.tokenToRecieve,
             collateralPercentage
         );
 
-        WISE_SECURITY.checkBadDebt(
-            _nftId
+        WISE_SECURITY.checkBadDebtLiquidation(
+            _data.nftId
+        );
+
+        _curveSecurityChecks(
+            _data.lendTokens,
+            _data.borrowTokens
         );
 
         _safeTransferFrom(
-            _tokenToPayback,
-            _caller,
+            _data.tokenToPayback,
+            _data.caller,
             address(this),
-            _paybackAmount
+            _data.paybackAmount
         );
 
         _safeTransfer(
-            _tokenToRecieve,
-            _receiver,
+            _data.tokenToRecieve,
+            _data.receiver,
             receiveAmount
         );
     }

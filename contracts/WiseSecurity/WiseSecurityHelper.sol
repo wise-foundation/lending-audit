@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
-pragma solidity =0.8.21;
+
+pragma solidity =0.8.24;
 
 import "./WiseSecurityDeclarations.sol";
 
@@ -28,7 +29,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -75,14 +76,14 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
                 i
             );
 
-            _tokenChecks(
+            _checkPoolCondition(
                 tokenAddress
             );
 
@@ -117,7 +118,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -156,14 +157,14 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
                 i
             );
 
-            _tokenChecks(
+            _checkPoolCondition(
                 tokenAddress
             );
 
@@ -338,10 +339,10 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * No heartbeat or blacklisted checks are
      * included in this function!
      */
-    function _overallETHBorrowBare(
+    function overallETHBorrowBare(
         uint256 _nftId
     )
-        internal
+        public
         view
         returns (uint256 buffer)
     {
@@ -350,7 +351,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             buffer += getETHBorrow(
                 _nftId,
@@ -386,7 +387,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -422,14 +423,14 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
                 i
             );
 
-            _tokenChecks(
+            _checkPoolCondition(
                 tokenAddress
             );
 
@@ -448,7 +449,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * @dev Internal function combining hearbeat
      * and blacklisted checks.
      */
-    function _checkConditions(
+    function _checkBlacklisted(
         address _poolToken
     )
         internal
@@ -479,14 +480,14 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _nftId
         );
 
-        for (i; i < l;) {
+        while (i < l) {
 
             tokenAddress = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
                 i
             );
 
-            _tokenChecks(
+            _checkPoolCondition(
                 tokenAddress
             );
 
@@ -769,66 +770,42 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
      * 100% after withdraw of {_poolToken} for
      * {_amount}.
      */
-    function checkBorrowLimit(
+    function _checkHealthState(
         uint256 _nftId,
-        address _poolToken,
-        uint256 _amount
+        bool _powerFarm
     )
-        public
+        internal
         view
+    {
+        if (_getState(_nftId, _powerFarm) == true) {
+            revert ResultsInBadDebt();
+        }
+    }
+
+    function _getState(
+        uint256 _nftId,
+        bool _powerFarm
+    )
+        internal
+        view
+        returns (bool)
     {
         uint256 borrowAmount = overallETHBorrow(
             _nftId
         );
 
         if (borrowAmount == 0) {
-            return;
+            return false;
         }
 
-        uint256 withdrawValue = WISE_ORACLE.getTokensInETH(
-            _poolToken,
-            _amount
-        )
-            * WISE_LENDING.lendingPoolData(_poolToken).collateralFactor
-            / PRECISION_FACTOR_E18;
+        uint256 overallCollateral = _powerFarm == true
+            ? overallETHCollateralsBare(_nftId)
+            : overallETHCollateralsWeighted(_nftId);
 
-        bool state = borrowPercentageCap
-            * (overallETHCollateralsWeighted(_nftId) - withdrawValue)
+        return overallCollateral
+            * BORROW_PERCENTAGE_CAP
             / PRECISION_FACTOR_E18
             < borrowAmount;
-
-        if (state == true) {
-            revert ResultsInBadDebt();
-        }
-    }
-
-    /**
-     * @dev Check function for borrow flow.
-     * Tests if debt ratio is not greater than
-     * 100% after borrow of {_poolToken} for
-     * {_amount}.
-     */
-    function _checkBorrowPossible(
-        uint256 _nftId,
-        address _poolToken,
-        uint256 _amount
-    )
-        internal
-        view
-    {
-        uint256 borrowValue = WISE_ORACLE.getTokensInETH(
-            _poolToken,
-            _amount
-        );
-
-        bool state = borrowPercentageCap
-            * overallETHCollateralsWeighted(_nftId)
-            / PRECISION_FACTOR_E18
-            < overallETHBorrow(_nftId) + borrowValue;
-
-        if (state == true) {
-            revert NotEnoughCollateral();
-        }
     }
 
     /**
@@ -935,8 +912,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
                 _shares: WISE_LENDING.getPositionLendingShares(
                     _nftId,
                     _poolToken
-                ),
-                _maxAmount: false
+                )
             }
         );
     }
@@ -1040,7 +1016,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
     {
         uint256 term = _overallETHBorrow(_nftId, _interval)
             * PRECISION_FACTOR_E18
-            / borrowPercentageCap;
+            / BORROW_PERCENTAGE_CAP;
 
         uint256 withdrawETH = PRECISION_FACTOR_E18
             * (_overallETHCollateralsWeighted(_nftId, _interval) - term)
@@ -1053,15 +1029,40 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
     }
 
     /**
-     * @dev Wrapper for {_checkConditions}.
+     * Locking or unlocking all pools for borrow
+     * and deposit actions. Performs action for
+     * all pools.
      */
-    function _tokenChecks(
+    function _setPoolState(
+        bool _state
+    )
+        internal
+    {
+        uint256 i;
+        uint256 len = FEE_MANAGER.getPoolTokenAddressesLength();
+
+        while(i < len) {
+
+            wasBlacklisted[
+                FEE_MANAGER.getPoolTokenAdressesByIndex(i)
+            ] = _state;
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
+     * @dev Wrapper for {_checkBlacklisted}.
+     */
+    function _checkPoolCondition(
         address _poolToken
     )
         internal
         view
     {
-        if (_checkConditions(_poolToken) == true) {
+        if (_checkBlacklisted(_poolToken) == true) {
             revert TokenBlackListed();
         }
     }

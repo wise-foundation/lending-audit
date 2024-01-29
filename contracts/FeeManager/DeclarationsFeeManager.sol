@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "../InterfaceHub/IAave.sol";
 import "../InterfaceHub/IERC20.sol";
@@ -16,14 +16,17 @@ import "./FeeManagerEvents.sol";
 error NotWiseLiquidation();
 error AlreadySet();
 error ExistingBadDebt();
-error TransferFromFailedFeeManager();
-error TransferFailedFeeManager();
 error NotWiseLending();
 error NotIncentiveMaster();
 error PoolAlreadyAdded();
 error TooHighValue();
 error TooLowValue();
 error NotAllowed();
+error PoolNotPresent();
+error ZeroAddress();
+error NoIncentive();
+error Reentered();
+error PoolNotActive();
 
 contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
 
@@ -87,8 +90,8 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
         incentiveOwnerA = 0xf69A0e276664997357BF987df83f32a1a3F80944;
         incentiveOwnerB = 0x8f741ea9C9ba34B5B8Afc08891bDf53faf4B3FE7;
 
-        incentiveETH[incentiveOwnerA] = 105 * PRECISION_FACTOR_E18;
-        incentiveETH[incentiveOwnerB] = 115 * PRECISION_FACTOR_E18;
+        incentiveUSD[incentiveOwnerA] = 98000 * PRECISION_FACTOR_E18;
+        incentiveUSD[incentiveOwnerB] = 106500 * PRECISION_FACTOR_E18;
     }
 
     // ---- Interfaces ----
@@ -140,7 +143,7 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
     mapping(address => uint256) public feeTokens;
 
     // Open incetive amount for incentiveOwner in ETH
-    mapping(address => uint256) public incentiveETH;
+    mapping(address => uint256) public incentiveUSD;
 
     // Flag that specific token is already added
     mapping(address => bool) public poolTokenAdded;
@@ -164,9 +167,6 @@ contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
     uint256 internal constant PRECISION_FACTOR_E15 = 1E15;
     uint256 internal constant PRECISION_FACTOR_E16 = 1E16;
     uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
-
-    // Maximal amount for 256 byte number
-    uint256 internal constant HUGE_AMOUNT = type(uint256).max;
 
     // Base portion from gathered fees for incentiveOwners (0.5%)
     uint256 public constant INCENTIVE_PORTION = 5 * PRECISION_FACTOR_E15;

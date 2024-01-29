@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface IAaveHubTest {
 
@@ -19,5 +19,15 @@ interface IAaveHubTest {
         payable
         returns (uint256);
 
+    function setAaveTokenAddress(
+        address _underlyingAsset,
+        address _aToken
+    )
+        external;
+
+    function depositExactAmountETHMint()
+        external
+        payable
+        returns (uint256);
 }
 

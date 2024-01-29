@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 error NoValue();
 error NotMaster();
@@ -9,7 +9,7 @@ error NotProposed();
 contract OwnableMaster {
 
     address public master;
-    address private proposedMaster;
+    address public proposedMaster;
 
     address internal constant ZERO_ADDRESS = address(0x0);
 

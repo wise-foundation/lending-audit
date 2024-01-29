@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
-import './FullMath.sol';
-import './TickMath.sol';
-import './IUniswapV3Pool.sol';
+import "./FullMath.sol";
+import "./TickMath.sol";
+import "./IUniswapV3Pool.sol";
 
 /// @title Oracle library
 /// @notice Provides functions to integrate with V3 pool oracle

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import {
     UserReward,
@@ -114,7 +114,36 @@ interface IPendleMarketTest {
         returns (UserReward memory);
 }
 
+interface IPendleVoteTest {
+
+    function vote(
+        address[] memory _pools,
+        uint64[] memory _weights
+    )
+        external;
+}
+
 interface IPendleLockTest {
+
+    function totalSupplyAndBalanceCurrent(
+        address _user
+    )
+        external;
+
+    function broadcastUserPosition(
+        address _user,
+        uint256[] memory _chainIds
+    )
+        external
+        payable
+        returns (uint256);
+
+    function getBroadcastPositionFee(
+        uint256[] memory _chainIds
+    )
+        external
+        view
+        returns (uint256);
 
     function increaseLockPosition(
         uint128 _additionalAmountToLock,

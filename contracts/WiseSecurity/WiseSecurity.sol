@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 /**
  * @author Christoph Krpoun
@@ -42,14 +42,12 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     constructor(
         address _master,
         address _wiseLendingAddress,
-        address _aaveHubAddress,
-        uint256 _borrowPercentageCap
+        address _aaveHubAddress
     )
         WiseSecurityDeclarations(
             _master,
             _wiseLendingAddress,
-            _aaveHubAddress,
-            _borrowPercentageCap
+            _aaveHubAddress
         )
     {}
 
@@ -79,9 +77,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     }
 
     /**
-     * @dev Set functions to define underlying tokens
-     * for a pool token. (E.g underlying token of a
-     * LP token like Curve, Uniswap).
+     * @dev Set Liquidation incentives and boundaries
+     * for liquidation. Only callable by the master.
+     * Assures liquidation cascade cannot be self imposed
+     * by limiting incentives.
      */
     function setLiquidationSettings(
         uint256 _baseReward,
@@ -92,21 +91,12 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         external
         onlyMaster
     {
-        if (_baseReward > 0) {
-            baseRewardLiquidation = _baseReward;
-        }
-
-        if (_baseRewardFarm > 0) {
-            baseRewardLiquidationFarm = _baseRewardFarm;
-        }
-
-        if (_newMaxFeeETH > 0) {
-            maxFeeETH = _newMaxFeeETH;
-        }
-
-        if (_newMaxFeeFarmETH > 0) {
-            maxFeeFarmETH = _newMaxFeeFarmETH;
-        }
+        _setLiquidationSettings(
+            _baseReward,
+            _baseRewardFarm,
+            _newMaxFeeETH,
+            _newMaxFeeFarmETH
+        );
     }
 
     /**
@@ -247,42 +237,36 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     function checksWithdraw(
         uint256 _nftId,
         address _caller,
-        address _poolToken,
-        uint256 _amount
+        address _poolToken
     )
         external
         view
+        returns (bool specialCase)
     {
-        if (_checkConditions(_poolToken) == true) {
+        if (_checkBlacklisted(_poolToken) == true) {
 
-            if (_overallETHBorrowBare(_nftId) > 0) {
+            if (overallETHBorrowBare(_nftId) > 0) {
                 revert OpenBorrowPosition();
             }
 
-            return;
-        }
-
-        if (_caller == AAVE_HUB) {
-            return;
+            return true;
         }
 
         if (WISE_LENDING.verifiedIsolationPool(_caller) == true) {
-            return;
+            return true;
         }
 
-        _checkPositionLocked(
-            _nftId
-        );
+        if (WISE_LENDING.positionLocked(_nftId) == true) {
+            return true;
+        }
 
         if (_isUncollateralized(_nftId, _poolToken) == true) {
-            return;
+            return true;
         }
 
-        checkBorrowLimit(
-            _nftId,
-            _poolToken,
-            _amount
-        );
+        if (WISE_LENDING.getPositionBorrowTokenLength(_nftId) == 0) {
+            return true;
+        }
     }
 
     /**
@@ -291,34 +275,32 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     function checksSolelyWithdraw(
         uint256 _nftId,
         address _caller,
-        address _poolToken,
-        uint256 _amount
+        address _poolToken
     )
         external
         view
+        returns (bool specialCase)
     {
-        if (_checkConditions(_poolToken) == true) {
+        if (_checkBlacklisted(_poolToken) == true) {
 
-            if (_overallETHBorrowBare(_nftId) > 0) {
+            if (overallETHBorrowBare(_nftId) > 0) {
                 revert OpenBorrowPosition();
             }
 
-            return;
+            return true;
         }
 
-        if (_caller == AAVE_HUB) {
-            return;
+        if (WISE_LENDING.verifiedIsolationPool(_caller) == true) {
+            return true;
         }
 
-        _checkPositionLocked(
-            _nftId
-        );
+        if (WISE_LENDING.positionLocked(_nftId) == true) {
+            return true;
+        }
 
-        checkBorrowLimit(
-            _nftId,
-            _poolToken,
-            _amount
-        );
+        if (_isUncollateralized(_nftId, _poolToken) == true) {
+            return true;
+        }
     }
 
     /**
@@ -327,13 +309,13 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     function checksBorrow(
         uint256 _nftId,
         address _caller,
-        address _poolToken,
-        uint256 _amount
+        address _poolToken
     )
         external
         view
+        returns (bool specialCase)
     {
-        _tokenChecks(
+        _checkPoolCondition(
             _poolToken
         );
 
@@ -342,60 +324,12 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         );
 
         if (WISE_LENDING.verifiedIsolationPool(_caller) == true) {
-            return;
+            return true;
         }
 
-        if (_caller == AAVE_HUB) {
-            return;
+        if (WISE_LENDING.positionLocked(_nftId) == true) {
+            return true;
         }
-
-        _checkPositionLocked(
-            _nftId
-        );
-
-        _checkBorrowPossible(
-            _nftId,
-            _poolToken,
-            _amount
-        );
-    }
-
-    /**
-     * @dev Checks for payback with lending
-     * shares logic.
-     */
-    function checkPaybackLendingShares(
-        uint256 _nftIdReceiver,
-        uint256 _nftIdCaller,
-        address _caller,
-        address _poolToken,
-        uint256 _amount
-    )
-        external
-        view
-    {
-        checkOwnerPosition(
-            _nftIdCaller,
-            _caller
-        );
-
-        _checkPositionLocked(
-            _nftIdReceiver
-        );
-
-        _checkPositionLocked(
-            _nftIdCaller
-        );
-
-        if (_isUncollateralized(_nftIdCaller, _poolToken) == true) {
-            return;
-        }
-
-        checkBorrowLimit(
-            _nftIdCaller,
-            _poolToken,
-            _amount
-        );
     }
 
     /**
@@ -429,38 +363,55 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         external
         view
     {
-        if (_checkConditions(_poolToken) == true) {
+        if (_checkBlacklisted(_poolToken) == true) {
 
-            if (_overallETHBorrowBare(_nftId) > 0) {
+            if (overallETHBorrowBare(_nftId) > 0) {
                 revert OpenBorrowPosition();
             }
 
             return;
         }
 
-        checkBorrowLimit({
-            _nftId: _nftId,
-            _poolToken: _poolToken,
-            _amount: 0
-        });
+        _checkHealthState(
+            {
+                _nftId: _nftId,
+                _powerFarm: false
+            }
+        );
+    }
+
+    /**
+     * @dev Checks if user has healthy position.
+     */
+
+    function checkHealthState(
+        uint256 _nftId,
+        bool _isPowerFarm
+    )
+        external
+        view
+    {
+        _checkHealthState(
+            _nftId,
+            _isPowerFarm
+        );
     }
 
     /**
      * @dev Checks for bad debt logic. Compares
      * total ETH of borrow and collateral.
      */
-    function checkBadDebt(
+    function checkBadDebtLiquidation(
         uint256 _nftId
     )
         external
         onlyWiseLending
     {
-
         uint256 bareCollateral = overallETHCollateralsBare(
             _nftId
         );
 
-        uint256 totalBorrow = _overallETHBorrowBare(
+        uint256 totalBorrow = overallETHBorrowBare(
             _nftId
         );
 
@@ -509,7 +460,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         uint256 overallETH;
         uint256 weightedRate;
 
-        for (i; i < len;) {
+        while (i < len) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -566,7 +517,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         uint256 overallETH;
         uint256 weightedRate;
 
-        for (i; i < len;) {
+        while (i < len) {
 
             token = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -625,7 +576,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftId
         );
 
-        for (i; i < lenBorrow;) {
+        while (i < lenBorrow) {
 
             token = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
@@ -645,7 +596,9 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             }
         }
 
-        for (i = 0; i < lenDeposit;) {
+        i = 0;
+
+        while (i < lenDeposit) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -703,7 +656,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         address token;
         uint256 buffer;
 
-        for (i; i < len;) {
+        while (i < len) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
@@ -730,38 +683,36 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         }
 
         return buffer
-            * borrowPercentageCap
+            * BORROW_PERCENTAGE_CAP
             / PRECISION_FACTOR_E18;
     }
 
     /**
      * @dev View function checking if the postion is
-     * locked due to blacklisted token or token which
-     * chainlink oracles are dead a.k.a having no
-     * heartbeat.
+     * locked due to blacklisted token.
      */
-    function positionLocked(
+    function positionBlackListToken(
         uint256 _nftId
     )
         external
         view
         returns (bool, address)
     {
-        uint256 len = WISE_LENDING.getPositionLendingTokenLength(
+        uint256 lenDeposit = WISE_LENDING.getPositionLendingTokenLength(
             _nftId
         );
 
         uint256 i;
         address token;
 
-        for (i; i < len;) {
+        while (i < lenDeposit) {
 
             token = WISE_LENDING.getPositionLendingTokenByIndex(
                 _nftId,
                 i
             );
 
-            if (_checkConditions(token) == true) {
+            if (_checkBlacklisted(token) == true) {
                 return (
                     true,
                     token
@@ -777,14 +728,16 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftId
         );
 
-        for (i = 0; i < lenBorrow;) {
+        i = 0;
+
+        while (i < lenBorrow) {
 
             token = WISE_LENDING.getPositionBorrowTokenByIndex(
                 _nftId,
                 i
             );
 
-            if (_checkConditions(token) == true) {
+            if (_checkBlacklisted(token) == true) {
                 return (
                     true,
                     token
@@ -921,7 +874,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         returns (uint256 tokenAmount)
     {
         uint256 term = _overallETHCollateralsWeighted(_nftId, _interval)
-            * borrowPercentageCap
+            * BORROW_PERCENTAGE_CAP
             / PRECISION_FACTOR_E18;
 
         uint256 borrowETH = term
@@ -1031,5 +984,71 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         onlyMaster()
     {
         wasBlacklisted[_tokenAddress] = _state;
+    }
+
+    /**
+     * @dev Set function for adding or removing
+     * workers to perform a security shutdown.
+     * Only callable by the master.
+     */
+    function setSecurityWorker(
+        address _entitiy,
+        bool _state
+    )
+        external
+        onlyMaster
+    {
+        securityWorker[_entitiy] = _state;
+    }
+
+    /**
+     * Safety function to perform a security
+     * shutdown of all active pools. Can be
+     * called by the security worker, a
+     * special role set by the master.
+     */
+    function securityShutdown()
+        external
+    {
+        if (securityWorker[msg.sender] == false) {
+            revert NotAllowedEntity();
+        }
+
+        _setPoolState(
+            true
+        );
+
+        emit SecurityShutdown(
+            msg.sender,
+            block.timestamp
+        );
+    }
+
+    /**
+     * @dev Master function to revoke all locks,
+     * only callable by the master.
+     */
+    function revokeShutdown()
+        external
+        onlyMaster
+    {
+        _setPoolState(
+            false
+        );
+    }
+
+    /**
+     * @dev External wrapper for pool condition
+     * check.
+     */
+    function checkPoolCondition(
+        address _token
+    )
+        external
+        view
+    {
+        _checkPoolCondition(
+            _token
+        );
     }
 }

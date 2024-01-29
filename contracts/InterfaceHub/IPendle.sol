@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
+
+struct MarketStorage {
+    int128 totalPt;
+    int128 totalSy;
+    uint96 lastLnImpliedRate;
+    uint16 observationIndex;
+    uint16 observationCardinality;
+    uint16 observationCardinalityNext;
+}
 
 struct MarketState {
     int256 totalPt;
@@ -24,7 +33,23 @@ struct UserReward {
     uint128 accrued;
 }
 
+struct ApproxParams {
+    uint256 guessMin;
+    uint256 guessMax;
+    uint256 guessOffchain;
+    uint256 maxIteration;
+    uint256 eps;
+}
+
 interface IPendleSy {
+
+    function previewDeposit(
+        address _tokenIn,
+        uint256 _amountTokenToDeposit
+    )
+        external
+        view
+        returns (uint256 sharesAmount);
 
     function deposit(
         address _receiver,
@@ -108,6 +133,67 @@ interface IPendleYt {
 
 interface IPendleMarket {
 
+    function readTokens()
+        external
+        view
+        returns (
+            address SY,
+            address PT,
+            address YT
+        );
+
+    function activeBalance(
+        address _user
+    )
+        external
+        view
+        returns (uint256);
+
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _amount
+    )
+        external;
+
+    function balanceOf(
+        address _user
+    )
+        external
+        view
+        returns (uint256);
+
+    function isExpired()
+        external
+        view
+        returns (bool);
+
+    function decimals()
+        external
+        view
+        returns (uint8);
+
+    function increaseObservationsCardinalityNext(
+        uint16 _newObservationCardinalityNext
+    )
+        external;
+
+    function swapExactPtForSy(
+        address receiver,
+        uint256 exactPtIn,
+        bytes calldata data
+    )
+        external
+        returns (
+            uint256 netSyOut,
+            uint256 netSyFee
+        );
+
+    function _storage()
+        external
+        view
+        returns (MarketStorage memory);
+
     function getRewardTokens()
         external
         view
@@ -159,6 +245,48 @@ interface IPendleMarket {
         returns (UserReward memory);
 }
 
+interface IPendleChildToken {
+
+    function totalLpAssets()
+        external
+        view
+        returns (uint256);
+
+    function totalSupply()
+        external
+        view
+        returns (uint256);
+
+    function previewUnderlyingLpAssets()
+        external
+        view
+        returns (uint256);
+
+    function previewMintShares(
+        uint256 _underlyingAssetAmount,
+        uint256 _underlyingLpAssetsCurrent
+    )
+        external
+        view
+        returns (uint256);
+
+    function previewAmountWithdrawShares(
+        uint256 _shares,
+        uint256 _underlyingLpAssetsCurrent
+    )
+        external
+        view
+        returns (uint256);
+
+    function previewBurnShares(
+        uint256 _underlyingAssetAmount,
+        uint256 _underlyingLpAssetsCurrent
+    )
+        external
+        view
+        returns (uint256);
+}
+
 interface IPendleLock {
 
     function increaseLockPosition(
@@ -178,6 +306,48 @@ interface IPendleLock {
         external
         view
         returns (LockedPosition memory);
+
+    function getBroadcastPositionFee(
+        uint256[] calldata _chainIds
+    )
+        external
+        view
+        returns (uint256);
+}
+
+interface IPendleVoteRewards {
+    function claimRetail(
+        address _user,
+        uint256 _amount,
+        bytes32[] calldata _merkleProof
+    )
+        external
+        returns (uint256);
+}
+
+interface IPendleVoter {
+    function vote(
+        address[] memory _pools,
+        uint64[] memory _weights
+    )
+        external;
+}
+
+interface IPendleChild {
+    function depositExactAmount(
+        uint256 _amount
+    )
+        external
+        returns (
+            uint256,
+            uint256
+        );
+
+    function withdrawExactShares(
+        uint256 _shares
+    )
+        external
+        returns (uint256);
 }
 
 interface IPendleRouter {
@@ -228,5 +398,61 @@ interface IPendleRouter {
         returns (
             uint256 netPtOut,
             uint256 netSyFee
+        );
+
+    function removeLiquiditySingleSy(
+        address _receiver,
+        address _market,
+        uint256 _netLpToRemove,
+        uint256 _minSyOut
+    )
+        external
+        returns (
+            uint256 netSyOut,
+            uint256 netSyFee
+        );
+
+    function addLiquiditySingleSy(
+        address _receiver,
+        address _market,
+        uint256 _netSyIn,
+        uint256 _minLpOut,
+        ApproxParams calldata _guessPtReceivedFromSy
+    )
+        external
+        returns (
+            uint256 netLpOut,
+            uint256 netSyFee
+        );
+}
+
+interface IPendleRouterStatic {
+
+    function addLiquiditySingleSyStatic(
+        address _market,
+        uint256 _netSyIn
+    )
+        external
+        view
+        returns (
+            uint256 netLpOut,
+            uint256 netPtFromSwap,
+            uint256 netSyFee,
+            uint256 priceImpact,
+            uint256 exchangeRateAfter,
+            uint256 netSyToSwap
+        );
+
+    function swapExactPtForSyStatic(
+        address _market,
+        uint256 _exactPtIn
+    )
+        external
+        view
+        returns (
+            uint256 netSyOut,
+            uint256 netSyFee,
+            uint256 priceImpact,
+            uint256 exchangeRateAfter
         );
 }

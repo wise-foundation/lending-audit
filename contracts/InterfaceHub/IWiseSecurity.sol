@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 struct CurveSwapStructToken {
     uint256 curvePoolTokenIndexFrom;
@@ -18,12 +18,18 @@ struct CurveSwapStructData {
 
 interface IWiseSecurity {
 
-    function overallUSDBorrowHeartbeat(
-        uint256 _nftId
+    function checkHealthState(
+        uint256 _nftId,
+        bool _isPowerFarm
     )
         external
-        view
-        returns (uint256 buffer);
+        view;
+
+    function checkPoolCondition(
+        address _token
+    )
+        external
+        view;
 
     function overallETHBorrowHeartbeat(
         uint256 _nftId
@@ -32,26 +38,10 @@ interface IWiseSecurity {
         view
         returns (uint256 buffer);
 
-    function checkBadDebt(
+    function checkBadDebtLiquidation(
         uint256 _nftId
     )
         external;
-
-    function getFullCollateralUSD(
-        uint256 _nftId,
-        address _poolToken
-    )
-        external
-        view
-        returns (uint256);
-
-    function getFullCollateralETH(
-        uint256 _nftId,
-        address _poolToken
-    )
-        external
-        view
-        returns (uint256);
 
     function checksLiquidation(
         uint256 _nftIdLiquidate,
@@ -100,10 +90,12 @@ interface IWiseSecurity {
 
     function FEE_MANAGER()
         external
+        view
         returns (address);
 
     function AAVE_HUB()
         external
+        view
         returns (address);
 
     function curveSecurityCheck(
@@ -118,32 +110,39 @@ interface IWiseSecurity {
     )
         external;
 
+    function overallETHBorrowBare(
+        uint256 _nftId
+    )
+        external
+        view
+        returns (uint256 amount);
+
     function checksWithdraw(
         uint256 _nftId,
         address _caller,
-        address _poolToken,
-        uint256 _amount
+        address _poolToken
     )
         external
-        view;
+        view
+        returns (bool);
 
     function checksBorrow(
         uint256 _nftId,
         address _caller,
-        address _poolToken,
-        uint256 _amount
+        address _poolToken
     )
         external
-        view;
+        view
+        returns (bool);
 
     function checksSolelyWithdraw(
         uint256 _nftId,
         address _caller,
-        address _poolToken,
-        uint256 _amount
+        address _poolToken
     )
         external
-        view;
+        view
+        returns (bool);
 
     function checkOwnerPosition(
         uint256 _nftId,
@@ -178,27 +177,9 @@ interface IWiseSecurity {
         external
         view;
 
-    function checkBorrowLimit(
-        uint256 _nftId,
-        address _poolToken,
-        uint256 _amount
-    )
-        external
-        view;
-
     function checkPositionLocked(
         uint256 _nftId,
         address _caller
-    )
-        external
-        view;
-
-    function checkPaybackLendingShares(
-        uint256 _nftIdReceiver,
-        uint256 _nftIdCaller,
-        address _caller,
-        address _poolToken,
-        uint256 _amount
     )
         external
         view;

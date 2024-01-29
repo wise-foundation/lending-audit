@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 interface ICurve {
 
@@ -57,7 +57,7 @@ interface ICurve {
     function remove_liquidity(
         address _pool,
         uint256 _burnAmount,
-        uint256[4] memory coins
+        uint256[4] memory _coins
     )
         external;
 

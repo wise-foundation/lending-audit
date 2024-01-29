@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: -- WISE --
 
-pragma solidity =0.8.21;
+pragma solidity =0.8.24;
 
 import "../InterfaceHub/IERC20.sol";
-
-error CallFailed();
 
 contract CallOptionalReturn {
 
     /**
-     * @dev
-     * Helper function to do low-level call
+     * @dev Helper function to do low-level call
      */
     function _callOptionalReturn(
         address token,
@@ -30,6 +27,10 @@ contract CallOptionalReturn {
             returndata,
             (bool)
         );
+
+        if (success == false) {
+            revert();
+        }
 
         call = success
             && results
