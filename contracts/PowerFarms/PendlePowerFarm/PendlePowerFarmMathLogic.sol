@@ -398,38 +398,6 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
     }
 
     /**
-     * @dev Internal function checking if the debt
-     * ratio threshold for 100% is reached when a
-     * manual withdrawal is performed.
-     */
-    function _checkBorrowLimit(
-        uint256 _nftId,
-        uint256 _amount
-    )
-        internal
-        view
-        returns (bool)
-    {
-        uint256 borrowAmount = getPositionBorrowETH(
-            _nftId
-        );
-
-        if (borrowAmount == 0) {
-            return true;
-        }
-
-        uint256 withdrawValue = _getTokensInETH(
-            PENDLE_CHILD,
-            _amount
-        )
-            * collateralFactor
-            / PRECISION_FACTOR_E18;
-
-        return getTotalWeightedCollateralETH(_nftId) - withdrawValue
-            > borrowAmount;
-    }
-
-    /**
      * @dev Internal function checking if the leveraged
      * amount not below {minDepositEthAmount} in value.
      */

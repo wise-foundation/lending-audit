@@ -572,8 +572,12 @@ abstract contract PendlePowerFarmLeverageLogic is
             revert DebtRatioTooLow();
         }
 
+        address paybackToken = isAave[_nftId] == true
+            ? AAVE_WETH_ADDRESS
+            : WETH_ADDRESS;
+
         paybackAmount = WISE_LENDING.paybackAmount(
-            ENTRY_ASSET,
+            paybackToken,
             _shareAmountToPay
         );
 
@@ -582,7 +586,7 @@ abstract contract PendlePowerFarmLeverageLogic is
             _nftIdLiquidator,
             msg.sender,
             msg.sender,
-            ENTRY_ASSET,
+            paybackToken,
             PENDLE_CHILD,
             paybackAmount,
             _shareAmountToPay
