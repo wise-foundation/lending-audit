@@ -7,19 +7,6 @@ import "./WiseLowLevelHelper.sol";
 abstract contract MainHelper is WiseLowLevelHelper {
 
     /**
-     * @dev Internal helper function for reservating a
-     * position NFT id.
-     */
-    function _reservePosition()
-        internal
-        returns (uint256)
-    {
-        return POSITION_NFT.reservePositionForUser(
-            msg.sender
-        );
-    }
-
-    /**
      * @dev Helper function to convert {_amount}
      * of a certain pool with {_poolToken}
      * into lending shares. Includes devison
@@ -263,11 +250,17 @@ abstract contract MainHelper is WiseLowLevelHelper {
         }
 
         _checkLiquidatorNft(
+            _nftId,
             _nftIdLiquidator
         );
+
+        if (POSITION_NFT.getOwner(_nftId) != _caller) {
+            revert InvalidCaller();
+        }
     }
 
     function _checkLiquidatorNft(
+        uint256 _nftId,
         uint256 _nftIdLiquidator
     )
         internal
@@ -275,6 +268,10 @@ abstract contract MainHelper is WiseLowLevelHelper {
     {
         if (positionLocked[_nftIdLiquidator] == true) {
             revert LiquidatorIsInPowerFarm();
+        }
+
+        if (_nftIdLiquidator == _nftId) {
+            revert InvalidLiquidator();
         }
     }
 
@@ -303,9 +300,9 @@ abstract contract MainHelper is WiseLowLevelHelper {
     )
         internal
     {
-        if (lendingPoolData[_poolToken].totalDepositShares == 0) {
-            revert InvalidAction();
-        }
+        _validateNonZero(
+            lendingPoolData[_poolToken].totalDepositShares
+        );
 
         uint256 amountContract = _getBalance(
             _poolToken
@@ -633,6 +630,10 @@ abstract contract MainHelper is WiseLowLevelHelper {
 
         hashMap[hashData] = true;
 
+        if (userTokenData[_nftId].length > MAX_TOTAL_TOKEN_NUMBER) {
+            revert TooManyTokens();
+        }
+
         userTokenData[_nftId].push(
             _poolToken
         );
@@ -885,14 +886,6 @@ abstract contract MainHelper is WiseLowLevelHelper {
         _calculateNewBorrowRate(
             _poolToken
         );
-
-        if (_aboveThreshold(_poolToken) == false) {
-            return;
-        }
-
-        _scalingAlgorithm(
-            _poolToken
-        );
     }
 
     /**
@@ -903,7 +896,7 @@ abstract contract MainHelper is WiseLowLevelHelper {
     function _aboveThreshold(
         address _poolToken
     )
-        private
+        internal
         view
         returns (bool)
     {
@@ -918,7 +911,7 @@ abstract contract MainHelper is WiseLowLevelHelper {
     function _scalingAlgorithm(
         address _poolToken
     )
-        private
+        internal
     {
         uint256 totalShares = lendingPoolData[_poolToken].totalDepositShares;
 

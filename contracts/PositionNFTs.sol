@@ -2,7 +2,7 @@
 
 pragma solidity =0.8.24;
 
-import "node_modules/@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./OwnableMaster.sol";
 
@@ -128,7 +128,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         view
         returns (address)
     {
-        if (ownerOf(tokenId) > ZERO_ADDRESS) {
+        if (ownerOf(tokenId) == ZERO_ADDRESS) {
             return ZERO_ADDRESS;
         }
 

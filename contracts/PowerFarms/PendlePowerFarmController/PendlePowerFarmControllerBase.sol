@@ -11,6 +11,7 @@ import "../../InterfaceHub/IPendle.sol";
 import "../../InterfaceHub/IArbRewardsClaimer.sol";
 import "../../InterfaceHub/IWiseOracleHub.sol";
 import "../../InterfaceHub/IPendlePowerFarmToken.sol";
+import "../../InterfaceHub/IPendlePowerFarmTokenFactory.sol";
 
 error NotAllowed();
 error AlreadySet();

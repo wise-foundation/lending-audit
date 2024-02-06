@@ -40,6 +40,7 @@ error MaxFeeEthTooHigh();
 error MaxFeeEthTooLow();
 error MaxFeeFarmEthTooHigh();
 error MaxFeeFarmEthTooLow();
+error DepositAmountTooSmall();
 
 contract WiseSecurityDeclarations is OwnableMaster {
 
@@ -208,9 +209,14 @@ contract WiseSecurityDeclarations is OwnableMaster {
     uint256 internal constant UINT256_MAX = type(uint256).max;
     uint256 internal constant ONE_YEAR = 52 weeks;
 
+    // adjustable
+
+    uint256 public minDepositEthValue = 1; // in wei?
+
     // Precision factors for computations
     uint256 internal constant PRECISION_FACTOR_E16 = 1E16;
     uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant ONE_WEI = 1;
 
     // Chain - ID bool for Ethereum mainnet check
     bool immutable IS_ETH_MAINNET;

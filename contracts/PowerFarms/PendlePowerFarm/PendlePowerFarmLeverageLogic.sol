@@ -585,7 +585,6 @@ abstract contract PendlePowerFarmLeverageLogic is
             _nftId,
             _nftIdLiquidator,
             msg.sender,
-            msg.sender,
             paybackToken,
             PENDLE_CHILD,
             paybackAmount,

@@ -45,6 +45,21 @@ abstract contract PoolManager is WiseCore {
 
         algoData.increasePole = _steppingDirection;
 
+        _validateParameter(
+            _upperBoundMaxRate,
+            UPPER_BOUND_MAX_RATE
+        );
+
+        _validateParameter(
+            _lowerBoundMaxRate,
+            LOWER_BOUND_MAX_RATE
+        );
+
+        _validateParameter(
+            _lowerBoundMaxRate,
+            _upperBoundMaxRate
+        );
+
         uint256 staticMinPole = _getPoleValue(
             _poolMulFactor,
             _upperBoundMaxRate
@@ -63,6 +78,11 @@ abstract contract PoolManager is WiseCore {
         uint256 startValuePole = _getStartValue(
             staticMaxPole,
             staticMinPole
+        );
+
+        _validateParameter(
+            _poolMulFactor,
+            PRECISION_FACTOR_E18
         );
 
         borrowRatesData[_poolToken] = BorrowRatesEntry(
@@ -93,9 +113,10 @@ abstract contract PoolManager is WiseCore {
             lendingPoolData[_poolToken].collateralFactor = _collateralFactor;
         }
 
-        if (_collateralFactor > PRECISION_FACTOR_E18) {
-            revert InvalidAction();
-        }
+        _validateParameter(
+            _collateralFactor,
+            PRECISION_FACTOR_E18
+        );
     }
 
     /**
@@ -145,17 +166,24 @@ abstract contract PoolManager is WiseCore {
     )
         private
     {
-        if (timestampsPoolData[_params.poolToken].timeStamp > 0) {
-            revert InvalidAction();
-        }
+        _validateParameter(
+            timestampsPoolData[_params.poolToken].timeStamp,
+            0
+        );
 
-        if(_params.poolToken == ZERO_ADDRESS) {
+        if (_params.poolToken == ZERO_ADDRESS) {
             revert InvalidAddress();
         }
 
-        if (_params.poolCollFactor > MAX_COLLATERAL_FACTOR) {
-            revert InvalidAction();
-        }
+        _validateParameter(
+            _params.poolMulFactor,
+            PRECISION_FACTOR_E18
+        );
+
+        _validateParameter(
+            _params.poolCollFactor,
+            MAX_COLLATERAL_FACTOR
+        );
 
         // Calculating lower bound for the pole
         uint256 staticMinPole = _getPoleValue(
@@ -202,8 +230,8 @@ abstract contract PoolManager is WiseCore {
         // Borrow Pool Data
         borrowPoolData[_params.poolToken] = BorrowPoolEntry({
             allowBorrow: _params.allowBorrow,
-            pseudoTotalBorrowAmount: 1E3,
-            totalBorrowShares: 1E3,
+            pseudoTotalBorrowAmount: GHOST_AMOUNT,
+            totalBorrowShares: GHOST_AMOUNT,
             borrowRate: 0
         });
 
@@ -217,8 +245,8 @@ abstract contract PoolManager is WiseCore {
 
         // Lending Pool Data
         lendingPoolData[_params.poolToken] = LendingPoolEntry({
-            pseudoTotalPool: 1E3,
-            totalDepositShares: 1E3,
+            pseudoTotalPool: GHOST_AMOUNT,
+            totalDepositShares: GHOST_AMOUNT,
             collateralFactor: _params.poolCollFactor
         });
 

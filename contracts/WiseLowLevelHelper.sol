@@ -22,6 +22,18 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
         revert InvalidCaller();
     }
 
+    function _validateParameter(
+        uint256 _parameterValue,
+        uint256 _parameterLimit
+    )
+        internal
+        pure
+    {
+        if (_parameterValue > _parameterLimit) {
+            revert InvalidAction();
+        }
+    }
+
     // --- Basic Public Views Functions ----
 
     function getTotalPool(
@@ -430,5 +442,27 @@ abstract contract WiseLowLevelHelper is WiseLendingDeclaration {
             _nftId,
             _msgSender
         );
+    }
+
+    function _validateNonZero(
+        uint256 _value
+    )
+        internal
+        pure
+    {
+        if (_value == 0) {
+            revert ValueIsZero();
+        }
+    }
+
+    function _validateZero(
+        uint256 _value
+    )
+        internal
+        pure
+    {
+        if (_value > 0) {
+            revert ValueNotZero();
+        }
     }
 }

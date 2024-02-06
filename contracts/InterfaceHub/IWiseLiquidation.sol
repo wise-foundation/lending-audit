@@ -8,7 +8,6 @@ interface IWiseLiquidation {
         uint256 _nftId,
         uint256 _nftIdLiquidator,
         address _caller,
-        address _receiver,
         address _tokenToPayback,
         address _tokenToRecieve,
         uint256 _paybackAmount,

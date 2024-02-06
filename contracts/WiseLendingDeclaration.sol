@@ -18,21 +18,14 @@ error NotPowerFarm();
 error InvalidAction();
 error InvalidCaller();
 error PositionLocked();
-error CollateralTooSmall();
-error ZeroSharesAssigned();
 error LiquidatorIsInPowerFarm();
-error SharePriceDecreased();
-error SharePriceIncreased();
-error SharePriceIncreasedTooMuch();
-error RepaymentAmountZero();
-error PaybackSharesZero();
-error NoBorrowShares();
 error PositionHasCollateral();
 error PositionHasBorrow();
-error BorrowSharesZero();
-error WithdrawAmountZero();
-error WithdrawSharesZero();
 error InvalidAddress();
+error InvalidLiquidator();
+error ValueIsZero();
+error ValueNotZero();
+error TooManyTokens();
 
 contract WiseLendingDeclaration is
     OwnableMaster,
@@ -186,7 +179,10 @@ contract WiseLendingDeclaration is
     // OraceHub interface
     IWiseOracleHub public immutable WISE_ORACLE;
 
+    // check if it is a powerfarm
     bool internal powerFarmCheck;
+
+    uint256 internal constant GHOST_AMOUNT = 1E3;
 
     // Structs ------------------------------------------
 
@@ -240,7 +236,6 @@ contract WiseLendingDeclaration is
         uint256 nftId;
         uint256 nftIdLiquidator;
         address caller;
-        address receiver;
         address tokenToPayback;
         address tokenToRecieve;
         uint256 paybackAmount;
@@ -319,6 +314,7 @@ contract WiseLendingDeclaration is
     // MORE THRESHHOLD VALUES
 
     uint256 internal constant MAX_COLLATERAL_FACTOR = 85 * PRECISION_FACTOR_E16;
+    uint256 internal constant MAX_TOTAL_TOKEN_NUMBER = 8;
 
     // APR RESTRICTIONS
     uint256 internal constant RESTRICTION_FACTOR = 10

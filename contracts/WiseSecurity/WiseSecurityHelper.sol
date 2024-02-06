@@ -195,7 +195,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256 ethCollateral)
     {
-        ethCollateral = WISE_ORACLE.getTokensInETH(
+        ethCollateral = _getTokensInEth(
             _poolToken,
             WISE_LENDING.getPureCollateralAmount(
                 _nftId,
@@ -248,7 +248,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256 ethCollateral)
     {
-        ethCollateral = WISE_ORACLE.getTokensInETH(
+        ethCollateral = _getTokensInEth(
             _poolToken,
             WISE_LENDING.getPureCollateralAmount(
                 _nftId,
@@ -305,7 +305,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             * updatedPseudo
             / currentTotalLendingShares;
 
-        return WISE_ORACLE.getTokensInETH(
+        return _getTokensInEth(
             _poolToken,
             updatedToken
         );
@@ -324,12 +324,26 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256)
     {
-        return WISE_ORACLE.getTokensInETH(
+        return _getTokensInEth(
             _poolToken,
             getPositionLendingAmount(
                 _nftId,
                 _poolToken
             )
+        );
+    }
+
+    function _getTokensInEth(
+        address _poolToken,
+        uint256 _amount
+    )
+        internal
+        view
+        returns (uint256)
+    {
+        return WISE_ORACLE.getTokensInETH(
+            _poolToken,
+            _amount
         );
     }
 
@@ -620,7 +634,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             * updatesPseudo
             / currentTotalBorrowShares;
 
-        return WISE_ORACLE.getTokensInETH(
+        return _getTokensInEth(
             _poolToken,
             updatedToken
         );
@@ -638,7 +652,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
         view
         returns (uint256)
     {
-        return WISE_ORACLE.getTokensInETH(
+        return _getTokensInEth(
             _poolToken,
             getPositionBorrowAmount(
                 _nftId,
@@ -756,12 +770,17 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _maxFeeETH
         );
 
-        return (feeETH + _paybackETH)
-            * PRECISION_FACTOR_E18
-            / getFullCollateralETH(
-                _nftId,
-                _receiveToken
-            );
+        uint256 numerator = (feeETH + _paybackETH)
+            * PRECISION_FACTOR_E18;
+
+        uint256 denominator = getFullCollateralETH(
+            _nftId,
+            _receiveToken
+        );
+
+        return numerator % denominator == 0
+            ? numerator / denominator
+            : numerator / denominator + 1;
     }
 
     /**

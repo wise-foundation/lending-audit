@@ -26,4 +26,18 @@ interface IWiseSecurityTest {
         external
         view
         returns (uint256);
+
+    function checkMinDepositValue(
+        address _poolToken,
+        uint256 _amount
+    )
+        external
+        view;
+
+    function getLiveDebtRatio(
+        uint256 _nftId
+    )
+        external
+        view
+        returns (uint256);
 }

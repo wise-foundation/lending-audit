@@ -9,6 +9,7 @@ import "./PendlePowerFarmControllerTester.t.sol";
 import "../PowerFarms/PowerFarmNFTs/PowerFarmNFTs.sol";
 import "../PowerFarms/PendlePowerFarm/PendlePowerManager.sol";
 import "../PowerFarms/PendlePowerFarmController/PendlePowerFarmToken.sol";
+import "../PowerFarms/PendlePowerFarmController/PendlePowerFarmTokenFactory.sol";
 
 import "../TestInterfaces/ICustomOracle.sol";
 import "../InterfaceHub/IWiseLending.sol";
@@ -43,6 +44,7 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
     IWiseSecurity public wiseSecurityInstance;
     IPositionNFTs public positionNftsInstance;
     IAaveHub public aaveHubInstance;
+    PendlePowerFarmTokenFactory public pendlePowerFarmTokenFactory;
 
     uint256 chainId;
 
@@ -301,6 +303,8 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
             AddressesMap[chainId].oracleHub
         );
 
+        pendlePowerFarmTokenFactory = controllerTester.PENDLE_POWER_FARM_TOKEN_FACTORY();
+
         PoolManager.CreatePool memory params = PoolManager.CreatePool(
             {
                 allowBorrow: true,
@@ -320,7 +324,7 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
             AddressesMap[chainId].aweth
         );
 
-         if (block.chainid == ETH_CHAIN_ID) {
+        if (block.chainid == ETH_CHAIN_ID) {
             wiseOracleHubInstance.addOracle(
                 AddressesMap[chainId].aweth,
                 wiseOracleHubInstance.priceFeed(AddressesMap[chainId].weth),
@@ -428,17 +432,11 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
             3 ether
         );
 
-        PendlePowerFarmToken farmToken = new PendlePowerFarmToken(
-            address(controllerTester),
+        IPendlePowerFarmToken derivativeToken = _addPendleMarket(
             AddressesMap[chainId].PendleMarketStEth,
             "name",
             "symbol",
             MAX_CARDINALITY
-        );
-
-        IPendlePowerFarmToken derivativeToken = _addPendleMarket(
-            AddressesMap[chainId].PendleMarketStEth,
-            address(farmToken)
         );
 
         pendleChildLpOracleInstance = new PendleChildLpOracle(
@@ -533,17 +531,11 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
                 0.0016 ether
             );
 
-            PendlePowerFarmToken farmTokenB = new PendlePowerFarmToken(
-                address(controllerTester),
+            derivativeToken = _addPendleMarket(
                 CRVUSD_PENDLE_28MAR_2024,
                 "name",
                 "symbol",
                 MAX_CARDINALITY
-            );
-
-            derivativeToken = _addPendleMarket(
-                CRVUSD_PENDLE_28MAR_2024,
-                address(farmTokenB)
             );
 
             pendleChildLpOracleInstance = new PendleChildLpOracle(
@@ -847,7 +839,9 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
 
     function _addPendleMarket(
         address _market,
-        address _pendleToken
+        string memory _name,
+        string memory _symbol,
+        uint16 _maxCardinality
     )
         internal
         returns (
@@ -866,7 +860,9 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
 
         controllerTester.addPendleMarket(
             _market,
-            _pendleToken
+            _name,
+            _symbol,
+            _maxCardinality
         );
 
         vm.stopPrank();
@@ -877,7 +873,9 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
 
         controllerTester.addPendleMarket(
             _market,
-            _pendleToken
+            _name,
+            _symbol,
+            _maxCardinality
         );
 
         vm.expectRevert(
@@ -886,7 +884,9 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
 
         controllerTester.addPendleMarket(
             _market,
-            _pendleToken
+            _name,
+            _symbol,
+            _maxCardinality
         );
 
         uint256[] memory compoundArray = controllerTester.pendleChildCompoundInfoReservedForCompound(
@@ -3234,21 +3234,11 @@ contract PendlePowerFarmControllerBaseTest is Test, ContractLibrary {
             MarketExpired.selector
         );
 
-        PendlePowerFarmToken farmToken = new PendlePowerFarmToken(
-            address(controllerTester),
+        controllerTester.addPendleMarket(
             eUsdMarket,
             "name",
             "symbol",
             MAX_CARDINALITY
-        );
-
-        vm.expectRevert(
-            WrongAddress.selector
-        );
-
-        controllerTester.addPendleMarket(
-            eUsdMarket,
-            address(farmToken)
         );
     }
 

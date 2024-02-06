@@ -18,6 +18,27 @@ struct CurveSwapStructData {
 
 interface IWiseSecurity {
 
+    function checkMinDepositValue(
+        address _poolToken,
+        uint256 _amount
+    )
+        external
+        view;
+
+    function overallETHBorrow(
+        uint256 _nftId
+    )
+        external
+        view
+        returns (uint256 buffer);
+
+    function overallETHCollateralsBoth(
+        uint256 _nftId
+    )
+        external
+        view
+        returns (uint256 weighted, uint256 unweightedamount);
+
     function checkHealthState(
         uint256 _nftId,
         bool _isPowerFarm
@@ -51,14 +72,6 @@ interface IWiseSecurity {
         external
         view;
 
-    function getPositionBorrowAmount(
-        uint256 _nftId,
-        address _poolToken
-    )
-        external
-        view
-        returns (uint256);
-
     function getPositionLendingAmount(
         uint256 _nftId,
         address _poolToken
@@ -67,8 +80,16 @@ interface IWiseSecurity {
         view
         returns (uint256);
 
-    function getLiveDebtRatio(
-        uint256 _nftId
+    function getBorrowRate(
+        address _poolToken
+    )
+        external
+        view
+        returns (uint256);
+
+    function getPositionBorrowAmount(
+        uint256 _nftId,
+        address _poolToken
     )
         external
         view

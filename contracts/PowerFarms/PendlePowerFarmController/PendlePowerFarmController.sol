@@ -2,9 +2,12 @@
 
 pragma solidity =0.8.24;
 
+import "./PendlePowerFarmTokenFactory.sol";
 import "./PendlePowerFarmControllerHelper.sol";
 
 contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
+
+    PendlePowerFarmTokenFactory public immutable PENDLE_POWER_FARM_TOKEN_FACTORY;
 
     constructor(
         address _vePendle,
@@ -20,7 +23,11 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
             _voterRewardsClaimerAddress,
             _wiseOracleHub
         )
-    {}
+    {
+        PENDLE_POWER_FARM_TOKEN_FACTORY = new PendlePowerFarmTokenFactory(
+            address(this)
+        );
+    }
 
     function withdrawLp(
         address _pendleMarket,
@@ -203,7 +210,9 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
 
     function addPendleMarket(
         address _pendleMarket,
-        address _pendleChildAddress
+        string memory _tokenName,
+        string memory _symbolName,
+        uint16 _maxCardinality
     )
         external
         onlyMaster
@@ -212,7 +221,14 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
             revert AlreadySet();
         }
 
-        pendleChildAddress[_pendleMarket] = _pendleChildAddress;
+        address pendleChild = PENDLE_POWER_FARM_TOKEN_FACTORY.deploy(
+            _pendleMarket,
+            _tokenName,
+            _symbolName,
+            _maxCardinality
+        );
+
+        pendleChildAddress[_pendleMarket] = pendleChild;
 
         _setRewardTokens(
             _pendleMarket,
@@ -270,7 +286,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
 
         emit AddPendleMarket(
             _pendleMarket,
-            _pendleChildAddress
+            pendleChild
         );
     }
 

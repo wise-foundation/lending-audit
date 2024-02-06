@@ -298,9 +298,6 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             return true;
         }
 
-        if (_isUncollateralized(_nftId, _poolToken) == true) {
-            return true;
-        }
     }
 
     /**
@@ -1050,5 +1047,51 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
         _checkPoolCondition(
             _token
         );
+    }
+
+    function checkMinDepositValue(
+        address _token,
+        uint256 _amount
+    )
+        external
+        view
+        returns (bool)
+    {
+        return _checkMinDepositValue(
+            _token,
+            _amount
+        );
+    }
+
+    function _checkMinDepositValue(
+        address _token,
+        uint256 _amount
+    )
+        private
+        view
+        returns (bool)
+    {
+        if (minDepositEthValue == ONE_WEI) {
+            return true;
+        }
+
+        if (_getTokensInEth(_token, _amount) < minDepositEthValue) {
+            revert DepositAmountTooSmall();
+        }
+
+        return true;
+    }
+
+    function changeMinDepositValue(
+        uint256 _newMinDepositValue
+    )
+        external
+        onlyMaster
+    {
+        if (_newMinDepositValue == 0) {
+            revert NoValue();
+        }
+
+        minDepositEthValue = _newMinDepositValue;
     }
 }

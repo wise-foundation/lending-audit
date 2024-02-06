@@ -2,7 +2,7 @@
 
 pragma solidity =0.8.24;
 
-import "./SimpleERC20.sol";
+import "./SimpleERC20Clone.sol";
 
 import "../../InterfaceHub/IPendle.sol";
 import "../../InterfaceHub/IPendleController.sol";
@@ -18,12 +18,15 @@ error InsufficientShares();
 error ZeroAmount();
 error FeeTooHigh();
 error NotEnoughShares();
+error InvalidSharePriceGrowth();
+error InvalidSharePrice();
+error AlreadyInitialized();
 
 contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
 
     // Pendle - LP token address
-    address public immutable UNDERLYING_PENDLE_MARKET;
-    address public immutable PENDLE_POWER_FARM_CONTROLLER;
+    address public UNDERLYING_PENDLE_MARKET;
+    address public PENDLE_POWER_FARM_CONTROLLER;
 
     // Total balance of LPs backing at current compound distribution
     uint256 public underlyingLpAssetsCurrent;
@@ -32,63 +35,34 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     uint256 public totalLpAssetsToDistribute;
 
     // Interface Object for underlying Market
-    IPendleMarket public immutable PENDLE_MARKET;
+    IPendleMarket public PENDLE_MARKET;
+
+    // InterfaceObject for pendle Sy
+    IPendleSy public PENDLE_SY;
 
     // Interface for Pendle Controller
-    IPendleController public immutable PENDLE_CONTROLLER;
+    IPendleController public PENDLE_CONTROLLER;
 
     // Max cardinality of Pendle Market
-    uint16 public immutable MAX_CARDINALITY;
+    uint16 public MAX_CARDINALITY;
 
     uint256 public mintFee;
     uint256 public lastInteraction;
 
     uint256 private constant ONE_WEEK = 1 weeks;
+    uint256 internal constant ONE_YEAR = 52 weeks;
     uint256 private constant MAX_MINT_FEE = 10000;
 
     uint256 private constant PRECISION_FACTOR_E6 = 1E6;
     uint256 private constant PRECISION_FACTOR_E18 = 1E18;
+    uint256 internal constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
+    uint256 internal constant PRECISION_FACTOR_YEAR = PRECISION_FACTOR_E18 * ONE_YEAR;
 
-    constructor(
-        address _pendleController,
-        address _underlyingPendleMarket,
-        string memory _tokenName,
-        string memory _symbolName,
-        uint16 _maxCardinality
-    )
-        SimpleERC20(
-            _tokenName,
-            _symbolName
-        )
-    {
-        PENDLE_MARKET = IPendleMarket(
-            _underlyingPendleMarket
-        );
+    uint256 private INITIAL_TIME_STAMP;
 
-        if (PENDLE_MARKET.isExpired() == true) {
-            revert MarketExpired();
-        }
-
-        PENDLE_CONTROLLER = IPendleController(
-            _pendleController
-        );
-
-        MAX_CARDINALITY = _maxCardinality;
-
-        _name = _tokenName;
-        _symbol = _symbolName;
-
-        PENDLE_POWER_FARM_CONTROLLER = _pendleController;
-        UNDERLYING_PENDLE_MARKET = _underlyingPendleMarket;
-
-        _decimals = PENDLE_MARKET.decimals();
-
-        lastInteraction = block.timestamp;
-
-        _totalSupply = 1;
-        underlyingLpAssetsCurrent = 1;
-        mintFee = 3000;
-    }
+    uint256 internal constant RESTRICTION_FACTOR = 10
+        * PRECISION_FACTOR_E36
+        / PRECISION_FACTOR_YEAR;
 
     modifier onlyController() {
         _onlyController();
@@ -112,7 +86,47 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
         _updateRewards();
         _setLastInteraction();
         _increaseCardinalityNext();
+        uint256 sharePriceBefore = _getSharePrice();
         _;
+        _validateSharePriceGrowth(
+            _validateSharePrice(
+                sharePriceBefore
+            )
+        );
+    }
+
+    function _validateSharePrice(
+        uint256 _sharePriceBefore
+    )
+        private
+        view
+        returns (uint256)
+    {
+        uint256 sharePricenNow = _getSharePrice();
+
+        if (sharePricenNow < _sharePriceBefore) {
+            revert InvalidSharePrice();
+        }
+
+        return sharePricenNow;
+    }
+
+    function _validateSharePriceGrowth(
+        uint256 _sharePriceNow
+    )
+        private
+        view
+    {
+        uint256 timeDifference = block.timestamp
+            - INITIAL_TIME_STAMP;
+
+        uint256 maximum = timeDifference
+            * RESTRICTION_FACTOR
+            + PRECISION_FACTOR_E18;
+
+        if (_sharePriceNow > maximum) {
+            revert InvalidSharePriceGrowth();
+        }
     }
 
     function _overWriteCheck()
@@ -308,6 +322,15 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
         );
     }
 
+    function _getSharePrice()
+        private
+        view
+        returns (uint256)
+    {
+        return previewUnderlyingLpAssets() * PRECISION_FACTOR_E18
+            / totalSupply();
+    }
+
     function _syncSupply()
         private
     {
@@ -418,7 +441,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     }
 
     function previewUnderlyingLpAssets()
-        external
+        public
         view
         returns (uint256)
     {
@@ -654,5 +677,57 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
         );
 
         return shares;
+    }
+
+    function initialize(
+        address _underlyingPendleMarket,
+        address _pendleController,
+        string memory _tokenName,
+        string memory _symbolName,
+        uint16 _maxCardinality
+    )
+        external
+    {
+        if (address(PENDLE_MARKET) != address(0)) {
+            revert AlreadyInitialized();
+        }
+
+        PENDLE_MARKET = IPendleMarket(
+            _underlyingPendleMarket
+        );
+
+        if (PENDLE_MARKET.isExpired() == true) {
+            revert MarketExpired();
+        }
+
+        PENDLE_CONTROLLER = IPendleController(
+            _pendleController
+        );
+
+        MAX_CARDINALITY = _maxCardinality;
+
+        _name = _tokenName;
+        _symbol = _symbolName;
+
+        PENDLE_POWER_FARM_CONTROLLER = _pendleController;
+        UNDERLYING_PENDLE_MARKET = _underlyingPendleMarket;
+
+        (
+            address pendleSyAddress,
+            ,
+        ) = PENDLE_MARKET.readTokens();
+
+        PENDLE_SY = IPendleSy(
+            pendleSyAddress
+        );
+
+        _decimals = PENDLE_SY.decimals();
+
+        lastInteraction = block.timestamp;
+
+        _totalSupply = 1;
+        underlyingLpAssetsCurrent = 1;
+        mintFee = 3000;
+        INITIAL_TIME_STAMP = block.timestamp;
     }
 }

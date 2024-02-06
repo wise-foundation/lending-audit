@@ -43,6 +43,11 @@ struct ApproxParams {
 
 interface IPendleSy {
 
+    function decimals()
+        external
+        view
+        returns (uint8);
+
     function previewDeposit(
         address _tokenIn,
         uint256 _amountTokenToDeposit

@@ -7,7 +7,7 @@ pragma solidity =0.8.24;
  */
 
 /**
- * @dev PriceFeed contract for Pt-Token with USD
+ * @dev PriceFeed contract for Lp-Token with USD
  * chainLink feed to get a feed measured in ETH.
  * Takes chainLink oracle value and multiplies it
  * with the corresponding TWAP and other chainLink oracles.
@@ -16,11 +16,18 @@ pragma solidity =0.8.24;
 import "../InterfaceHub/IPendle.sol";
 import "../InterfaceHub/IPriceFeed.sol";
 import "../InterfaceHub/IOraclePendle.sol";
+import {
+    PendleLpOracleLib,
+    IPMarket
+} from "@pendle/core-v2/contracts/oracles/PendleLpOracleLib.sol";
 
+error InvalidDecimals();
 error CardinalityNotSatisfied();
 error OldestObservationNotSatisfied();
 
 contract PendleLpOracle {
+
+    uint256 internal constant DEFAULT_DECIMALS = 18;
 
     constructor(
         address _pendleMarketAddress,
@@ -33,23 +40,16 @@ contract PendleLpOracle {
         PENDLE_MARKET_ADDRESS = _pendleMarketAddress;
 
         FEED_ASSET = _priceFeedChainLinkEth;
-        POW_FEED_DECIMALS = 10 ** FEED_ASSET.decimals();
+
+        if (FEED_ASSET.decimals() != DEFAULT_DECIMALS) {
+            revert InvalidDecimals();
+        }
 
         TWAP_DURATION = _twapDuration;
         ORACLE_PENDLE_PT = _oraclePendlePt;
 
         PENDLE_MARKET = IPendleMarket(
             _pendleMarketAddress
-        );
-
-        (
-            address SY_ADDRESS
-            ,
-            ,
-        ) = PENDLE_MARKET.readTokens();
-
-        PENDLE_SY = IPendleSy(
-            SY_ADDRESS
         );
 
         name = _oracleName;
@@ -64,7 +64,7 @@ contract PendleLpOracle {
     IOraclePendle public immutable ORACLE_PENDLE_PT;
 
     uint8 internal constant FEED_DECIMALS = 18;
-    uint256 internal immutable POW_FEED_DECIMALS;
+    uint256 internal constant POW_FEED_DECIMALS = 10 ** 18;
 
     // Precision factor for computations.
     uint256 internal constant PRECISION_FACTOR_E18 = 1E18;
@@ -109,34 +109,28 @@ contract PendleLpOracle {
             revert OldestObservationNotSatisfied();
         }
 
-        uint256 ptToAssetRate = ORACLE_PENDLE_PT.getPtToAssetRate(
-            PENDLE_MARKET_ADDRESS,
+        uint256 lpRate = _getLpToAssetRateWrapper(
+            IPMarket(PENDLE_MARKET_ADDRESS),
             TWAP_DURATION
         );
 
-        MarketState memory marketState = PENDLE_MARKET.readState(
-            PENDLE_MARKET_ADDRESS
+        return lpRate
+            * uint256(answerFeed)
+            / PRECISION_FACTOR_E18;
+    }
+
+    function _getLpToAssetRateWrapper(
+        IPMarket _market,
+        uint32 _duration
+    )
+        internal
+        view
+        returns (uint256)
+    {
+        return PendleLpOracleLib.getLpToAssetRate(
+            _market,
+            _duration
         );
-
-        uint256 totalPtValue = uint256(answerFeed)
-            * PRECISION_FACTOR_E18
-            / POW_FEED_DECIMALS
-            * ptToAssetRate
-            / PRECISION_FACTOR_E18
-            * uint256(marketState.totalPt)
-            / PRECISION_FACTOR_E18;
-
-        uint256 totalSyValue = uint256(answerFeed)
-            * PRECISION_FACTOR_E18
-            / POW_FEED_DECIMALS
-            * uint256(marketState.totalSy)
-            / PRECISION_FACTOR_E18
-            * PENDLE_SY.exchangeRate()
-            / PRECISION_FACTOR_E18;
-
-        return (totalPtValue + totalSyValue)
-            * PRECISION_FACTOR_E18
-            / PENDLE_MARKET.totalSupply();
     }
 
     /**

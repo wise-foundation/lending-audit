@@ -176,13 +176,20 @@ contract WiseLending is PoolManager {
             uint256
         )
     {
+        uint256 borrowSharePrice = borrowPoolData[_poolToken].pseudoTotalBorrowAmount
+            * PRECISION_FACTOR_E18
+            / borrowPoolData[_poolToken].totalBorrowShares;
+
+        _validateParameter(
+            PRECISION_FACTOR_E18,
+            borrowSharePrice
+        );
+
         return (
             lendingPoolData[_poolToken].pseudoTotalPool
                 * PRECISION_FACTOR_E18
                 / lendingPoolData[_poolToken].totalDepositShares,
-            borrowPoolData[_poolToken].pseudoTotalBorrowAmount
-                * PRECISION_FACTOR_E18
-                / borrowPoolData[_poolToken].totalBorrowShares
+            borrowSharePrice
         );
     }
 
@@ -215,27 +222,33 @@ contract WiseLending is PoolManager {
         (
             uint256 lendSharePriceAfter,
             uint256 borrowSharePriceAfter
-        ) = _getSharePrice(_poolToken);
-
-        if (lendSharePriceAfter < _lendSharePriceBefore) {
-            revert SharePriceDecreased();
-        }
+        ) = _getSharePrice(
+            _poolToken
+        );
 
         uint256 currentSharePriceMax = _getCurrentSharePriceMax(
             _poolToken
         );
 
-        if (lendSharePriceAfter > currentSharePriceMax) {
-            revert SharePriceIncreasedTooMuch();
-        }
+        _validateParameter(
+            _lendSharePriceBefore,
+            lendSharePriceAfter
+        );
 
-        if (_borrowSharePriceBefore > currentSharePriceMax) {
-            revert SharePriceIncreasedTooMuch();
-        }
+        _validateParameter(
+            lendSharePriceAfter,
+            currentSharePriceMax
+        );
 
-        if (borrowSharePriceAfter > _borrowSharePriceBefore) {
-            revert SharePriceIncreased();
-        }
+        _validateParameter(
+            _borrowSharePriceBefore,
+            currentSharePriceMax
+        );
+
+        _validateParameter(
+            borrowSharePriceAfter,
+            _borrowSharePriceBefore
+        );
     }
 
     /**
@@ -271,6 +284,14 @@ contract WiseLending is PoolManager {
         _checkReentrancy();
 
         _preparePool(
+            _poolToken
+        );
+
+        if (_aboveThreshold(_poolToken) == false) {
+            return;
+        }
+
+        _scalingAlgorithm(
             _poolToken
         );
     }
@@ -331,7 +352,10 @@ contract WiseLending is PoolManager {
             msg.sender
         );
 
-        _prepareAssociatedTokens(
+        (
+            address[] memory lendTokens,
+            address[] memory borrowTokens
+        ) = _prepareAssociatedTokens(
             _nftId,
             _poolToken,
             ZERO_ADDRESS
@@ -342,6 +366,11 @@ contract WiseLending is PoolManager {
         WISE_SECURITY.checkUncollateralizedDeposit(
             _nftId,
             _poolToken
+        );
+
+        _curveSecurityChecks(
+            lendTokens,
+            borrowTokens
         );
     }
 
@@ -618,9 +647,9 @@ contract WiseLending is PoolManager {
             }
         );
 
-        if (withdrawShares == 0) {
-            revert WithdrawSharesZero();
-        }
+        _validateNonZero(
+            withdrawShares
+        );
 
         _unwrapETH(
             _amount
@@ -657,9 +686,9 @@ contract WiseLending is PoolManager {
             }
         );
 
-        if (withdrawAmount == 0) {
-            revert WithdrawAmountZero();
-        }
+        _validateNonZero(
+            withdrawAmount
+        );
 
         _unwrapETH(
             withdrawAmount
@@ -697,9 +726,9 @@ contract WiseLending is PoolManager {
             }
         );
 
-        if (withdrawShares == 0) {
-            revert WithdrawSharesZero();
-        }
+        _validateNonZero(
+            withdrawShares
+        );
 
         _safeTransfer(
             _poolToken,
@@ -885,9 +914,9 @@ contract WiseLending is PoolManager {
             }
         );
 
-        if (withdrawAmount == 0) {
-            revert WithdrawAmountZero();
-        }
+        _validateNonZero(
+            withdrawAmount
+        );
 
         _safeTransfer(
             _poolToken,
@@ -959,9 +988,9 @@ contract WiseLending is PoolManager {
             _onBehalf: false
         });
 
-        if (shares == 0) {
-            revert BorrowSharesZero();
-        }
+        _validateNonZero(
+            shares
+        );
 
         _unwrapETH(
             _amount
@@ -1001,9 +1030,9 @@ contract WiseLending is PoolManager {
             _onBehalf: false
         });
 
-        if (shares == 0) {
-            revert BorrowSharesZero();
-        }
+        _validateNonZero(
+            shares
+        );
 
         _safeTransfer(
             _poolToken,
@@ -1061,9 +1090,9 @@ contract WiseLending is PoolManager {
     {
         uint256 maxBorrowShares = userBorrowShares[_nftId][WETH_ADDRESS];
 
-        if (maxBorrowShares == 0) {
-            revert NoBorrowShares();
-        }
+        _validateNonZero(
+            maxBorrowShares
+        );
 
         uint256 maxPaybackAmount = paybackAmount(
             WETH_ADDRESS,
@@ -1078,9 +1107,9 @@ contract WiseLending is PoolManager {
             }
         );
 
-        if (paybackShares == 0) {
-            revert PaybackSharesZero();
-        }
+        _validateNonZero(
+            paybackShares
+        );
 
         uint256 refundAmount;
         uint256 requiredAmount = msg.value;
@@ -1141,9 +1170,9 @@ contract WiseLending is PoolManager {
             }
         );
 
-        if (paybackShares == 0) {
-            revert PaybackSharesZero();
-        }
+        _validateNonZero(
+            paybackShares
+        );
 
         _handlePayback(
             msg.sender,
@@ -1181,9 +1210,9 @@ contract WiseLending is PoolManager {
             _shares
         );
 
-        if (repaymentAmount == 0) {
-            revert RepaymentAmountZero();
-        }
+        _validateNonZero(
+            repaymentAmount
+        );
 
         _handlePayback(
             msg.sender,
@@ -1231,7 +1260,6 @@ contract WiseLending is PoolManager {
         data.nftIdLiquidator = _nftIdLiquidator;
 
         data.caller = msg.sender;
-        data.receiver = msg.sender;
 
         data.tokenToPayback = _paybackToken;
         data.tokenToRecieve = _receiveToken;
@@ -1260,6 +1288,7 @@ contract WiseLending is PoolManager {
         );
 
         _checkLiquidatorNft(
+            _nftId,
             _nftIdLiquidator
         );
 
@@ -1281,7 +1310,6 @@ contract WiseLending is PoolManager {
         uint256 _nftId,
         uint256 _nftIdLiquidator,
         address _caller,
-        address _receiver,
         address _paybackToken,
         address _receiveToken,
         uint256 _paybackAmount,
@@ -1298,7 +1326,6 @@ contract WiseLending is PoolManager {
         data.nftIdLiquidator = _nftIdLiquidator;
 
         data.caller = _caller;
-        data.receiver = _receiver;
 
         data.paybackAmount = _paybackAmount;
         data.tokenToPayback = _paybackToken;
@@ -1361,13 +1388,13 @@ contract WiseLending is PoolManager {
             msg.sender
         );
 
-        if (WISE_SECURITY.overallETHCollateralsBare(_nftId) > 0) {
-            revert PositionHasCollateral();
-        }
+        _validateZero(
+            WISE_SECURITY.overallETHCollateralsBare(_nftId)
+        );
 
-        if (WISE_SECURITY.overallETHBorrowBare(_nftId) > 0) {
-            revert PositionHasBorrow();
-        }
+        _validateZero(
+            WISE_SECURITY.overallETHBorrowBare(_nftId)
+        );
 
         positionLocked[_nftId] = _registerState;
     }
@@ -1547,5 +1574,18 @@ contract WiseLending is PoolManager {
         );
 
         return shares;
+    }
+
+    /**
+     * @dev Internal helper function for reservating a
+     * position NFT id.
+     */
+    function _reservePosition()
+        private
+        returns (uint256)
+    {
+        return POSITION_NFT.reservePositionForUser(
+            msg.sender
+        );
     }
 }
