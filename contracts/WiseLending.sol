@@ -97,14 +97,10 @@ contract WiseLending is PoolManager {
     modifier syncPool(
         address _poolToken
     ) {
-        _syncPoolBeforeCodeExecution(
-            _poolToken
-        );
-
         (
             uint256 lendSharePrice,
             uint256 borrowSharePrice
-        ) = _getSharePrice(
+        ) = _syncPoolBeforeCodeExecution(
             _poolToken
         );
 
@@ -280,6 +276,10 @@ contract WiseLending is PoolManager {
         address _poolToken
     )
         private
+        returns (
+            uint256 lendSharePrice,
+            uint256 borrowSharePrice
+        )
     {
         _checkReentrancy();
 
@@ -287,11 +287,16 @@ contract WiseLending is PoolManager {
             _poolToken
         );
 
-        if (_aboveThreshold(_poolToken) == false) {
-            return;
+        if (_aboveThreshold(_poolToken) == true) {
+            _scalingAlgorithm(
+                _poolToken
+            );
         }
 
-        _scalingAlgorithm(
+        (
+            lendSharePrice,
+            borrowSharePrice
+        ) = _getSharePrice(
             _poolToken
         );
     }
