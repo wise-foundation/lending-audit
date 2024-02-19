@@ -242,7 +242,7 @@ abstract contract WiseCore is MainHelper, TransferHelper {
         internal
         view
     {
-        _checkPositionLocked(
+       _checkPositionLocked(
             _nftId,
             _caller
         );
@@ -539,34 +539,6 @@ abstract contract WiseCore is MainHelper, TransferHelper {
             _removePercentage
         );
 
-        uint256 potentialPureExtraCashout;
-        uint256 userShares = userLendingData[_nftId][_receiveTokens].shares;
-        uint256 pureCollateral = pureCollateralAmount[_nftId][_receiveTokens];
-
-        if (pureCollateral > 0 && userShares > 0) {
-            potentialPureExtraCashout = _calculatePotentialPureExtraCashout(
-                userShares,
-                _receiveTokens,
-                _removePercentage
-            );
-        }
-
-        if (potentialPureExtraCashout > 0 && potentialPureExtraCashout <= pureCollateral) {
-            _decreasePositionMappingValue(
-                pureCollateralAmount,
-                _nftId,
-                _receiveTokens,
-                potentialPureExtraCashout
-            );
-
-            _decreaseTotalBareToken(
-                _receiveTokens,
-                potentialPureExtraCashout
-            );
-
-            return receiveAmount + potentialPureExtraCashout;
-        }
-
         if (userLendingData[_nftId][_receiveTokens].unCollateralized == true) {
             return receiveAmount;
         }
@@ -577,23 +549,6 @@ abstract contract WiseCore is MainHelper, TransferHelper {
             _receiveTokens,
             _removePercentage
         ) + receiveAmount;
-    }
-
-    function _calculatePotentialPureExtraCashout(
-        uint256 _userShares,
-        address _poolToken,
-        uint256 _removePercentage
-    )
-        private
-        view
-        returns (uint256)
-    {
-        return _cashoutAmount(
-            _poolToken,
-            _removePercentage
-                * _userShares
-                / PRECISION_FACTOR_E18
-        );
     }
 
     /**

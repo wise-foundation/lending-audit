@@ -254,7 +254,7 @@ abstract contract MainHelper is WiseLowLevelHelper {
             _nftIdLiquidator
         );
 
-        if (POSITION_NFT.ownerOf(_nftId) != _caller) {
+        if (POSITION_NFT.getOwner(_nftId) != _caller) {
             revert InvalidCaller();
         }
     }

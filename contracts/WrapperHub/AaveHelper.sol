@@ -83,10 +83,7 @@ abstract contract AaveHelper is Declarations {
         uint256 _withdrawAmount
     )
         internal
-        returns (
-            uint256,
-            uint256
-        )
+        returns (uint256)
     {
         uint256 withdrawnShares = WISE_LENDING.withdrawOnBehalfExactAmount(
             _nftId,
@@ -94,16 +91,13 @@ abstract contract AaveHelper is Declarations {
             _withdrawAmount
         );
 
-        uint256 actualAmount = AAVE.withdraw(
+        AAVE.withdraw(
             _underlyingAsset,
             _withdrawAmount,
             _underlyingAssetRecipient
         );
 
-        return (
-            withdrawnShares,
-            actualAmount
-        );
+        return withdrawnShares;
     }
 
     function _wrapWithdrawExactShares(

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.24;
+pragma solidity ^0.8.0;
 
 library AddressLibrary {
     address constant VE_PENDLE_CONTRACT = 0x4f30A9D41B80ecC5B94306AB4364951AE3170210; // ETH Mainnet
