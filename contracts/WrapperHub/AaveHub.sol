@@ -8,6 +8,7 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./AaveHelper.sol";
 import "../TransferHub/TransferHelper.sol";
 import "../TransferHub/ApprovalHelper.sol";
@@ -22,7 +23,7 @@ import "../TransferHub/ApprovalHelper.sol";
  * onBehlaf functionallity inside wiseLending.
  */
 
-contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
+contract AaveHub is FirewallConsumer, AaveHelper, TransferHelper, ApprovalHelper {
 
     constructor(
         address _master,
@@ -47,6 +48,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         _setAaveTokenAddress(
             _underlyingAsset,
@@ -67,6 +69,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         for (uint256 i = 0; i < _underlyingAssets.length; i++) {
             _setAaveTokenAddress(
@@ -104,7 +107,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         address _underlyingAsset,
         uint256 _amount
     )
-        external
+        external firewallProtected
         returns (uint256)
     {
         return depositExactAmount(
@@ -158,6 +161,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     function depositExactAmountETHMint()
         external
         payable
+        firewallProtected
         returns (uint256)
     {
         return depositExactAmountETH(
@@ -207,6 +211,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         external
         nonReentrant
         validToken(_underlyingAsset)
+        firewallProtected
         returns (uint256)
     {
         _checkOwner(
@@ -238,6 +243,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     )
         external
         nonReentrant
+        firewallProtected
         returns (uint256)
     {
         _checkOwner(
@@ -280,6 +286,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         external
         nonReentrant
         validToken(_underlyingAsset)
+        firewallProtected
         returns (uint256)
     {
         _checkOwner(
@@ -311,6 +318,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     )
         external
         nonReentrant
+        firewallProtected
         returns (uint256)
     {
         _checkOwner(
@@ -356,6 +364,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         external
         nonReentrant
         validToken(_underlyingAsset)
+        firewallProtected
         returns (uint256)
     {
         _checkOwner(
@@ -390,6 +399,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
     )
         external
         nonReentrant
+        firewallProtected
         returns (uint256)
     {
         _checkOwner(
@@ -432,6 +442,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         external
         nonReentrant
         validToken(_underlyingAsset)
+        firewallProtected
         returns (uint256)
     {
         _checkPositionLocked(
@@ -479,6 +490,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         external
         payable
         nonReentrant
+        firewallProtected
         returns (uint256)
     {
         _checkPositionLocked(
@@ -555,6 +567,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         external
         nonReentrant
         validToken(_underlyingAsset)
+        firewallProtected
         returns (uint256)
     {
         _checkPositionLocked(

@@ -2,9 +2,10 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./PendlePowerManager.sol";
 
-contract PendlePowerFarmTester is PendlePowerManager {
+contract PendlePowerFarmTester is FirewallConsumer, PendlePowerManager {
 
     constructor(
         address _wiseLendingAddress,
@@ -35,7 +36,7 @@ contract PendlePowerFarmTester is PendlePowerManager {
     function setCollfactor(
         uint256 _newCollfactor
     )
-        external
+        external firewallProtected
     {
         collateralFactor = _newCollfactor;
     }

@@ -2,6 +2,7 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "../../InterfaceHub/IERC20.sol";
 import "../../InterfaceHub/IAave.sol";
 import "../../InterfaceHub/IPendle.sol";
@@ -33,6 +34,7 @@ error CollateralFactorTooHigh();
 error WrongChainId();
 
 contract PendlePowerFarmDeclarations is
+    FirewallConsumer,
     WrapperHelper,
     TransferHelper,
     ApprovalHelper,
@@ -262,7 +264,7 @@ contract PendlePowerFarmDeclarations is
     }
 
     function doApprovals()
-        external
+        external firewallProtected
     {
         _doApprovals(
             address(WISE_LENDING)

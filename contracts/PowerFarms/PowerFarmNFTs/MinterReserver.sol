@@ -2,12 +2,13 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "../../InterfaceHub/IPowerFarmsNFTs.sol";
 
 error InvalidKey();
 error AlreadyReserved();
 
-contract MinterReserver {
+contract MinterReserver is FirewallConsumer {
 
     IPowerFarmsNFTs immutable FARMS_NFTS;
 
@@ -139,7 +140,7 @@ contract MinterReserver {
     }
 
     function mintReserved()
-        external
+        external firewallProtected
         returns (uint256)
     {
         return _mintKeyForUser(
@@ -163,7 +164,7 @@ contract MinterReserver {
         uint256 _tokenId,
         bytes calldata _data
     )
-        external
+        external firewallProtected
         returns (bytes4)
     {
         emit ERC721Received(

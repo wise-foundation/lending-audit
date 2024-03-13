@@ -2,13 +2,14 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./OwnableMaster.sol";
 
 error NotPermitted();
 
-contract PositionNFTs is ERC721Enumerable, OwnableMaster {
+contract PositionNFTs is FirewallConsumer, ERC721Enumerable, OwnableMaster {
 
     string public baseURI;
     string public baseExtension;
@@ -44,6 +45,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (feeManager > ZERO_ADDRESS) {
             revert NotPermitted();
@@ -59,7 +61,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     }
 
     function reservePosition()
-        external
+        external firewallProtected
         returns (uint256)
     {
         return _reservePositionForUser(
@@ -70,7 +72,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     function reservePositionForUser(
         address _user
     )
-        external
+        external firewallProtected
         returns (uint256)
     {
         return _reservePositionForUser(
@@ -110,7 +112,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
      * user can not use WiseLending protocol
      */
     function mintPosition()
-        external
+        external firewallProtected
         returns (uint256)
     {
         return _mintPositionForUser(
@@ -144,7 +146,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     function mintPositionForUser(
         address _user
     )
-        external
+        external firewallProtected
         returns (uint256)
     {
         if (isApprovedForAll(
@@ -216,7 +218,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         address _spender,
         uint256 _nftId
     )
-        external
+        external firewallProtected
     {
         if (reserved[msg.sender] == _nftId) {
             approve(
@@ -291,6 +293,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyMaster
+        firewallProtected
     {
         baseURI = _newBaseURI;
     }
@@ -300,6 +303,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyMaster
+        firewallProtected
     {
         baseExtension = _newBaseExtension;
     }

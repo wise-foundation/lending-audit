@@ -2,9 +2,10 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "../PowerFarms/PendlePowerFarmController/PendlePowerFarmController.sol";
 
-contract Create2Deployer {
+contract Create2Deployer is FirewallConsumer {
 
     address public immutable VE_PENDLE_CONTRACT;
     address public immutable PENDLE_TOKEN;
@@ -30,7 +31,7 @@ contract Create2Deployer {
     function deploy(
         uint256 _salt
     )
-        external
+        external firewallProtected
         returns (address)
     {
         return _actualDeploy(

@@ -2,6 +2,7 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./AaveEvents.sol";
 
 import "../InterfaceHub/IAave.sol";
@@ -18,7 +19,7 @@ error InvalidAction();
 error FailedInnerCall();
 error InvalidToken();
 
-contract Declarations is OwnableMaster, AaveEvents, WrapperHelper {
+contract Declarations is FirewallConsumer, OwnableMaster, AaveEvents, WrapperHelper {
 
     IAave internal immutable AAVE;
 
@@ -107,6 +108,7 @@ contract Declarations is OwnableMaster, AaveEvents, WrapperHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (address(WISE_SECURITY) > ZERO_ADDRESS) {
             revert AlreadySet();

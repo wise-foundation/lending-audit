@@ -8,6 +8,7 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./WiseSecurityHelper.sol";
 import "../TransferHub/ApprovalHelper.sol";
 
@@ -21,7 +22,7 @@ import "../TransferHub/ApprovalHelper.sol";
 
 error NotWiseLendingSecurity();
 
-contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
+contract WiseSecurity is FirewallConsumer, WiseSecurityHelper, ApprovalHelper {
 
     modifier onlyWiseLending() {
         _onlyWiseLending();
@@ -90,6 +91,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         _setLiquidationSettings(
             _baseReward,
@@ -146,6 +148,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     )
         external
         onlyWiseLending
+        firewallProtected
     {
         curveSwapInfoData[_poolToken] = _curveSwapStructData;
         curveSwapInfoToken[_poolToken] = _curveSwapStructToken;
@@ -195,6 +198,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     )
         external
         onlyWiseLending
+        firewallProtected
     {
         address curvePool = curveSwapInfoData[_poolToken].curvePool;
 
@@ -403,6 +407,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     )
         external
         onlyWiseLending
+        firewallProtected
     {
         uint256 bareCollateral = overallETHCollateralsBare(
             _nftId
@@ -979,6 +984,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     )
         external
         onlyMaster()
+        firewallProtected
     {
         wasBlacklisted[_tokenAddress] = _state;
     }
@@ -994,6 +1000,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         securityWorker[_entitiy] = _state;
     }
@@ -1005,7 +1012,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
      * special role set by the master.
      */
     function securityShutdown()
-        external
+        external firewallProtected
     {
         if (securityWorker[msg.sender] == false) {
             revert NotAllowedEntity();
@@ -1028,6 +1035,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     function revokeShutdown()
         external
         onlyMaster
+        firewallProtected
     {
         _setPoolState(
             false
@@ -1087,6 +1095,7 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (_newMinDepositValue == 0) {
             revert NoValue();

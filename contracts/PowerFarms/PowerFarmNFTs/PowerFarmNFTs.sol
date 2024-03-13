@@ -8,6 +8,7 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "../../OwnableMaster.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
@@ -21,7 +22,7 @@ interface IFarmContract {
         returns (uint256);
 }
 
-contract PowerFarmNFTs is ERC721Enumerable, OwnableMaster {
+contract PowerFarmNFTs is FirewallConsumer, ERC721Enumerable, OwnableMaster {
 
     string public baseURI;
     string public baseExtension;
@@ -53,6 +54,7 @@ contract PowerFarmNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (farmContract == ZERO_ADDRESS) {
             farmContract = _farmContract;
@@ -69,6 +71,7 @@ contract PowerFarmNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyFarmContract
+        firewallProtected
     {
         _mint(
             _keyOwner,
@@ -84,6 +87,7 @@ contract PowerFarmNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyFarmContract
+        firewallProtected
     {
         _burn(
             _keyId
@@ -163,6 +167,7 @@ contract PowerFarmNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyMaster
+        firewallProtected
     {
         baseURI = _newBaseURI;
     }
@@ -172,6 +177,7 @@ contract PowerFarmNFTs is ERC721Enumerable, OwnableMaster {
     )
         external
         onlyMaster
+        firewallProtected
     {
         baseExtension = _newBaseExtension;
     }

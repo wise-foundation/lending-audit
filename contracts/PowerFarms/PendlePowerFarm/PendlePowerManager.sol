@@ -8,11 +8,12 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./PendlePowerFarm.sol";
 import "../../OwnableMaster.sol";
 import "../PowerFarmNFTs/MinterReserver.sol";
 
-contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
+contract PendlePowerManager is FirewallConsumer, OwnableMaster, PendlePowerFarm, MinterReserver {
 
     /**
      * @dev Standard receive functions forwarding
@@ -65,6 +66,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
     )
         external
         onlyMaster
+        firewallProtected
     {
         minDepositEthAmount = _newMinDeposit;
 
@@ -84,6 +86,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
     )
         external
         onlyMaster
+        firewallProtected
     {
         isShutdown = _state;
 
@@ -102,6 +105,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         external
         isActive
         updatePools
+        firewallProtected
         returns (uint256)
     {
         uint256 wiseLendingNFT = _getWiseLendingNFT();
@@ -148,6 +152,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         payable
         isActive
         updatePools
+        firewallProtected
         returns (uint256)
     {
         uint256 wiseLendingNFT = _getWiseLendingNFT();
@@ -215,6 +220,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         external
         updatePools
         onlyKeyOwner(_keyId)
+        firewallProtected
     {
         uint256 wiseLendingNFT = farmingKeys[
             _keyId
@@ -257,6 +263,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
     )
         external
         updatePools
+        firewallProtected
     {
         _manuallyPaybackShares(
             farmingKeys[_keyId],
@@ -278,6 +285,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         external
         updatePools
         onlyKeyOwner(_keyId)
+        firewallProtected
     {
         uint256 wiseLendingNFT = farmingKeys[
             _keyId

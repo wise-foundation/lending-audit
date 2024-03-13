@@ -8,6 +8,7 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./OracleHelper.sol";
 
 /**
@@ -28,7 +29,7 @@ import "./OracleHelper.sol";
  * still updated in expected time interval.
  */
 
-contract WiseOracleHub is OracleHelper {
+contract WiseOracleHub is FirewallConsumer, OracleHelper {
 
     constructor(
         address _wethAddrss,
@@ -262,6 +263,7 @@ contract WiseOracleHub is OracleHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         address pool = _getPool(
             _token0,
@@ -311,6 +313,7 @@ contract WiseOracleHub is OracleHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         _validatePriceFeed(
             _tokenAddress
@@ -401,6 +404,7 @@ contract WiseOracleHub is OracleHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         _addOracle(
             _tokenAddress,
@@ -421,6 +425,7 @@ contract WiseOracleHub is OracleHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         uint256 i;
         uint256 l = _tokenAddresses.length;
@@ -510,7 +515,7 @@ contract WiseOracleHub is OracleHelper {
     function recalibrate(
         address _tokenAddress
     )
-        external
+        external firewallProtected
     {
         _recalibrate(
             _tokenAddress
@@ -524,7 +529,7 @@ contract WiseOracleHub is OracleHelper {
     function recalibrateBulk(
         address[] calldata _tokenAddresses
     )
-        external
+        external firewallProtected
     {
         uint256 i;
         uint256 l = _tokenAddresses.length;

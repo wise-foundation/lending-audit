@@ -2,9 +2,10 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./WiseOracleHub.sol";
 
-contract TesterWiseOracleHub is WiseOracleHub {
+contract TesterWiseOracleHub is FirewallConsumer, WiseOracleHub {
 
     constructor(
         address _wethAddrss,
@@ -23,7 +24,7 @@ contract TesterWiseOracleHub is WiseOracleHub {
         address[] memory _tokenAddresses,
         uint256[] memory _values
     )
-        external
+        external firewallProtected
     {
         uint256 i;
         uint256 l = _tokenAddresses.length;

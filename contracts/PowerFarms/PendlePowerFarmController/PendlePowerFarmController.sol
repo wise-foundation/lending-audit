@@ -2,10 +2,11 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./PendlePowerFarmTokenFactory.sol";
 import "./PendlePowerFarmControllerHelper.sol";
 
-contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
+contract PendlePowerFarmController is FirewallConsumer, PendlePowerFarmControllerHelper {
 
     PendlePowerFarmTokenFactory public immutable PENDLE_POWER_FARM_TOKEN_FACTORY;
 
@@ -36,6 +37,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyChildContract(_pendleMarket)
+        firewallProtected
     {
         _safeTransfer(
             _pendleMarket,
@@ -57,6 +59,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         syncSupply(_pendleMarket)
+        firewallProtected
         returns (uint256)
     {
         CompoundStruct memory childInfo = pendleChildCompoundInfo[
@@ -116,6 +119,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         syncSupply(_pendleMarket)
+        firewallProtected
         returns (
             uint256,
             uint256
@@ -172,7 +176,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     function skim(
         address _pendleMarket
     )
-        external
+        external firewallProtected
         returns (uint256)
     {
         address childMarket = pendleChildAddress[
@@ -216,6 +220,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (pendleChildAddress[_pendleMarket] > ZERO_ADDRESS) {
             revert AlreadySet();
@@ -295,6 +300,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyChildContract(_pendleMarket)
+        firewallProtected
         returns (bool)
     {
         address[] memory rewardTokens = _getRewardTokens(
@@ -323,6 +329,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         exchangeIncentive = _newExchangeIncentive;
 
@@ -337,6 +344,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         address child = pendleChildAddress[
             _pendleMarket
@@ -369,6 +377,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyMaster
+        firewallProtected
         returns (uint256 newVeBalance)
     {
         syncAllSupply();
@@ -434,6 +443,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyArbitrum
+        firewallProtected
     {
         ARB_REWARDS.claim(
             master,
@@ -451,6 +461,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     function withdrawLock()
         external
         onlyMaster
+        firewallProtected
         returns (uint256 amount)
     {
         if (IS_ETH_MAIN == false) {
@@ -500,6 +511,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyChildContract(_pendleMarket)
+        firewallProtected
     {
         CompoundStruct memory childInfo = pendleChildCompoundInfo[
             _pendleMarket
@@ -546,6 +558,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyChildContract(_pendleMarket)
+        firewallProtected
     {
         uint256 i;
         uint256 length = pendleChildCompoundInfo[
@@ -568,6 +581,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyChildContract(_pendleMarket)
+        firewallProtected
     {
         CompoundStruct storage childInfo = pendleChildCompoundInfo[
             _pendleMarket
@@ -582,7 +596,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
         uint256 _amount,
         bytes32[] calldata _merkleProof
     )
-        external
+        external firewallProtected
     {
         PENDLE_VOTE_REWARDS.claimRetail(
             address(this),
@@ -603,6 +617,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         payable(_to).transfer(
             _amount
@@ -615,6 +630,7 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (_weights.length != _pools.length) {
             revert InvalidLength();

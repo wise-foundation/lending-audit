@@ -2,11 +2,13 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
+
 error NoValue();
 error NotMaster();
 error NotProposed();
 
-contract OwnableMaster {
+contract OwnableMaster is FirewallConsumer {
 
     address public master;
     address public proposedMaster;
@@ -77,6 +79,7 @@ contract OwnableMaster {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (_proposedOwner == ZERO_ADDRESS) {
             revert NoValue();
@@ -97,6 +100,7 @@ contract OwnableMaster {
     function claimOwnership()
         external
         onlyProposed
+        firewallProtected
     {
         master = proposedMaster;
 
@@ -113,6 +117,7 @@ contract OwnableMaster {
     function renounceOwnership()
         external
         onlyMaster
+        firewallProtected
     {
         master = ZERO_ADDRESS;
         proposedMaster = ZERO_ADDRESS;

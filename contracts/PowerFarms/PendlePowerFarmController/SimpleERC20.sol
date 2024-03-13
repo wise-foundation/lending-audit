@@ -2,6 +2,8 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
+
 error AllowanceBelowZero();
 error ApproveWithZeroAddress();
 error BurnExceedsBalance();
@@ -11,7 +13,7 @@ error MintToZeroAddress();
 error TransferAmountExceedsBalance();
 error TransferZeroAddress();
 
-contract SimpleERC20 {
+contract SimpleERC20 is FirewallConsumer {
 
     string internal _name;
     string internal _symbol;
@@ -178,7 +180,7 @@ contract SimpleERC20 {
         address _to,
         uint256 _amount
     )
-        external
+        external firewallProtected
         returns (bool)
     {
         _transfer(
@@ -205,7 +207,7 @@ contract SimpleERC20 {
         address _spender,
         uint256 _amount
     )
-        external
+        external firewallProtected
         returns (bool)
     {
         _approve(
@@ -222,7 +224,7 @@ contract SimpleERC20 {
         address _to,
         uint256 _amount
     )
-        external
+        external firewallProtected
         returns (bool)
     {
         _spendAllowance(
@@ -244,7 +246,7 @@ contract SimpleERC20 {
         address _spender,
         uint256 _addedValue
     )
-        external
+        external firewallProtected
         returns (bool)
     {
         address owner = _msgSender();
@@ -262,7 +264,7 @@ contract SimpleERC20 {
         address _spender,
         uint256 _subtractedValue
     )
-        external
+        external firewallProtected
         returns (bool)
     {
         address owner = _msgSender();

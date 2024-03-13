@@ -2,6 +2,7 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./OwnableMaster.sol";
 
 import "./InterfaceHub/IAaveHubLite.sol";
@@ -28,6 +29,7 @@ error ValueNotZero();
 error TooManyTokens();
 
 contract WiseLendingDeclaration is
+    FirewallConsumer,
     OwnableMaster,
     WrapperHelper,
     SendValueHelper
@@ -142,6 +144,7 @@ contract WiseLendingDeclaration is
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (address(WISE_SECURITY) > ZERO_ADDRESS) {
             revert InvalidAction();

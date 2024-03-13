@@ -2,7 +2,9 @@
 
 pragma solidity =0.8.24;
 
-contract CustomOracleSetup {
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
+
+contract CustomOracleSetup is FirewallConsumer {
 
     address public master;
     uint256 public lastUpdateGlobal;
@@ -26,6 +28,7 @@ contract CustomOracleSetup {
     function renounceOwnership()
         external
         onlyOwner
+        firewallProtected
     {
         master = address(0x0);
     }
@@ -35,6 +38,7 @@ contract CustomOracleSetup {
     )
         external
         onlyOwner
+        firewallProtected
     {
         lastUpdateGlobal = _time;
     }
@@ -45,6 +49,7 @@ contract CustomOracleSetup {
     )
         external
         onlyOwner
+        firewallProtected
     {
         timeStampByRoundId[_roundId] = _updateTime;
     }
@@ -54,6 +59,7 @@ contract CustomOracleSetup {
     )
         external
         onlyOwner
+        firewallProtected
     {
         globalRoundId = _aggregatorRoundId;
     }

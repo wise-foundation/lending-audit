@@ -2,11 +2,12 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./PendlePowerFarmToken.sol";
 
 error DeployForbidden();
 
-contract PendlePowerFarmTokenFactory {
+contract PendlePowerFarmTokenFactory is FirewallConsumer {
 
     address internal constant ZERO_ADDRESS = address(0x0);
 
@@ -38,7 +39,7 @@ contract PendlePowerFarmTokenFactory {
         string memory _symbolName,
         uint16 _maxCardinality
     )
-        external
+        external firewallProtected
         returns (address)
     {
         if (msg.sender != PENDLE_POWER_FARM_CONTROLLER) {

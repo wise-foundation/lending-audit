@@ -8,6 +8,7 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./PoolManager.sol";
 
 /**
@@ -40,7 +41,7 @@ import "./PoolManager.sol";
  *   (e.g., spot trading with PTP NFT trading platforms).
  */
 
-contract WiseLending is PoolManager {
+contract WiseLending is FirewallConsumer, PoolManager {
 
     /**
      * @dev Standard receive functions forwarding
@@ -327,6 +328,7 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        firewallProtected
     {
         WISE_SECURITY.checksCollateralizeDeposit(
             _nftId,
@@ -346,6 +348,7 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        firewallProtected
     {
         _checkOwnerPosition(
             _nftId,
@@ -386,6 +389,7 @@ contract WiseLending is PoolManager {
         external
         payable
         syncPool(WETH_ADDRESS)
+        firewallProtected
         returns (uint256)
     {
         return _depositExactAmountETH(
@@ -422,6 +426,7 @@ contract WiseLending is PoolManager {
         external
         payable
         syncPool(WETH_ADDRESS)
+        firewallProtected
         returns (uint256)
     {
         return _depositExactAmountETH(
@@ -438,7 +443,7 @@ contract WiseLending is PoolManager {
         address _poolToken,
         uint256 _amount
     )
-        external
+        external firewallProtected
         returns (uint256)
     {
         return depositExactAmount(
@@ -488,6 +493,7 @@ contract WiseLending is PoolManager {
     function solelyDepositETHMint()
         external
         payable
+        firewallProtected
     {
         solelyDepositETH(
             _reservePosition()
@@ -577,7 +583,7 @@ contract WiseLending is PoolManager {
         address _poolToken,
         uint256 _amount
     )
-        external
+        external firewallProtected
     {
         solelyDeposit(
             _reservePosition(),
@@ -635,6 +641,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(WETH_ADDRESS)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         uint256 withdrawShares = _handleWithdrawAmount(
@@ -674,6 +681,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(WETH_ADDRESS)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         uint256 withdrawAmount = _handleWithdrawShares(
@@ -714,6 +722,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(_poolToken)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         uint256 withdrawShares = _handleWithdrawAmount(
@@ -750,6 +759,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(WETH_ADDRESS)
         healthStateCheck(_nftId)
+        firewallProtected
     {
         _handleSolelyWithdraw(
             msg.sender,
@@ -780,6 +790,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(_poolToken)
         healthStateCheck(_nftId)
+        firewallProtected
     {
         _handleSolelyWithdraw(
             msg.sender,
@@ -860,6 +871,7 @@ contract WiseLending is PoolManager {
         onlyAaveHub
         syncPool(_poolToken)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         uint256 withdrawShares = calculateLendingShares(
@@ -902,6 +914,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(_poolToken)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         uint256 withdrawAmount = _handleWithdrawShares(
@@ -940,6 +953,7 @@ contract WiseLending is PoolManager {
         onlyAaveHub
         syncPool(_poolToken)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         uint256 withdrawAmount = _handleWithdrawShares(
@@ -974,6 +988,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(WETH_ADDRESS)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         _checkOwnerPosition(
@@ -1016,6 +1031,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(_poolToken)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         _checkOwnerPosition(
@@ -1056,6 +1072,7 @@ contract WiseLending is PoolManager {
         onlyAaveHub
         syncPool(_poolToken)
         healthStateCheck(_nftId)
+        firewallProtected
         returns (uint256)
     {
         uint256 shares = _handleBorrowExactAmount({
@@ -1086,6 +1103,7 @@ contract WiseLending is PoolManager {
         external
         payable
         syncPool(WETH_ADDRESS)
+        firewallProtected
         returns (uint256)
     {
         uint256 maxBorrowShares = userBorrowShares[_nftId][WETH_ADDRESS];
@@ -1160,6 +1178,7 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        firewallProtected
         returns (uint256)
     {
         uint256 paybackShares = calculateBorrowShares(
@@ -1203,6 +1222,7 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        firewallProtected
         returns (uint256)
     {
         uint256 repaymentAmount = paybackAmount(
@@ -1252,6 +1272,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(_paybackToken)
         syncPool(_receiveToken)
+        firewallProtected
         returns (uint256)
     {
         CoreLiquidationStruct memory data;
@@ -1318,6 +1339,7 @@ contract WiseLending is PoolManager {
         external
         syncPool(_paybackToken)
         syncPool(_receiveToken)
+        firewallProtected
         returns (uint256)
     {
         CoreLiquidationStruct memory data;
@@ -1364,6 +1386,7 @@ contract WiseLending is PoolManager {
     )
         external
         syncPool(_poolToken)
+        firewallProtected
     {
         address[] memory tokens = new address[](1);
         tokens[0] = _poolToken;
@@ -1382,7 +1405,7 @@ contract WiseLending is PoolManager {
         uint256 _nftId,
         bool _registerState
     )
-        external
+        external firewallProtected
     {
         _onlyIsolationPool(
             msg.sender
@@ -1413,6 +1436,7 @@ contract WiseLending is PoolManager {
         external
         onlyFeeManager
         syncPool(_poolToken)
+        firewallProtected
     {
         _corePayback(
             _nftId,

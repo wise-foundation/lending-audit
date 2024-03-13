@@ -8,6 +8,7 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./FeeManagerHelper.sol";
 
 /**
@@ -22,7 +23,7 @@ import "./FeeManagerHelper.sol";
  * to pay them back via incentives. The incentive amount is funded by the gathered fees.
  */
 
-contract FeeManager is FeeManagerHelper {
+contract FeeManager is FirewallConsumer, FeeManagerHelper {
 
     constructor(
         address _master,
@@ -51,6 +52,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         _checkValue(
             _percent
@@ -69,6 +71,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         _setAaveFlag(
             _poolToken,
@@ -85,6 +88,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         uint256 i;
         uint256 l = _poolTokens.length;
@@ -111,6 +115,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         _checkValue(
             _newFee
@@ -138,6 +143,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         uint256 i;
         uint256 l = _poolTokens.length;
@@ -175,6 +181,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyIncentiveMaster
+        firewallProtected
     {
         if (_proposedIncentiveMaster == ZERO_ADDRESS) {
             revert ZeroAddress();
@@ -192,7 +199,7 @@ contract FeeManager is FeeManagerHelper {
      * @dev Claim proposed incentive master by proposed entity.
      */
     function claimOwnershipIncentiveMaster()
-        external
+        external firewallProtected
     {
         if (msg.sender != proposedIncentiveMaster) {
             revert NotAllowed();
@@ -216,6 +223,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyIncentiveMaster
+        firewallProtected
     {
         incentiveUSD[incentiveOwnerA] += _value;
 
@@ -234,6 +242,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyIncentiveMaster
+        firewallProtected
     {
         incentiveUSD[incentiveOwnerB] += _value;
 
@@ -247,7 +256,7 @@ contract FeeManager is FeeManagerHelper {
      * @dev Function to claim all gathered incetives.
      */
     function claimIncentivesBulk()
-        external
+        external firewallProtected
     {
         address tokenAddress;
 
@@ -315,7 +324,7 @@ contract FeeManager is FeeManagerHelper {
     function changeIncentiveUSDA(
         address _newOwner
     )
-        external
+        external firewallProtected
     {
         if (msg.sender != incentiveOwnerA) {
             revert NotAllowed();
@@ -352,7 +361,7 @@ contract FeeManager is FeeManagerHelper {
     function changeIncentiveUSDB(
         address _newOwner
     )
-        external
+        external firewallProtected
     {
         if (msg.sender != incentiveOwnerB) {
             revert NotAllowed();
@@ -392,6 +401,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyWiseLending
+        firewallProtected
     {
         poolTokenAddresses.push(
             _poolToken
@@ -414,6 +424,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         if (poolTokenAdded[_poolToken] == true) {
             revert PoolAlreadyAdded();
@@ -440,6 +451,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         uint256 i;
         uint256 len = getPoolTokenAddressesLength();
@@ -496,6 +508,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyWiseSecurity
+        firewallProtected
     {
         _increaseTotalBadDebt(
             _amount
@@ -517,6 +530,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyWiseSecurity
+        firewallProtected
     {
         _setBadDebtPosition(
             _nftId,
@@ -541,6 +555,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         uint256 i;
         uint256 l = _feeTokens.length;
@@ -574,6 +589,7 @@ contract FeeManager is FeeManagerHelper {
     )
         external
         onlyMaster
+        firewallProtected
     {
         uint256 i;
         uint256 l = _feeTokens.length;
@@ -601,7 +617,7 @@ contract FeeManager is FeeManagerHelper {
      * @dev Claim all fees from wiseLending and send them to feeManager.
      */
     function claimWiseFeesBulk()
-        external
+        external firewallProtected
     {
         uint256 i;
         uint256 l = getPoolTokenAddressesLength();
@@ -690,7 +706,7 @@ contract FeeManager is FeeManagerHelper {
         address _feeToken,
         uint256 _amount
     )
-        external
+        external firewallProtected
     {
         address caller = msg.sender;
 
@@ -733,7 +749,7 @@ contract FeeManager is FeeManagerHelper {
         address _receivingToken,
         uint256 _shares
     )
-        external
+        external firewallProtected
         returns (
             uint256 paybackAmount,
             uint256 receivingAmount
@@ -818,7 +834,7 @@ contract FeeManager is FeeManagerHelper {
         address _paybackToken,
         uint256 _shares
     )
-        external
+        external firewallProtected
         returns (uint256 paybackAmount)
     {
         updatePositionCurrentBadDebt(
@@ -896,7 +912,7 @@ contract FeeManager is FeeManagerHelper {
      * all pools saved inside the poolTokenAddresses array.
      */
     function syncAllPools()
-        external
+        external firewallProtected
     {
         uint256 i;
         uint256 l = poolTokenAddresses.length;

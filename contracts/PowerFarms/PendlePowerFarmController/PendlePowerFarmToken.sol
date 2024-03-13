@@ -2,6 +2,7 @@
 
 pragma solidity =0.8.24;
 
+import "@ironblocks/firewall-consumer/contracts/FirewallConsumer.sol";
 import "./SimpleERC20Clone.sol";
 
 import "../../InterfaceHub/IPendle.sol";
@@ -22,7 +23,7 @@ error InvalidSharePriceGrowth();
 error InvalidSharePrice();
 error AlreadyInitialized();
 
-contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
+contract PendlePowerFarmToken is FirewallConsumer, SimpleERC20, TransferHelper {
 
     // Pendle - LP token address
     address public UNDERLYING_PENDLE_MARKET;
@@ -494,6 +495,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     function manualSync()
         external
         syncSupply
+        firewallProtected
         returns (bool)
     {
         return true;
@@ -504,6 +506,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     )
         external
         syncSupply
+        firewallProtected
     {
         if (_amount == 0) {
             revert ZeroAmount();
@@ -531,6 +534,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     )
         external
         syncSupply
+        firewallProtected
         returns (
             uint256,
             uint256
@@ -594,6 +598,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     )
         external
         onlyController
+        firewallProtected
     {
         if (_newFee > MAX_MINT_FEE) {
             revert FeeTooHigh();
@@ -610,6 +615,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     )
         external
         syncSupply
+        firewallProtected
         returns (uint256)
     {
         if (_shares == 0) {
@@ -649,6 +655,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     )
         external
         syncSupply
+        firewallProtected
         returns (uint256)
     {
         if (_underlyingLpAssetAmount == 0) {
@@ -686,7 +693,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
         string memory _symbolName,
         uint16 _maxCardinality
     )
-        external
+        external firewallProtected
     {
         if (address(PENDLE_MARKET) != address(0)) {
             revert AlreadyInitialized();

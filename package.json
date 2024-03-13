@@ -1,36 +1,37 @@
 {
-    "name": "lending-audit",
-    "description": "Secure Smart Contract",
-    "version": "1.1.0",
-    "author": "WISE TEAM",
-    "homepage": "https://wiselending.com",
-    "scripts": {
-        "foundry-size": "forge build --sizes",
-        "foundry-test": "forge test --fork-url https://eth.llamarpc.com --gas-report -vvv",
-        "foundry-coverage": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/wise-foundation/lending-audit"
-    },
-    "dependencies": {
-        "hardhat": "^2.16.0",
-        "@pendle/core-v2": "^4.0.6",
-        "@pendle/sdk-v2": "^2.6.4",
-        "hardhat-gas-reporter": "^1.0.9",
-        "@ethersproject/address": "^5.7.0",
-        "@openzeppelin/contracts": "np^4.9.3",
-        "@uniswap/v3-periphery": "^1.4.3"
-    },
-    "devDependencies": {
-        "@nomicfoundation/hardhat-foundry": "^1.0.3",
-        "@nomicfoundation/hardhat-network-helpers": "^1.0.6",
-        "@nomiclabs/hardhat-ethers": "^2.1.1",
-        "@nomiclabs/hardhat-waffle": "^2.0.3",
-        "@nomiclabs/hardhat-web3": "^2.0.0",
-        "chai": "^4.3.6",
-        "custom-error-test-helper": "^1.0.6",
-        "ethers": "^5.7.1",
-        "web3": "^1.8.0"
-    }
+  "name": "lending-audit",
+  "description": "Secure Smart Contract",
+  "version": "1.1.0",
+  "author": "WISE TEAM",
+  "homepage": "https://wiselending.com",
+  "scripts": {
+    "foundry-size": "forge build --sizes",
+    "foundry-test": "forge test --fork-url https://eth.llamarpc.com --gas-report -vvv",
+    "foundry-coverage": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wise-foundation/lending-audit"
+  },
+  "dependencies": {
+    "@ethersproject/address": "^5.7.0",
+    "@ironblocks/firewall-consumer": "^1.0.7",
+    "@openzeppelin/contracts": "^4.9.3",
+    "@pendle/core-v2": "^4.0.6",
+    "@pendle/sdk-v2": "^2.6.4",
+    "@uniswap/v3-periphery": "^1.4.3",
+    "hardhat": "^2.16.0",
+    "hardhat-gas-reporter": "^1.0.9"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.6",
+    "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "chai": "^4.3.6",
+    "custom-error-test-helper": "^1.0.6",
+    "ethers": "^5.7.1",
+    "web3": "^1.8.0"
+  }
 }
