@@ -18,12 +18,6 @@ interface IFeeManager {
         view
         returns (bool);
 
-    function setBadDebtUserLiquidation(
-        uint256 _nftId,
-        uint256 _amount
-    )
-        external;
-
     function increaseTotalBadDebtLiquidation(
         uint256 _amount
     )

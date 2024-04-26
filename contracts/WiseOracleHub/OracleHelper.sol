@@ -29,6 +29,152 @@ abstract contract OracleHelper is Declarations {
         underlyingFeedTokens[_tokenAddress] = _underlyingFeedTokens;
     }
 
+    function _addAggregator(
+        address _tokenAddress
+    )
+        internal
+    {
+        IAggregator tokenAggregator = IAggregator(
+            priceFeed[_tokenAddress].aggregator()
+        );
+
+        if (tokenAggregatorFromTokenAddress[_tokenAddress] > ZERO_AGGREGATOR) {
+            revert AggregatorAlreadySet();
+        }
+
+        if (_checkFunctionExistence(address(tokenAggregator)) == false) {
+            revert FunctionDoesntExist();
+        }
+
+        UniTwapPoolInfo memory uniTwapPoolInfoStruct = uniTwapPoolInfo[
+            _tokenAddress
+        ];
+
+        if (uniTwapPoolInfoStruct.oracle > ZERO_ADDRESS) {
+            revert AggregatorNotNecessary();
+        }
+
+        tokenAggregatorFromTokenAddress[_tokenAddress] = tokenAggregator;
+    }
+
+    function _checkFunctionExistence(
+        address _tokenAggregator
+    )
+        internal
+        returns (bool)
+    {
+        uint256 size;
+
+        assembly {
+            size := extcodesize(
+                _tokenAggregator
+            )
+        }
+
+        if (size == 0) {
+            return false;
+        }
+
+        (bool success, ) = _tokenAggregator.call(
+            abi.encodeWithSignature(
+                "maxAnswer()"
+            )
+        );
+
+        return success;
+    }
+
+    function _compareMinMax(
+        IAggregator _tokenAggregator,
+        int192 _answer
+    )
+        internal
+        view
+    {
+        int192 maxAnswer = _tokenAggregator.maxAnswer();
+        int192 minAnswer = _tokenAggregator.minAnswer();
+
+        if (_answer >= minAnswer && _answer <= maxAnswer) {
+            return;
+        }
+
+        revert OracleIsDead();
+    }
+
+    /**
+     * @dev Returns Twaps latest USD value
+     * by passing the underlying token address.
+     */
+    function latestResolverTwap(
+        address _tokenAddress
+    )
+        public
+        view
+        returns (uint256)
+    {
+        UniTwapPoolInfo memory uniTwapPoolInfoStruct = uniTwapPoolInfo[
+            _tokenAddress
+        ];
+
+        if (uniTwapPoolInfoStruct.isUniPool == true) {
+
+            return _getTwapPrice(
+                _tokenAddress,
+                uniTwapPoolInfoStruct.oracle
+            ) / 10 ** (_decimalsWETH - decimals(_tokenAddress));
+        }
+
+        return _getTwapDerivatePrice(
+            _tokenAddress,
+            uniTwapPoolInfoStruct
+        ) / 10 ** (_decimalsWETH - decimals(_tokenAddress));
+    }
+
+    function _validateAnswer(
+        address _tokenAddress
+    )
+        internal
+        view
+        returns (uint256)
+    {
+        UniTwapPoolInfo memory uniTwapPoolInfoStruct = uniTwapPoolInfo[
+            _tokenAddress
+        ];
+
+        uint256 fetchTwapValue;
+
+        if (uniTwapPoolInfoStruct.oracle > ZERO_ADDRESS) {
+            fetchTwapValue = latestResolverTwap(
+                _tokenAddress
+            );
+        }
+
+        uint256 answer = _getChainlinkAnswer(
+            _tokenAddress
+        );
+
+        if (tokenAggregatorFromTokenAddress[_tokenAddress] > ZERO_AGGREGATOR) {
+            _compareMinMax(
+                tokenAggregatorFromTokenAddress[_tokenAddress],
+                int192(uint192(answer))
+            );
+        }
+
+        if (fetchTwapValue > 0) {
+
+            uint256 relativeDifference = _getRelativeDifference(
+                answer,
+                fetchTwapValue
+            );
+
+            _compareDifference(
+                relativeDifference
+            );
+        }
+
+        return answer;
+    }
+
     /**
      * @dev Adds uniTwapPoolInfo for a given token.
      */
@@ -123,15 +269,12 @@ abstract contract OracleHelper is Declarations {
         view
         returns (uint256)
     {
-        (
-            ,
-            int256 answer,
-            ,
-            ,
-        ) = ETH_PRICE_FEED.latestRoundData();
+        if (_chainLinkIsDead(ETH_USD_PLACEHOLDER) == true) {
+            revert OracleIsDead();
+        }
 
-        return uint256(
-            answer
+        return _validateAnswer(
+            ETH_USD_PLACEHOLDER
         );
     }
 

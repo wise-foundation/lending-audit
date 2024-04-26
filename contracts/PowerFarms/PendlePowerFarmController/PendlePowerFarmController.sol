@@ -208,6 +208,107 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
         return difference;
     }
 
+    function changeCompoundRoleState(
+        address _pendleMarket,
+        address _roleReceiver,
+        bool _state
+    )
+        public
+        onlyMaster
+    {
+        address pendleChild = pendleChildAddress[
+            _pendleMarket
+        ];
+
+        if (pendleChild == ZERO_ADDRESS) {
+            revert WrongAddress();
+        }
+
+        IPendlePowerFarmToken(pendleChild).changeCompoundRoleState(
+            _roleReceiver,
+            _state
+        );
+    }
+
+    function changeMinDepositAmount(
+        address _pendleMarket,
+        uint256 _newAmount
+    )
+        external
+        onlyMaster
+    {
+        address pendleChild = pendleChildAddress[
+            _pendleMarket
+        ];
+
+        if (pendleChild == ZERO_ADDRESS) {
+            revert WrongAddress();
+        }
+
+        IPendlePowerFarmToken(pendleChild).changeMinDepositAmount(
+            _newAmount
+        );
+    }
+
+    function claimAirdropSafe(
+        bytes[] memory _calldataArray,
+        address[] memory _contractAddresses
+    )
+        external
+        onlyMaster
+    {
+        uint256 callDataLength = _calldataArray.length;
+
+        if (callDataLength != _contractAddresses.length) {
+            revert InvalidLength();
+        }
+
+        bytes32 initialHashChainResult = _getHashChainResult();
+
+        uint256 i;
+
+        address currentAddress;
+
+        while (i < callDataLength) {
+            currentAddress = _contractAddresses[i];
+
+            if (currentAddress == ZERO_ADDRESS) {
+                revert ZeroAddress();
+            }
+
+            if (currentAddress == address(this)) {
+                revert SelfCallNotAllowed();
+            }
+
+            if (_calldataArray[i].length < 4) {
+                revert CallDataTooShort(i);
+            }
+
+            if (_forbiddenSelector(_calldataArray[i]) == true) {
+                revert ForbiddenSelector();
+            }
+
+            (
+                bool success
+                ,
+            ) = currentAddress.call(
+                _calldataArray[i]
+            );
+
+            if (success == false) {
+                revert AirdropFailed();
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        if (_getHashChainResult() != initialHashChainResult) {
+            revert HashChainManipulated();
+        }
+    }
+
     function addPendleMarket(
         address _pendleMarket,
         string memory _tokenName,
@@ -219,6 +320,14 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
     {
         if (pendleChildAddress[_pendleMarket] > ZERO_ADDRESS) {
             revert AlreadySet();
+        }
+
+        if (activePendleMarketsLength() == MAX_PENDLE_MARKETS) {
+            revert MaxPendleMarketsReached();
+        }
+
+        if (_pendleMarket == ZERO_ADDRESS) {
+            revert WrongAddress();
         }
 
         address pendleChild = PENDLE_POWER_FARM_TOKEN_FACTORY.deploy(
@@ -283,6 +392,12 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
         activePendleMarkets.push(
             _pendleMarket
         );
+
+        changeCompoundRoleState({
+            _pendleMarket: _pendleMarket,
+            _roleReceiver: address(this),
+            _state: true
+        });
 
         emit AddPendleMarket(
             _pendleMarket,
@@ -601,12 +716,19 @@ contract PendlePowerFarmController is PendlePowerFarmControllerHelper {
         address _to,
         uint256 _amount
     )
-        external
+        public
         onlyMaster
     {
-        payable(_to).transfer(
+        if (sendingProgress == true) {
+            revert CheckSendingOnGoing();
+        }
+
+        _sendValue(
+            _to,
             _amount
         );
+
+        sendingProgress = false;
     }
 
     function vote(

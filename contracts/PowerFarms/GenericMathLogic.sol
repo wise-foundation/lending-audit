@@ -2,9 +2,9 @@
 
 pragma solidity =0.8.24;
 
-import "./PendlePowerFarmDeclarations.sol";
+import "./GenericDeclarations.sol";
 
-abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
+abstract contract GenericMathLogic is GenericDeclarations {
 
     modifier updatePools() {
         _checkReentrancy();
@@ -17,14 +17,15 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
      * interfaces
      */
     function _updatePools()
-        private
+        internal
+        virtual
     {
         WISE_LENDING.syncManually(
-            WETH_ADDRESS
+            FARM_ASSET
         );
 
         WISE_LENDING.syncManually(
-            AAVE_WETH_ADDRESS
+            POOL_ASSET_AAVE
         );
 
         WISE_LENDING.syncManually(
@@ -33,19 +34,20 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
     }
 
     function _checkReentrancy()
-        private
+        internal
+        virtual
         view
     {
         if (sendingProgress == true) {
-            revert AccessDenied();
+            revert GenericAccessDenied();
         }
 
         if (WISE_LENDING.sendingProgress() == true) {
-            revert AccessDenied();
+            revert GenericAccessDenied();
         }
 
         if (AAVE_HUB.sendingProgressAaveHub() == true) {
-            revert AccessDenied();
+            revert GenericAccessDenied();
         }
     }
 
@@ -58,12 +60,13 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         internal
+        virtual
         view
         returns (uint256)
     {
         return WISE_LENDING.getPositionBorrowShares(
             _nftId,
-            WETH_ADDRESS
+            FARM_ASSET
         );
     }
 
@@ -76,12 +79,13 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         internal
+        virtual
         view
         returns (uint256)
     {
         return WISE_LENDING.getPositionBorrowShares(
             _nftId,
-            AAVE_WETH_ADDRESS
+            POOL_ASSET_AAVE
         );
     }
 
@@ -93,6 +97,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         internal
+        virtual
         view
         returns (uint256 tokenAmount)
     {
@@ -102,7 +107,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
 
         if (positionBorrowShares > 0) {
             tokenAmount = WISE_LENDING.paybackAmount(
-                WETH_ADDRESS,
+                FARM_ASSET,
                 positionBorrowShares
             );
         }
@@ -112,6 +117,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         internal
+        virtual
         view
         returns (uint256 tokenAmountAave)
     {
@@ -119,15 +125,15 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
             _nftId
         );
 
-        if (positionBorrowSharesAave > 0) {
-
-            tokenAmountAave = WISE_LENDING.paybackAmount(
-                AAVE_WETH_ADDRESS,
-                positionBorrowSharesAave
-            );
+        if (positionBorrowSharesAave == 0) {
+            return 0;
         }
-    }
 
+        tokenAmountAave = WISE_LENDING.paybackAmount(
+            POOL_ASSET_AAVE,
+            positionBorrowSharesAave
+        );
+    }
     /**
      * @dev Internal function getting the
      * lending shares from position {_nftId}
@@ -137,6 +143,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         internal
+        virtual
         view
         returns (uint256)
     {
@@ -154,6 +161,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         internal
+        virtual
         view
         returns (uint256)
     {
@@ -175,6 +183,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         public
+        virtual
         view
         returns (uint256)
     {
@@ -205,7 +214,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
 
         if (borrowShares > 0) {
             tokenValueEth = _getTokensInETH(
-                WETH_ADDRESS,
+                FARM_ASSET,
                 borrowTokenAmount
             );
         }
@@ -215,7 +224,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         }
 
         uint256 tokenValueAaveEth = _getTokensInETH(
-            AAVE_WETH_ADDRESS,
+            POOL_ASSET_AAVE,
             borrowTokenAmountAave
         );
 
@@ -230,6 +239,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         public
+        virtual
         view
         returns (uint256)
     {
@@ -246,6 +256,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _tokenAmount
     )
         internal
+        virtual
         view
         returns (uint256)
     {
@@ -260,6 +271,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _ethAmount
     )
         internal
+        virtual
         view
         returns (uint256)
     {
@@ -275,6 +287,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
     )
         public
         pure
+        virtual
         returns (uint256)
     {
         return _initialAmount
@@ -292,6 +305,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _wstETHAPY
     )
         internal
+        virtual
         view
         returns (
             uint256,
@@ -337,6 +351,110 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         );
     }
 
+    function _isOutOfRangeAmount(
+        uint256 _lpWithdrawAmount
+    )
+        internal
+        virtual
+        view
+        returns (bool)
+    {
+        MarketState memory marketState = PENDLE_MARKET.readState(
+            address(PENDLE_MARKET)
+        );
+
+        (
+            ,
+            uint256 userSy,
+            uint256 userPt
+        )
+            = _getUserAssetInfo(
+                _lpWithdrawAmount,
+                uint256(marketState.totalLp),
+                uint256(marketState.totalSy),
+                uint256(marketState.totalPt)
+        );
+
+        uint256 reducedSy = uint256(marketState.totalSy)
+            - userSy
+            - (
+                PT_ORACLE_PENDLE.getPtToSyRate(
+                    address(PENDLE_MARKET),
+                    1 seconds
+                )
+                * userPt
+                / PRECISION_FACTOR_E18
+        );
+
+        uint256 totalAssetsReduced = (
+            PENDLE_SY.exchangeRate()
+                * reducedSy
+                / PRECISION_FACTOR_E18
+            + uint256(marketState.totalPt)
+        );
+
+        return uint256(marketState.totalPt)
+            * PRECISION_FACTOR_E18
+            / totalAssetsReduced
+            > MAX_PROPORTION;
+    }
+
+    /**
+     * @dev Internal function with math logic for detecting
+     * if market is out of range.
+     */
+    function _isOutOfRange(
+        uint256 _nftId
+    )
+        internal
+        virtual
+        view
+        returns (bool)
+    {
+        return _isOutOfRangeAmount(
+            IPendleChild(PENDLE_CHILD).previewAmountWithdrawShares(
+                WISE_LENDING.cashoutAmount(
+                    PENDLE_CHILD,
+                    WISE_LENDING.getPositionLendingShares(
+                        _nftId,
+                        PENDLE_CHILD
+                    )
+                ),
+                IPendleChild(PENDLE_CHILD).underlyingLpAssetsCurrent()
+            )
+        );
+    }
+
+    function _getUserAssetInfo(
+        uint256 _lpToWithdraw,
+        uint256 _totalLp,
+        uint256 _totalSy,
+        uint256 _totalPt
+    )
+        internal
+        virtual
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        uint256 userProportion = _lpToWithdraw
+            * PRECISION_FACTOR_E18
+            / _totalLp;
+
+        return (
+            userProportion,
+            userProportion
+                * _totalSy
+                / PRECISION_FACTOR_E18,
+            userProportion
+                * _totalPt
+                / PRECISION_FACTOR_E18
+        );
+    }
+
     /**
      * @dev Internal function with math logic for approximating
      * the new borrow APY.
@@ -345,6 +463,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _borrowAmount
     )
         internal
+        virtual
         view
         returns (uint256)
     {
@@ -390,9 +509,22 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _nftId
     )
         internal
+        virtual
         view
         returns (bool)
     {
+        uint256 borrowShares = isAave[_nftId]
+            ? _getPositionBorrowSharesAave(
+                _nftId
+            )
+            : _getPositionBorrowShares(
+                _nftId
+            );
+
+        if (borrowShares == 0) {
+            return true;
+        }
+
         return getTotalWeightedCollateralETH(_nftId)
             >= getPositionBorrowETH(_nftId);
     }
@@ -405,6 +537,7 @@ abstract contract PendlePowerFarmMathLogic is PendlePowerFarmDeclarations {
         uint256 _amount
     )
         internal
+        virtual
         view
         returns (bool)
     {

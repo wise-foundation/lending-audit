@@ -26,6 +26,7 @@ error InvalidLiquidator();
 error ValueIsZero();
 error ValueNotZero();
 error TooManyTokens();
+error TokenNotPresent();
 
 contract WiseLendingDeclaration is
     OwnableMaster,
@@ -161,11 +162,17 @@ contract WiseLendingDeclaration is
     // AaveHub address
     address internal AAVE_HUB_ADDRESS;
 
+    // check if it is a powerfarm
+    bool internal powerFarmCheck;
+
     // Wrapped ETH address
     address public immutable WETH_ADDRESS;
 
     // Nft id for feeManager
     uint256 immutable FEE_MANAGER_NFT;
+
+    uint256 internal constant MIN_BORROW_SHARE_PRICE = 5 * PRECISION_FACTOR_E18
+        / 10;
 
     // WiseSecurity interface
     IWiseSecurity public WISE_SECURITY;
@@ -178,9 +185,6 @@ contract WiseLendingDeclaration is
 
     // OraceHub interface
     IWiseOracleHub public immutable WISE_ORACLE;
-
-    // check if it is a powerfarm
-    bool internal powerFarmCheck;
 
     uint256 internal constant GHOST_AMOUNT = 1E3;
 
@@ -294,7 +298,7 @@ contract WiseLendingDeclaration is
     uint256 internal constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
 
     // TIME CONSTANTS --------------------------------------
-    uint256 internal constant ONE_YEAR = 52 weeks;
+    uint256 internal constant ONE_YEAR = 365 days;
     uint256 internal constant THREE_HOURS = 3 hours;
     uint256 internal constant PRECISION_FACTOR_YEAR = PRECISION_FACTOR_E18 * ONE_YEAR;
 

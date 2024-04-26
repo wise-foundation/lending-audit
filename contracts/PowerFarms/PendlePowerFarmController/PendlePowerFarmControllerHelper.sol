@@ -36,8 +36,9 @@ abstract contract PendlePowerFarmControllerHelper is PendlePowerFarmControllerBa
         view
         returns (uint128)
     {
-        uint128 startTime = uint128((block.timestamp / WEEK)
-            * WEEK);
+        uint128 startTime = uint128(
+            (block.timestamp / WEEK) * WEEK
+        );
 
         return startTime + (_weeks * WEEK);
     }
@@ -123,7 +124,7 @@ abstract contract PendlePowerFarmControllerHelper is PendlePowerFarmControllerBa
     }
 
     function activePendleMarketsLength()
-        external
+        public
         view
         returns (uint256)
     {
@@ -231,6 +232,122 @@ abstract contract PendlePowerFarmControllerHelper is PendlePowerFarmControllerBa
                 pendleChildCompoundInfo[_pendleMarket].rewardTokens
             )
         );
+    }
+
+    function _forbiddenSelector(
+        bytes memory _callData
+    )
+        internal
+        pure
+        returns (bool forbidden)
+    {
+        bytes4 selector;
+
+        assembly {
+            selector := mload(add(_callData, 32))
+        }
+
+        if (selector == APPROVE_SELECTOR) {
+            return true;
+        }
+
+        if (selector == PERMIT_SELECTOR) {
+            return true;
+        }
+    }
+
+    function _getHashChainResult()
+        internal
+        view
+        returns (bytes32)
+    {
+        uint256 pendleTokenBalance = PENDLE_TOKEN_INSTANCE.balanceOf(
+            address(this)
+        );
+
+        bytes32 floatingHash = keccak256(
+            abi.encodePacked(
+                INITIAL_HASH,
+                pendleTokenBalance
+            )
+        );
+
+        uint256 i;
+        address currentMarket;
+        uint256 marketLength = activePendleMarkets.length;
+
+        while (i < marketLength) {
+
+            currentMarket = activePendleMarkets[i];
+
+            floatingHash = _getRewardTokenHashes(
+                currentMarket,
+                floatingHash
+            );
+
+            floatingHash = _encodeFloatingHash(
+                floatingHash,
+                currentMarket
+            );
+
+            unchecked{
+                ++i;
+            }
+        }
+
+        return floatingHash;
+    }
+
+    function _encodeFloatingHash(
+        bytes32 _floatingHash,
+        address _currentMarket
+    )
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(
+                _floatingHash,
+                IERC20(_currentMarket).balanceOf(
+                    address(this)
+                )
+            )
+        );
+    }
+
+    function _getRewardTokenHashes(
+        address _pendleMarket,
+        bytes32 _floatingHash
+    )
+        internal
+        view
+        returns (bytes32)
+    {
+        address[] memory rewardTokens = pendleChildCompoundInfo[_pendleMarket].rewardTokens;
+        uint256 l = rewardTokens.length;
+        uint256 i = 0;
+
+        while (i < l) {
+
+            if (rewardTokens[i] == PENDLE_TOKEN_ADDRESS) {
+                unchecked{
+                    ++i;
+                }
+                continue;
+            }
+
+            _floatingHash = _encodeFloatingHash(
+                _floatingHash,
+                rewardTokens[i]
+            );
+
+            unchecked{
+                ++i;
+            }
+        }
+
+        return _floatingHash;
     }
 
     function _setRewardTokens(

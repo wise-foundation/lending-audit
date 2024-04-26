@@ -82,6 +82,7 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
      */
     receive()
         external
+        nonReentrant
         payable
     {
         if (msg.sender == WETH_ADDRESS) {
@@ -213,7 +214,10 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             _nftId
         );
 
-        uint256 withdrawnShares = _wrapWithdrawExactAmount(
+        (
+            uint256 withdrawnShares
+            ,
+        ) = _wrapWithdrawExactAmount(
             _nftId,
             _underlyingAsset,
             msg.sender,
@@ -244,7 +248,10 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             _nftId
         );
 
-        uint256 withdrawnShares = _wrapWithdrawExactAmount(
+        (
+            uint256 withdrawnShares,
+            uint256 actualAmount
+        ) = _wrapWithdrawExactAmount(
             _nftId,
             WETH_ADDRESS,
             address(this),
@@ -252,12 +259,12 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         );
 
         _unwrapETH(
-            _withdrawAmount
+            actualAmount
         );
 
         _sendValue(
             msg.sender,
-            _withdrawAmount
+            actualAmount
         );
 
         emit IsWithdrawAave(
@@ -438,10 +445,6 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
             _nftId
         );
 
-        address aaveToken = aaveTokenAddress[
-            _underlyingAsset
-        ];
-
         _safeTransferFrom(
             _underlyingAsset,
             msg.sender,
@@ -457,7 +460,9 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
 
         uint256 borrowSharesReduction = WISE_LENDING.paybackExactAmount(
             _nftId,
-            aaveToken,
+            aaveTokenAddress[
+                _underlyingAsset
+            ],
             actualAmountDeposit
         );
 
@@ -600,6 +605,25 @@ contract AaveHub is AaveHelper, TransferHelper, ApprovalHelper {
         );
 
         return paybackAmount;
+    }
+
+    function skimAave(
+        address _underlyingAsset,
+        bool _isAave
+    )
+        external
+        validToken(_underlyingAsset)
+        onlyMaster
+    {
+        address tokenToSend = _isAave
+            ? aaveTokenAddress[_underlyingAsset]
+            : _underlyingAsset;
+
+        _safeTransfer(
+            tokenToSend,
+            master,
+            IERC20(tokenToSend).balanceOf(address(this))
+        );
     }
 
     /**

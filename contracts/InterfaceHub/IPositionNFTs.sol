@@ -11,13 +11,6 @@ interface IPositionNFTs {
         view
         returns (address);
 
-    function getOwner(
-        uint256 _nftId
-    )
-        external
-        view
-        returns (address);
-
     function totalSupply()
         external
         view
@@ -62,6 +55,11 @@ interface IPositionNFTs {
         address _user
     )
         external
+        returns (uint256);
+
+    function getNextExpectedId()
+        external
+        view
         returns (uint256);
 
     function getApproved(

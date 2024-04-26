@@ -207,7 +207,7 @@ contract WiseSecurityDeclarations is OwnableMaster {
     uint256 internal constant BAD_DEBT_THRESHOLD = 89E16;
 
     uint256 internal constant UINT256_MAX = type(uint256).max;
-    uint256 internal constant ONE_YEAR = 52 weeks;
+    uint256 internal constant ONE_YEAR = 365 days;
 
     // adjustable
 

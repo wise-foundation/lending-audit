@@ -27,6 +27,7 @@ error ZeroAddress();
 error NoIncentive();
 error Reentered();
 error PoolNotActive();
+error isZero();
 
 contract DeclarationsFeeManager is FeeManagerEvents, OwnableMaster {
 

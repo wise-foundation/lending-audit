@@ -67,6 +67,10 @@ abstract contract AaveHelper is Declarations {
             address(this)
         );
 
+        if (POSITION_NFT.isOwner(_nftId, msg.sender) == false) {
+            revert InvalidAction();
+        }
+
         uint256 lendingShares = WISE_LENDING.depositExactAmount(
             _nftId,
             aaveTokenAddress[_underlyingAsset],
@@ -83,7 +87,10 @@ abstract contract AaveHelper is Declarations {
         uint256 _withdrawAmount
     )
         internal
-        returns (uint256)
+        returns (
+            uint256,
+            uint256
+        )
     {
         uint256 withdrawnShares = WISE_LENDING.withdrawOnBehalfExactAmount(
             _nftId,
@@ -91,13 +98,16 @@ abstract contract AaveHelper is Declarations {
             _withdrawAmount
         );
 
-        AAVE.withdraw(
+        uint256 actualAmount = AAVE.withdraw(
             _underlyingAsset,
             _withdrawAmount,
             _underlyingAssetRecipient
         );
 
-        return withdrawnShares;
+        return (
+            withdrawnShares,
+            actualAmount
+        );
     }
 
     function _wrapWithdrawExactShares(
@@ -109,13 +119,11 @@ abstract contract AaveHelper is Declarations {
         internal
         returns (uint256)
     {
-        address aaveToken = aaveTokenAddress[
-            _underlyingAsset
-        ];
-
         uint256 withdrawAmount = WISE_LENDING.withdrawOnBehalfExactShares(
             _nftId,
-            aaveToken,
+            aaveTokenAddress[
+                _underlyingAsset
+            ],
             _shareAmount
         );
 

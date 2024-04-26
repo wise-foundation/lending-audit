@@ -17,6 +17,10 @@ contract ApprovalHelper is CallOptionalReturn {
     )
         internal
     {
+        if (_spender == address(0)) {
+            return;
+        }
+
         _callOptionalReturn(
             _token,
             abi.encodeWithSelector(

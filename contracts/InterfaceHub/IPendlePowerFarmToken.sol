@@ -4,6 +4,17 @@ pragma solidity =0.8.24;
 
 interface IPendlePowerFarmToken {
 
+    function changeMinDepositAmount(
+        uint256 _newMinDepositAmount
+    )
+        external;
+
+    function changeCompoundRoleState(
+        address _roleReceiver,
+        bool _state
+    )
+        external;
+
     function changeMintFee(
         uint256 _newFee
     )

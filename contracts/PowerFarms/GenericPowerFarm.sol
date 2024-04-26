@@ -2,9 +2,11 @@
 
 pragma solidity =0.8.24;
 
-import "./PendlePowerFarmLeverageLogic.sol";
+import "./GenericLeverageLogic.sol";
 
-abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
+error BadDebt(uint256 amount);
+
+abstract contract GenericPowerFarm is GenericLeverageLogic {
 
     /**
      * @dev External view function approximating the
@@ -18,6 +20,7 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         uint256 _pendleChildApy
     )
         external
+        virtual
         view
         returns (
             uint256,
@@ -28,6 +31,35 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
             _initialAmount,
             _leverage,
             _pendleChildApy
+        );
+    }
+
+    function getTokenAmountEquivalentInFarmAsset(
+        uint256 _nftId
+    )
+        public
+        virtual
+        view
+        returns (uint256)
+    {
+        uint256 collateralValueInEth = _getTokensInETH(
+            PENDLE_CHILD,
+            _getPostionCollateralTokenAmount(
+                _nftId
+            )
+        );
+
+        uint256 borrowValueInEth = getPositionBorrowETH(
+            _nftId
+        );
+
+        if (collateralValueInEth < borrowValueInEth) {
+            revert BadDebt(borrowValueInEth - collateralValueInEth);
+        }
+
+        return _getEthInTokens(
+            FARM_ASSET,
+            collateralValueInEth - borrowValueInEth
         );
     }
 
@@ -42,11 +74,38 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         uint256 _borrowAmount
     )
         external
+        virtual
         view
         returns (uint256)
     {
         return _getNewBorrowRate(
             _borrowAmount
+        );
+    }
+
+    function isOutOfRange(
+        uint256 _nftId
+    )
+        external
+        virtual
+        view
+        returns (bool)
+    {
+        return _isOutOfRange(
+            _nftId
+        );
+    }
+
+    function isOutOfRangeAmount(
+        uint256 _lpAmount
+    )
+        external
+        virtual
+        view
+        returns (bool)
+    {
+        return _isOutOfRangeAmount(
+            _lpAmount
         );
     }
 
@@ -58,9 +117,22 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         uint256 _nftId
     )
         external
+        virtual
         view
         returns (uint256)
     {
+        uint256 borrowShares = isAave[_nftId]
+            ? _getPositionBorrowSharesAave(
+                _nftId
+            )
+            : _getPositionBorrowShares(
+                _nftId
+            );
+
+        if (borrowShares == 0) {
+            return 0;
+        }
+
         uint256 totalCollateral = getTotalWeightedCollateralETH(
             _nftId
         );
@@ -74,6 +146,13 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
             / totalCollateral;
     }
 
+    function setCollateralFactor(
+        uint256 _newCollateralFactor
+    )
+        external
+        virtual
+    {}
+
     /**
      * @dev Liquidation function for open power farm
      * postions which have a debtratio greater than 100%.
@@ -84,6 +163,7 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         uint256 _shareAmountToPay
     )
         external
+        virtual
         updatePools
         returns (
             uint256 paybackAmount,
@@ -109,11 +189,12 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         uint256 _paybackShares
     )
         internal
+        virtual
     {
-        address poolAddress = WETH_ADDRESS;
+        address poolAddress = FARM_ASSET;
 
         if (isAave[_nftId] == true) {
-            poolAddress = AAVE_WETH_ADDRESS;
+            poolAddress = POOL_ASSET_AAVE;
         }
 
         uint256 paybackAmount = WISE_LENDING.paybackAmount(
@@ -147,6 +228,7 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         uint256 _withdrawShares
     )
         internal
+        virtual
     {
         uint256 withdrawAmount = WISE_LENDING.cashoutAmount(
             PENDLE_CHILD,
@@ -178,9 +260,10 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         uint256 _allowedSpread
     )
         internal
+        virtual
     {
         if (_leverage > MAX_LEVERAGE) {
-            revert LeverageTooHigh();
+            revert GenericLevergeTooHigh();
         }
 
         uint256 leveragedAmount = getLeverageAmount(
@@ -189,7 +272,7 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         );
 
         if (_notBelowMinDepositAmount(leveragedAmount) == false) {
-            revert AmountTooSmall();
+            revert GenericAmountTooSmall();
         }
 
         _executeBalancerFlashLoan(
@@ -200,7 +283,7 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
                 _lendingShares: 0,
                 _borrowShares: 0,
                 _allowedSpread: _allowedSpread,
-                _ethBack: false,
+                _ethBack: ethBack,
                 _isAave: _isAave
             }
         );
@@ -222,6 +305,7 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         bool _ethBack
     )
         internal
+        virtual
     {
         uint256 borrowShares = _isAave == false
             ? _getPositionBorrowShares(
@@ -255,19 +339,17 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         );
     }
 
-    /**
-     * @dev Makes a call to WISE_LENDING to
-     * register {_nftId} for specific farm use.
-     */
     function _registrationFarm(
         uint256 _nftId
     )
         internal
+        virtual
     {
         WISE_LENDING.setRegistrationIsolationPool(
             _nftId,
             true
         );
+
 
         emit RegistrationFarm(
             _nftId,
@@ -275,4 +357,3 @@ abstract contract PendlePowerFarm is PendlePowerFarmLeverageLogic {
         );
     }
 }
-

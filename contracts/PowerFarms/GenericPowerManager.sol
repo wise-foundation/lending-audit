@@ -8,29 +8,43 @@ pragma solidity =0.8.24;
  * @author Vitally Marinchenko
  */
 
-import "./PendlePowerFarm.sol";
-import "../../OwnableMaster.sol";
-import "../PowerFarmNFTs/MinterReserver.sol";
+import "../OwnableMaster.sol";
 
-contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
+import "./GenericPowerFarm.sol";
+import "./PowerFarmNFTs/MinterReserver.sol";
 
-    /**
-     * @dev Standard receive functions forwarding
-     * directly send ETH to the master address.
-     */
+contract GenericPowerManager is
+    OwnableMaster,
+    GenericPowerFarm,
+    MinterReserver
+{
     receive()
         external
         payable
+        virtual
     {
         emit ETHReceived(
             msg.value,
             msg.sender
         );
+
+        if (msg.sender == WETH_ADDRESS) {
+            return;
+        }
+
+        if (sendingProgress == true) {
+            revert GenericSendingOnGoing();
+        }
+
+        _sendValue(
+            master,
+            msg.value
+        );
     }
 
     constructor(
         address _wiseLendingAddress,
-        address _pendleChilTokenAddress,
+        address _pendleChildTokenAddress,
         address _pendleRouter,
         address _entryAsset,
         address _pendleSy,
@@ -40,15 +54,11 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         uint256 _collateralFactor,
         address _powerFarmNFTs
     )
-        OwnableMaster(
-            msg.sender
-        )
-        MinterReserver(
-            _powerFarmNFTs
-        )
-        PendlePowerFarmDeclarations(
+        OwnableMaster(msg.sender)
+        MinterReserver(_powerFarmNFTs)
+        GenericDeclarations(
             _wiseLendingAddress,
-            _pendleChilTokenAddress,
+            _pendleChildTokenAddress,
             _pendleRouter,
             _entryAsset,
             _pendleSy,
@@ -57,13 +67,41 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
             _dexAddress,
             _collateralFactor
         )
+    {}
+
+    function setSpecialDepegCase(
+        bool _state
+    )
+        external
+        virtual
+        onlyMaster
     {
+        specialDepegCase = _state;
+    }
+
+    function revokeCollateralFactorRole()
+        public
+        virtual
+        onlyCollateralFactorRole
+    {
+        collateralFactorRole = ZERO_ADDRESS;
+    }
+
+    function setCollateralFactor(
+        uint256 _newCollateralFactor
+    )
+        external
+        override
+        onlyCollateralFactorRole()
+    {
+        collateralFactor = _newCollateralFactor;
     }
 
     function changeMinDeposit(
         uint256 _newMinDeposit
     )
         external
+        virtual
         onlyMaster
     {
         minDepositEthAmount = _newMinDeposit;
@@ -83,6 +121,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         bool _state
     )
         external
+        virtual
         onlyMaster
     {
         isShutdown = _state;
@@ -100,6 +139,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         uint256 _allowedSpread
     )
         external
+        virtual
         isActive
         updatePools
         returns (uint256)
@@ -107,7 +147,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         uint256 wiseLendingNFT = _getWiseLendingNFT();
 
         _safeTransferFrom(
-            WETH_ADDRESS,
+            FARM_ASSET,
             msg.sender,
             address(this),
             _amount
@@ -126,17 +166,49 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
             wiseLendingNFT
         );
 
-        isAave[keyId] = _isAave;
+        isAave[wiseLendingNFT] = _isAave;
 
-        emit FarmEntry(
+        _storeData(
             keyId,
             wiseLendingNFT,
             _leverage,
             _amount,
+            getTokenAmountEquivalentInFarmAsset(wiseLendingNFT),
             block.timestamp
         );
 
         return keyId;
+    }
+
+    function _storeData(
+        uint256 _keyId,
+        uint256 _wiseLendingNFT,
+        uint256 _leverage,
+        uint256 _amount,
+        uint256 _amountAfterMintFee,
+        uint256 _timestamp
+    )
+        internal
+        virtual
+    {
+        FarmData memory FarmData = FarmData(
+            _wiseLendingNFT,
+            _leverage,
+            _amount,
+            _amountAfterMintFee,
+            _timestamp
+        );
+
+        farmData[_keyId] = FarmData;
+
+        emit FarmEntry(
+            _keyId,
+            _wiseLendingNFT,
+            _leverage,
+            _amount,
+            _amountAfterMintFee,
+            _timestamp
+        );
     }
 
     function enterFarmETH(
@@ -145,6 +217,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         uint256 _allowedSpread
     )
         external
+        virtual
         payable
         isActive
         updatePools
@@ -169,13 +242,14 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
             wiseLendingNFT
         );
 
-        isAave[keyId] = _isAave;
+        isAave[wiseLendingNFT] = _isAave;
 
-        emit FarmEntry(
+        _storeData(
             keyId,
             wiseLendingNFT,
             _leverage,
             msg.value,
+            getTokenAmountEquivalentInFarmAsset(wiseLendingNFT),
             block.timestamp
         );
 
@@ -184,6 +258,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
 
     function _getWiseLendingNFT()
         internal
+        virtual
         returns (uint256)
     {
         if (availableNFTCount == 0) {
@@ -213,6 +288,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         bool _ethBack
     )
         external
+        virtual
         updatePools
         onlyKeyOwner(_keyId)
     {
@@ -237,7 +313,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         ] = wiseLendingNFT;
 
         _closingPosition(
-            isAave[_keyId],
+            isAave[wiseLendingNFT],
             wiseLendingNFT,
             _allowedSpread,
             _ethBack
@@ -256,6 +332,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         uint256 _paybackShares
     )
         external
+        virtual
         updatePools
     {
         _manuallyPaybackShares(
@@ -276,6 +353,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         uint256 _withdrawShares
     )
         external
+        virtual
         updatePools
         onlyKeyOwner(_keyId)
     {
@@ -289,7 +367,7 @@ contract PendlePowerManager is OwnableMaster, PendlePowerFarm, MinterReserver {
         );
 
         if (_checkDebtRatio(wiseLendingNFT) == false) {
-            revert DebtRatioTooHigh();
+            revert GenericDebtRatioTooHigh();
         }
 
         emit ManualWithdrawShares(

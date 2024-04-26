@@ -32,7 +32,8 @@ interface IWiseSecurityTest {
         uint256 _amount
     )
         external
-        view;
+        view
+        returns (bool);
 
     function getLiveDebtRatio(
         uint256 _nftId

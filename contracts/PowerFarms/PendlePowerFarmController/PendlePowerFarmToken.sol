@@ -21,6 +21,8 @@ error NotEnoughShares();
 error InvalidSharePriceGrowth();
 error InvalidSharePrice();
 error AlreadyInitialized();
+error compoundRoleNotApproved();
+error AmountBelowMinDeposit();
 
 contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
 
@@ -49,8 +51,8 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     uint256 public mintFee;
     uint256 public lastInteraction;
 
-    uint256 private constant ONE_WEEK = 1 weeks;
-    uint256 internal constant ONE_YEAR = 52 weeks;
+    uint256 private constant ONE_WEEK = 7 days;
+    uint256 internal constant ONE_YEAR = 365 days;
     uint256 private constant MAX_MINT_FEE = 10000;
 
     uint256 private constant PRECISION_FACTOR_E6 = 1E6;
@@ -58,11 +60,15 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     uint256 internal constant PRECISION_FACTOR_E36 = PRECISION_FACTOR_E18 * PRECISION_FACTOR_E18;
     uint256 internal constant PRECISION_FACTOR_YEAR = PRECISION_FACTOR_E18 * ONE_YEAR;
 
+    uint256 MIN_DEPOSIT_AMOUNT = 1E6;
+
     uint256 private INITIAL_TIME_STAMP;
 
     uint256 internal constant RESTRICTION_FACTOR = 10
         * PRECISION_FACTOR_E36
         / PRECISION_FACTOR_YEAR;
+
+    mapping (address => bool) public compoundRole;
 
     modifier onlyController() {
         _onlyController();
@@ -93,6 +99,21 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
                 sharePriceBefore
             )
         );
+    }
+
+    modifier onlyCompoundRole()
+    {
+        _onlyCompoundRole();
+        _;
+    }
+
+    function _onlyCompoundRole()
+        private
+        view
+    {
+        if (compoundRole[msg.sender] == false) {
+            revert compoundRoleNotApproved();
+        }
     }
 
     function _validateSharePrice(
@@ -219,12 +240,15 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
         internal
         returns (uint256[] memory)
     {
-        address[] memory rewardTokens = PENDLE_CONTROLLER.pendleChildCompoundInfoRewardTokens(
-            UNDERLYING_PENDLE_MARKET
+        IPendleController PENDLE_CONTROLLER_INSTANCE = PENDLE_CONTROLLER;
+        address UNDERLYING_PENDLE_MARKET_ADDRESS = UNDERLYING_PENDLE_MARKET;
+
+        address[] memory rewardTokens = PENDLE_CONTROLLER_INSTANCE.pendleChildCompoundInfoRewardTokens(
+            UNDERLYING_PENDLE_MARKET_ADDRESS
         );
 
-        uint128[] memory lastIndex = PENDLE_CONTROLLER.pendleChildCompoundInfoLastIndex(
-            UNDERLYING_PENDLE_MARKET
+        uint128[] memory lastIndex = PENDLE_CONTROLLER_INSTANCE.pendleChildCompoundInfoLastIndex(
+            UNDERLYING_PENDLE_MARKET_ADDRESS
         );
 
         uint256 l = rewardTokens.length;
@@ -233,20 +257,27 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
         uint256 i;
         uint128 index;
 
+        uint256 activeBalance = _getActiveBalance();
+        uint256 totalLpAssetsCurrent = totalLpAssets();
+        uint256 lpBalanceController = _getBalanceLpBalanceController();
+
+        address PENDLE_POWER_FARM_CONTROLLER_ADDRESS = PENDLE_POWER_FARM_CONTROLLER;
+        IPendleMarket PENDLE_MARKET_INSTANCE = PENDLE_MARKET;
+
         while (i < l) {
             UserReward memory userReward = _getUserReward(
                 rewardTokens[i],
-                PENDLE_POWER_FARM_CONTROLLER
+                PENDLE_POWER_FARM_CONTROLLER_ADDRESS
             );
 
             if (userReward.accrued > 0) {
-                PENDLE_MARKET.redeemRewards(
-                    PENDLE_POWER_FARM_CONTROLLER
+                PENDLE_MARKET_INSTANCE.redeemRewards(
+                    PENDLE_POWER_FARM_CONTROLLER_ADDRESS
                 );
 
                 userReward = _getUserReward(
                     rewardTokens[i],
-                    PENDLE_POWER_FARM_CONTROLLER
+                    PENDLE_POWER_FARM_CONTROLLER_ADDRESS
                 );
             }
 
@@ -273,10 +304,6 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
 
             uint256 indexDiff = index
                 - lastIndex[i];
-
-            uint256 activeBalance = _getActiveBalance();
-            uint256 totalLpAssetsCurrent = totalLpAssets();
-            uint256 lpBalanceController = _getBalanceLpBalanceController();
 
             bool scaleNecessary = totalLpAssetsCurrent < lpBalanceController;
 
@@ -388,11 +415,13 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
         view
         returns (uint256)
     {
+        uint256 lastInteractioCached = lastInteraction;
+
         if (totalLpAssetsToDistribute == 0) {
             return 0;
         }
 
-        if (block.timestamp == lastInteraction) {
+        if (block.timestamp == lastInteractioCached) {
             return 0;
         }
 
@@ -404,7 +433,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
             / ONE_WEEK;
 
         uint256 additonalAssets = currentRate
-            * (block.timestamp - lastInteraction);
+            * (block.timestamp - lastInteractioCached);
 
         if (additonalAssets > totalLpAssetsToDistribute) {
             return totalLpAssetsToDistribute;
@@ -491,6 +520,25 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
             : product / _underlyingLpAssetsCurrent + 1;
     }
 
+    function changeCompoundRoleState(
+        address _compoundRole,
+        bool _state
+    )
+        external
+        onlyController
+    {
+        compoundRole[_compoundRole] = _state;
+    }
+
+    function changeMinDepositAmount(
+        uint256 _newMinDepositAmount
+    )
+        external
+        onlyController
+    {
+        MIN_DEPOSIT_AMOUNT = _newMinDepositAmount;
+    }
+
     function manualSync()
         external
         syncSupply
@@ -504,6 +552,7 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
     )
         external
         syncSupply
+        onlyCompoundRole
     {
         if (_amount == 0) {
             revert ZeroAmount();
@@ -536,8 +585,8 @@ contract PendlePowerFarmToken is SimpleERC20, TransferHelper {
             uint256
         )
     {
-        if (_underlyingLpAssetAmount == 0) {
-            revert ZeroAmount();
+        if (_underlyingLpAssetAmount < MIN_DEPOSIT_AMOUNT) {
+            revert AmountBelowMinDeposit();
         }
 
         uint256 shares = previewMintShares(

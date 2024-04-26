@@ -7,4 +7,9 @@ interface IFeeManagerLight {
         address _poolToken
     )
         external;
+
+    function updatePositionCurrentBadDebt(
+        uint256 _nftId
+    )
+        external;
 }

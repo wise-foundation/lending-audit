@@ -22,4 +22,13 @@ interface IOraclePendle {
         external
         view
         returns (uint256 ptToAssetRate);
+
+    function getPtToSyRate(
+        address market,
+        uint32 duration
+    )
+        external
+        view
+        returns (uint256 ptToSyRate);
+
 }

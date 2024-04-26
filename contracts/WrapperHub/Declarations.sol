@@ -58,10 +58,6 @@ contract Declarations is OwnableMaster, AaveEvents, WrapperHelper {
             revert NoValue();
         }
 
-        if (_lendingAddress == ZERO_ADDRESS) {
-            revert NoValue();
-        }
-
         AAVE_ADDRESS = _aaveAddress;
         WISE_LENDING = IWiseLending(
             _lendingAddress

@@ -40,6 +40,7 @@ contract PtOracleDerivative {
 
         ORACLE_PENDLE_PT = _oraclePendlePt;
         TWAP_DURATION = _twapDuration;
+
         name = _oracleName;
     }
 
@@ -84,20 +85,6 @@ contract PtOracleDerivative {
         returns (uint256)
     {
         (
-            ,
-            int256 answerUsdFeed,
-            ,
-            ,
-        ) = USD_FEED_ASSET.latestRoundData();
-
-        (
-            ,
-            int256 answerEthUsdFeed,
-            ,
-            ,
-        ) = ETH_FEED_ASSET.latestRoundData();
-
-        (
             bool increaseCardinalityRequired,
             ,
             bool oldestObservationSatisfied
@@ -113,6 +100,20 @@ contract PtOracleDerivative {
         if (oldestObservationSatisfied == false) {
             revert OldestObservationNotSatisfied();
         }
+
+        (
+            ,
+            int256 answerUsdFeed,
+            ,
+            ,
+        ) = USD_FEED_ASSET.latestRoundData();
+
+        (
+            ,
+            int256 answerEthUsdFeed,
+            ,
+            ,
+        ) = ETH_FEED_ASSET.latestRoundData();
 
         uint256 ptToAssetRate = ORACLE_PENDLE_PT.getPtToAssetRate(
             PENDLE_MARKET_ADDRESS,

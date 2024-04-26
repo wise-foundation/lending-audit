@@ -6,6 +6,7 @@ import "../../OwnableMaster.sol";
 
 import "../../TransferHub/TransferHelper.sol";
 import "../../TransferHub/ApprovalHelper.sol";
+import "../../TransferHub/SendValueHelper.sol";
 
 import "../../InterfaceHub/IPendle.sol";
 import "../../InterfaceHub/IArbRewardsClaimer.sol";
@@ -21,16 +22,25 @@ error ZeroShares();
 error ValueTooSmall();
 error InvalidLength();
 error InvalidWeightSum();
-error WrongAddress();
+error ZeroAddress();
+error SelfCallNotAllowed();
 error NothingToSkim();
 error NotFound();
 error NotEnoughCompound();
 error NotArbitrum();
+error CheckSendingOnGoing();
+error MaxPendleMarketsReached();
+error AirdropFailed();
+error HashChainManipulated();
+error ForbiddenSelector();
+error WrongAddress();
+error CallDataTooShort(uint256);
 
 contract PendlePowerFarmControllerBase is
     OwnableMaster,
     TransferHelper,
-    ApprovalHelper
+    ApprovalHelper,
+    SendValueHelper
 {
     struct CompoundStruct {
         uint256[] reservedForCompound;
@@ -65,6 +75,8 @@ contract PendlePowerFarmControllerBase is
     uint128 internal constant WEEK = 7 days;
     uint256 public exchangeIncentive;
 
+    uint256 internal constant MAX_PENDLE_MARKETS = 42;
+
     IPendleLock immutable public PENDLE_LOCK;
     IPendleVoter immutable public PENDLE_VOTER;
     IPendleVoteRewards immutable public PENDLE_VOTE_REWARDS;
@@ -75,6 +87,15 @@ contract PendlePowerFarmControllerBase is
     address internal constant ARB_TOKEN_ADDRESS = 0x912CE59144191C1204E64559FE8253a0e49E6548;
 
     IWiseOracleHub immutable internal ORACLE_HUB;
+
+    bytes4 internal constant APPROVE_SELECTOR = 0x095ea7b3;
+    bytes4 internal constant PERMIT_SELECTOR = 0xd505accf;
+
+    bytes32 internal constant INITIAL_HASH = keccak256(
+        abi.encodePacked(ZERO_ADDRESS, uint256(0))
+    );
+
+    IERC20 immutable PENDLE_TOKEN_INSTANCE;
 
     constructor(
         address _vePendle,
@@ -92,6 +113,10 @@ contract PendlePowerFarmControllerBase is
             : false;
 
         PENDLE_TOKEN_ADDRESS = _pendleToken;
+
+        PENDLE_TOKEN_INSTANCE = IERC20(
+            _pendleToken
+        );
 
         VOTER_CONTRACT_ADDRESS = _voterContract;
         VOTER_REWARDS_CLAIMER_ADDRESS = _voterRewardsClaimerAddress;
@@ -126,6 +151,8 @@ contract PendlePowerFarmControllerBase is
         external
         payable
     {
+        _checkReentrancy();
+
         emit ETHReceived(
             msg.value,
             msg.sender
@@ -282,6 +309,15 @@ contract PendlePowerFarmControllerBase is
             unchecked {
                 ++i;
             }
+        }
+    }
+
+    function _checkReentrancy()
+        internal
+        view
+    {
+        if (sendingProgress == true) {
+            revert CheckSendingOnGoing();
         }
     }
 }

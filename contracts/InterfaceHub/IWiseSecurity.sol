@@ -23,7 +23,8 @@ interface IWiseSecurity {
         uint256 _amount
     )
         external
-        view;
+        view
+        returns (bool);
 
     function overallETHBorrow(
         uint256 _nftId
@@ -39,6 +40,13 @@ interface IWiseSecurity {
         view
         returns (uint256 weighted, uint256 unweightedamount);
 
+    function getLiveDebtRatio(
+        uint256 _nftId
+    )
+        external
+        view
+        returns (uint256);
+
     function checkHealthState(
         uint256 _nftId,
         bool _isPowerFarm
@@ -52,17 +60,20 @@ interface IWiseSecurity {
         external
         view;
 
+    function checkPoolWithMinDeposit(
+        address _poolToken,
+        uint256 _amount
+    )
+        external
+        view
+        returns (bool);
+
     function overallETHBorrowHeartbeat(
         uint256 _nftId
     )
         external
         view
         returns (uint256 buffer);
-
-    function checkBadDebtLiquidation(
-        uint256 _nftId
-    )
-        external;
 
     function checksLiquidation(
         uint256 _nftIdLiquidate,

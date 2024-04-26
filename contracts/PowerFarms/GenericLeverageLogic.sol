@@ -2,10 +2,10 @@
 
 pragma solidity =0.8.24;
 
-import "./PendlePowerFarmMathLogic.sol";
+import "./GenericMathLogic.sol";
 
-abstract contract PendlePowerFarmLeverageLogic is
-    PendlePowerFarmMathLogic,
+abstract contract GenericLeverageLogic is
+    GenericMathLogic,
     IFlashLoanRecipient
 {
     /**
@@ -23,11 +23,12 @@ abstract contract PendlePowerFarmLeverageLogic is
         bool _isAave
     )
         internal
+        virtual
     {
         IERC20[] memory tokens = new IERC20[](1);
         uint256[] memory amount = new uint256[](1);
 
-        address flashAsset = WETH_ADDRESS;
+        address flashAsset = FARM_ASSET;
 
         tokens[0] = IERC20(flashAsset);
         amount[0] = _flashAmount;
@@ -63,19 +64,20 @@ abstract contract PendlePowerFarmLeverageLogic is
         bytes memory _userData
     )
         external
+        virtual
     {
         if (allowEnter == false) {
-            revert AccessDenied();
+            revert GenericAccessDenied();
         }
 
         allowEnter = false;
 
         if (_flashloanToken.length == 0) {
-            revert InvalidParam();
+            revert GenericInvalidParam();
         }
 
         if (msg.sender != BALANCER_ADDRESS) {
-            revert NotBalancerVault();
+            revert GenericNotBalancerVault();
         }
 
         uint256 totalDebtBalancer = _flashloanAmounts[0]
@@ -128,9 +130,6 @@ abstract contract PendlePowerFarmLeverageLogic is
         );
     }
 
-    /**
-     * @dev Closes position using balancer flashloans.
-     */
     function _logicClosePosition(
         uint256 _nftId,
         uint256 _borrowShares,
@@ -141,124 +140,30 @@ abstract contract PendlePowerFarmLeverageLogic is
         bool _ethBack,
         bool _isAave
     )
-        private
-    {
-        _paybackExactShares(
-            _isAave,
-            _nftId,
-            _borrowShares
-        );
-
-        uint256 withdrawnLpsAmount = _withdrawPendleLPs(
-            _nftId,
-            _lendingShares
-        );
-
-        uint256 ethValueBefore = _getTokensInETH(
-            PENDLE_CHILD,
-            withdrawnLpsAmount
-        );
-
-        (
-            uint256 netSyOut
-            ,
-        ) = PENDLE_ROUTER.removeLiquiditySingleSy(
-            {
-                _receiver: address(this),
-                _market: address(PENDLE_MARKET),
-                _netLpToRemove: withdrawnLpsAmount,
-                _minSyOut: 0
-            }
-        );
-
-        address tokenOut = block.chainid == 1
-            ? ST_ETH_ADDRESS
-            : ENTRY_ASSET;
-
-        uint256 tokenOutAmount = PENDLE_SY.redeem(
-            {
-                _receiver: address(this),
-                _amountSharesToRedeem: netSyOut,
-                _tokenOut: tokenOut,
-                _minTokenOut: 0,
-                _burnFromInternalBalance: false
-            }
-        );
-
-        uint256 reverseAllowedSpread = 2
-            * PRECISION_FACTOR_E18
-            - _allowedSpread;
-
-        uint256 ethAmount = _getEthBack(
-            tokenOutAmount,
-            _getTokensInETH(
-                block.chainid == 1
-                    ? WETH_ADDRESS
-                    : ENTRY_ASSET,
-                tokenOutAmount
-            )
-                * reverseAllowedSpread
-                / PRECISION_FACTOR_E18
-        );
-
-        uint256 ethValueAfter = _getTokensInETH(
-            WETH_ADDRESS,
-            ethAmount
-        )
-            * _allowedSpread
-            / PRECISION_FACTOR_E18;
-
-        if (ethValueAfter < ethValueBefore) {
-            revert TooMuchValueLost();
-        }
-
-        if (_ethBack == true) {
-            _closingRouteETH(
-                ethAmount,
-                _totalDebtBalancer,
-                _caller
-            );
-
-            return;
-        }
-
-        _closingRouteToken(
-            ethAmount,
-            _totalDebtBalancer,
-            _caller
-        );
-    }
+        internal
+        virtual
+    {}
 
     function _getEthBack(
         uint256 _swapAmount,
         uint256 _minOutAmount
     )
         internal
+        virtual
         returns (uint256)
     {
-        if (block.chainid == ETH_CHAIN_ID) {
-            return _swapStETHintoETH(
-                _swapAmount,
-                _minOutAmount
-            );
-        }
+        uint256 wethAmount = _getTokensUniV3(
+            _swapAmount,
+            _minOutAmount,
+            ENTRY_ASSET,
+            FARM_ASSET
+        );
 
-        if (block.chainid == ARB_CHAIN_ID) {
-            uint256 wethAmount = _getTokensUniV3(
-                _swapAmount,
-                _minOutAmount,
-                ENTRY_ASSET,
-                WETH_ADDRESS
-            );
+        _unwrapETH(
+            wethAmount
+        );
 
-            _unwrapETH(
-                wethAmount
-            );
-
-            return wethAmount;
-        }
-
-        revert WrongChainId();
+        return wethAmount;
     }
 
     function _getTokensUniV3(
@@ -268,6 +173,7 @@ abstract contract PendlePowerFarmLeverageLogic is
         address _tokenOut
     )
         internal
+        virtual
         returns (uint256)
     {
         return UNISWAP_V3_ROUTER.exactInputSingle(
@@ -286,32 +192,21 @@ abstract contract PendlePowerFarmLeverageLogic is
         );
     }
 
-    /**
-     * @dev Internal wrapper function for curve swap
-     * of stETH into ETH.
-     */
     function _swapStETHintoETH(
         uint256 _swapAmount,
         uint256 _minOutAmount
     )
         internal
+        virtual
         returns (uint256)
-    {
-        return CURVE.exchange(
-            {
-                fromIndex: 1,
-                toIndex: 0,
-                exactAmountFrom: _swapAmount,
-                minReceiveAmount: _minOutAmount
-            }
-        );
-    }
+    {}
 
     function _withdrawPendleLPs(
         uint256 _nftId,
         uint256 _lendingShares
     )
-        private
+        internal
+        virtual
         returns (uint256 withdrawnLpsAmount)
     {
         return IPendleChild(PENDLE_CHILD).withdrawExactShares(
@@ -329,11 +224,12 @@ abstract contract PendlePowerFarmLeverageLogic is
         uint256 _borrowShares
     )
         internal
+        virtual
     {
         if (_isAave == true) {
             AAVE_HUB.paybackExactShares(
                 _nftId,
-                WETH_ADDRESS,
+                FARM_ASSET,
                 _borrowShares
             );
 
@@ -342,7 +238,7 @@ abstract contract PendlePowerFarmLeverageLogic is
 
         WISE_LENDING.paybackExactShares(
             _nftId,
-            WETH_ADDRESS,
+            FARM_ASSET,
             _borrowShares
         );
     }
@@ -356,23 +252,25 @@ abstract contract PendlePowerFarmLeverageLogic is
         uint256 _totalDebtBalancer,
         address _caller
     )
-        private
+        internal
+        virtual
     {
-        _wrapETH(
-            _tokenAmount
-        );
+        if (FARM_ASSET == WETH_ADDRESS) {
+            _wrapETH(
+                _tokenAmount
+            );
+        }
 
         _safeTransfer(
-            WETH_ADDRESS,
+            FARM_ASSET,
             msg.sender,
             _totalDebtBalancer
         );
 
         _safeTransfer(
-            WETH_ADDRESS,
+            FARM_ASSET,
             _caller,
-            _tokenAmount
-                - _totalDebtBalancer
+            _tokenAmount - _totalDebtBalancer
         );
     }
 
@@ -386,31 +284,24 @@ abstract contract PendlePowerFarmLeverageLogic is
         address _caller
     )
         internal
+        virtual
     {
         _wrapETH(
             _totalDebtBalancer
         );
 
         _safeTransfer(
-            WETH_ADDRESS,
+            FARM_ASSET,
             msg.sender,
             _totalDebtBalancer
         );
 
         _sendValue(
             _caller,
-            _ethAmount
-                - _totalDebtBalancer
+            _ethAmount - _totalDebtBalancer
         );
     }
 
-    /**
-     * @dev Internal function executing the
-     * collateral deposit by converting ETH
-     * into {ENTRY_ASSET}, adding it as collateral and
-     * borrowing the flashloan token to pay
-     * back {_totalDebtBalancer}.
-     */
     function _logicOpenPosition(
         bool _isAave,
         uint256 _nftId,
@@ -419,114 +310,8 @@ abstract contract PendlePowerFarmLeverageLogic is
         uint256 _allowedSpread
     )
         internal
-    {
-        uint256 reverseAllowedSpread = 2
-            * PRECISION_FACTOR_E18
-            - _allowedSpread;
-
-        if (block.chainid == ARB_CHAIN_ID) {
-
-            _depositAmount = _getTokensUniV3(
-                _depositAmount,
-                _getEthInTokens(
-                        ENTRY_ASSET,
-                        _depositAmount
-                    )
-                * reverseAllowedSpread
-                / PRECISION_FACTOR_E18,
-                WETH_ADDRESS,
-                ENTRY_ASSET
-            );
-        }
-
-        uint256 syReceived = PENDLE_SY.deposit(
-            {
-                _receiver: address(this),
-                _tokenIn: ENTRY_ASSET,
-                _amountTokenToDeposit: _depositAmount,
-                _minSharesOut: PENDLE_SY.previewDeposit(
-                    ENTRY_ASSET,
-                    _depositAmount
-                )
-            }
-        );
-
-        (   ,
-            uint256 netPtFromSwap,
-            ,
-            ,
-            ,
-        ) = PENDLE_ROUTER_STATIC.addLiquiditySingleSyStatic(
-            address(PENDLE_MARKET),
-            syReceived
-        );
-
-        (
-            uint256 netLpOut
-            ,
-        ) = PENDLE_ROUTER.addLiquiditySingleSy(
-            {
-                _receiver: address(this),
-                _market: address(PENDLE_MARKET),
-                _netSyIn: syReceived,
-                _minLpOut: 0,
-                _guessPtReceivedFromSy: ApproxParams(
-                    {
-                        guessMin: netPtFromSwap - 100,
-                        guessMax: netPtFromSwap + 100,
-                        guessOffchain: 0,
-                        maxIteration: 50,
-                        eps: 1e15
-                    }
-                )
-            }
-        );
-
-        uint256 ethValueBefore = _getTokensInETH(
-            ENTRY_ASSET,
-            _depositAmount
-        );
-
-        (
-            uint256 receivedShares
-            ,
-        ) = IPendleChild(PENDLE_CHILD).depositExactAmount(
-            netLpOut
-        );
-
-        uint256 ethValueAfter = _getTokensInETH(
-            PENDLE_CHILD,
-            receivedShares
-        )
-            * _allowedSpread
-            / PRECISION_FACTOR_E18;
-
-        if (ethValueAfter < ethValueBefore) {
-            revert TooMuchValueLost();
-        }
-
-        WISE_LENDING.depositExactAmount(
-            _nftId,
-            PENDLE_CHILD,
-            receivedShares
-        );
-
-        _borrowExactAmount(
-            _isAave,
-            _nftId,
-            _totalDebtBalancer
-        );
-
-        if (_checkDebtRatio(_nftId) == false) {
-            revert DebtRatioTooHigh();
-        }
-
-        _safeTransfer(
-            WETH_ADDRESS,
-            BALANCER_ADDRESS,
-            _totalDebtBalancer
-        );
-    }
+        virtual
+    {}
 
     function _borrowExactAmount(
         bool _isAave,
@@ -534,11 +319,12 @@ abstract contract PendlePowerFarmLeverageLogic is
         uint256 _totalDebtBalancer
     )
         internal
+        virtual
     {
         if (_isAave == true) {
             AAVE_HUB.borrowExactAmount(
                 _nftId,
-                WETH_ADDRESS,
+                FARM_ASSET,
                 _totalDebtBalancer
             );
 
@@ -547,7 +333,7 @@ abstract contract PendlePowerFarmLeverageLogic is
 
         WISE_LENDING.borrowExactAmount(
             _nftId,
-            WETH_ADDRESS,
+            FARM_ASSET,
             _totalDebtBalancer
         );
     }
@@ -563,23 +349,36 @@ abstract contract PendlePowerFarmLeverageLogic is
         uint256 _shareAmountToPay
     )
         internal
+        virtual
         returns (
             uint256 paybackAmount,
             uint256 receivingAmount
         )
     {
-        if (_checkDebtRatio(_nftId) == true) {
-            revert DebtRatioTooLow();
-        }
+        _checkLiquidatability(
+            _nftId
+        );
 
         address paybackToken = isAave[_nftId] == true
-            ? AAVE_WETH_ADDRESS
-            : WETH_ADDRESS;
+            ? POOL_ASSET_AAVE
+            : FARM_ASSET;
 
         paybackAmount = WISE_LENDING.paybackAmount(
             paybackToken,
             _shareAmountToPay
         );
+
+        uint256 cutoffShares = isAave[_nftId] == true
+            ? _getPositionBorrowSharesAave(_nftId)
+                * FIFTY_PERCENT
+                / PRECISION_FACTOR_E18
+            : _getPositionBorrowShares(_nftId)
+                * FIFTY_PERCENT
+                / PRECISION_FACTOR_E18;
+
+        if (_shareAmountToPay > cutoffShares) {
+            revert GenericTooMuchShares();
+        }
 
         receivingAmount = WISE_LENDING.coreLiquidationIsolationPools(
             _nftId,
@@ -590,5 +389,21 @@ abstract contract PendlePowerFarmLeverageLogic is
             paybackAmount,
             _shareAmountToPay
         );
+    }
+
+    function _checkLiquidatability(
+        uint256 _nftId
+    )
+        internal
+        virtual
+        view
+    {
+        if (specialDepegCase == true) {
+            return;
+        }
+
+        if (_checkDebtRatio(_nftId) == true) {
+            revert GenericDebtRatioTooLow();
+        }
     }
 }

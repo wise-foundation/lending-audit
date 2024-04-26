@@ -50,11 +50,6 @@ contract OwnableMaster {
         address indexed proposedMaster
     );
 
-    event ClaimedOwnership(
-        address indexed newMaster,
-        address indexed previousMaster
-    );
-
     event RenouncedOwnership(
         address indexed previousMaster
     );
@@ -98,12 +93,7 @@ contract OwnableMaster {
         external
         onlyProposed
     {
-        master = proposedMaster;
-
-        emit ClaimedOwnership(
-            master,
-            msg.sender
-        );
+        master = msg.sender;
     }
 
     /**

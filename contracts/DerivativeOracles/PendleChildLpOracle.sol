@@ -12,8 +12,8 @@ pragma solidity =0.8.24;
 
 contract PendleChildLpOracle is CustomOracleSetup  {
 
-    IPriceFeed public priceFeedPendleLpOracle;
-    IPendleChildToken public pendleChildToken;
+    IPriceFeed public immutable priceFeedPendleLpOracle;
+    IPendleChild public immutable pendleChildToken;
 
     uint8 constant DECIMALS_PRECISION = 18;
     uint256 private constant PRECISION_FACTOR_E18 = 1E18;
@@ -27,7 +27,7 @@ contract PendleChildLpOracle is CustomOracleSetup  {
         priceFeedPendleLpOracle = IPriceFeed(
             _pendleLpOracle
         );
-        pendleChildToken = IPendleChildToken(
+        pendleChildToken = IPendleChild(
             _pendleChild
         );
     }

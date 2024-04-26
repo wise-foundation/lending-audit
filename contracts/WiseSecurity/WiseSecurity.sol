@@ -344,6 +344,10 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             revert ChainlinkDead();
         }
 
+        _checkPoolCondition(
+            _poolAddress
+        );
+
         checkOwnerPosition(
             _nftId,
             _caller
@@ -392,43 +396,6 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
             _nftId,
             _isPowerFarm
         );
-    }
-
-    /**
-     * @dev Checks for bad debt logic. Compares
-     * total ETH of borrow and collateral.
-     */
-    function checkBadDebtLiquidation(
-        uint256 _nftId
-    )
-        external
-        onlyWiseLending
-    {
-        uint256 bareCollateral = overallETHCollateralsBare(
-            _nftId
-        );
-
-        uint256 totalBorrow = overallETHBorrowBare(
-            _nftId
-        );
-
-        if (totalBorrow < bareCollateral) {
-            return;
-        }
-
-        unchecked {
-            uint256 diff = totalBorrow
-                - bareCollateral;
-
-            FEE_MANAGER.increaseTotalBadDebtLiquidation(
-                diff
-            );
-
-            FEE_MANAGER.setBadDebtUserLiquidation(
-                _nftId,
-                diff
-            );
-        }
     }
 
     /**
@@ -1046,6 +1013,28 @@ contract WiseSecurity is WiseSecurityHelper, ApprovalHelper {
     {
         _checkPoolCondition(
             _token
+        );
+    }
+
+    /**
+     * @dev External wrapper for pool condition
+     * check.
+     */
+    function checkPoolWithMinDeposit(
+        address _token,
+        uint256 _amount
+    )
+        external
+        view
+        returns (bool)
+    {
+        _checkPoolCondition(
+            _token
+        );
+
+        return _checkMinDepositValue(
+            _token,
+            _amount
         );
     }
 

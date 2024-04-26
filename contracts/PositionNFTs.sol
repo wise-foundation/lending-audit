@@ -18,6 +18,9 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
     uint256 public immutable FEE_MANAGER_NFT;
 
     mapping(address => uint256) public reserved;
+    mapping(address => bool) public reserveRole;
+
+    bool public reservePublicBlocked;
 
     constructor(
         string memory _name,
@@ -37,6 +40,39 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         FEE_MANAGER_NFT = _mintPositionForUser(
             address(this)
         );
+    }
+
+    modifier onlyReserveRole() {
+        _onlyReserveRole();
+        _;
+    }
+
+    function _onlyReserveRole()
+        private
+        view
+    {
+        if (reservePublicBlocked == true) {
+            if (reserveRole[msg.sender] == false) {
+                revert NotPermitted();
+            }
+        }
+    }
+
+    function assignReserveRole(
+        address _reserverForOthers,
+        bool _state
+    )
+        external
+        onlyMaster
+    {
+        reserveRole[_reserverForOthers] = _state;
+    }
+
+    function blockReservePublic()
+        external
+        onlyMaster
+    {
+        reservePublicBlocked = true;
     }
 
     function forwardFeeManagerNFT(
@@ -71,6 +107,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         address _user
     )
         external
+        onlyReserveRole
         returns (uint256)
     {
         return _reservePositionForUser(
@@ -128,7 +165,7 @@ contract PositionNFTs is ERC721Enumerable, OwnableMaster {
         view
         returns (address)
     {
-        if (ownerOf(tokenId) == ZERO_ADDRESS) {
+        if (ownerOf(tokenId) > ZERO_ADDRESS) {
             return ZERO_ADDRESS;
         }
 

@@ -198,11 +198,11 @@ contract FeeManager is FeeManagerHelper {
             revert NotAllowed();
         }
 
-        incentiveMaster = proposedIncentiveMaster;
+        incentiveMaster = msg.sender;
         proposedIncentiveMaster = ZERO_ADDRESS;
 
         emit ClaimedOwnershipIncentiveMaster(
-            incentiveMaster,
+            msg.sender,
             block.timestamp
         );
     }
@@ -321,7 +321,7 @@ contract FeeManager is FeeManagerHelper {
             revert NotAllowed();
         }
 
-        if (_newOwner == incentiveOwnerA) {
+        if (_newOwner == msg.sender) {
             revert NotAllowed();
         }
 
@@ -330,11 +330,11 @@ contract FeeManager is FeeManagerHelper {
         }
 
         incentiveUSD[_newOwner] = incentiveUSD[
-            incentiveOwnerA
+            msg.sender
         ];
 
         delete incentiveUSD[
-            incentiveOwnerA
+            msg.sender
         ];
 
         incentiveOwnerA = _newOwner;
@@ -362,16 +362,16 @@ contract FeeManager is FeeManagerHelper {
             revert NotAllowed();
         }
 
-        if (_newOwner == incentiveOwnerB) {
+        if (_newOwner == msg.sender) {
             revert NotAllowed();
         }
 
         incentiveUSD[_newOwner] = incentiveUSD[
-            incentiveOwnerB
+            msg.sender
         ];
 
         delete incentiveUSD[
-            incentiveOwnerB
+            msg.sender
         ];
 
         incentiveOwnerB = _newOwner;
@@ -507,27 +507,13 @@ contract FeeManager is FeeManagerHelper {
         );
     }
 
-    /**
-     * @dev Increase function for bad debt of a position.
-     * Only callable by wiseSecurity contract during liquidation.
-     */
-    function setBadDebtUserLiquidation(
-        uint256 _nftId,
+    function setTotalBadDebt(
         uint256 _amount
     )
         external
-        onlyWiseSecurity
+        onlyMaster
     {
-        _setBadDebtPosition(
-            _nftId,
-            _amount
-        );
-
-        emit SetBadDebtPosition(
-            _nftId,
-            _amount,
-            block.timestamp
-        );
+        totalBadDebtETH = _amount;
     }
 
     /**
@@ -770,10 +756,6 @@ contract FeeManager is FeeManagerHelper {
             _shares
         );
 
-        _updateUserBadDebt(
-            _nftId
-        );
-
         receivingAmount = getReceivingToken(
             _paybackToken,
             _receivingToken,
@@ -783,6 +765,10 @@ contract FeeManager is FeeManagerHelper {
         _decreaseFeeTokens(
             _receivingToken,
             receivingAmount
+        );
+
+        _updateUserBadDebt(
+            _nftId
         );
 
         _safeTransferFrom(
@@ -827,6 +813,10 @@ contract FeeManager is FeeManagerHelper {
 
         if (badDebtPosition[_nftId] == 0) {
             return 0;
+        }
+
+        if (_shares == 0) {
+            revert isZero();
         }
 
         if (WISE_LENDING.getTotalDepositShares(_paybackToken) == 0) {

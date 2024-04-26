@@ -138,6 +138,17 @@ interface IPendleYt {
 
 interface IPendleMarket {
 
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    )
+        external;
+
     function readTokens()
         external
         view
@@ -250,7 +261,12 @@ interface IPendleMarket {
         returns (UserReward memory);
 }
 
-interface IPendleChildToken {
+interface IPendleChild {
+
+    function underlyingLpAssetsCurrent()
+        external
+        view
+        returns (uint256);
 
     function totalLpAssets()
         external
@@ -289,6 +305,21 @@ interface IPendleChildToken {
     )
         external
         view
+        returns (uint256);
+
+    function depositExactAmount(
+        uint256 _amount
+    )
+        external
+        returns (
+            uint256,
+            uint256
+        );
+
+    function withdrawExactShares(
+        uint256 _shares
+    )
+        external
         returns (uint256);
 }
 
@@ -336,23 +367,6 @@ interface IPendleVoter {
         uint64[] memory _weights
     )
         external;
-}
-
-interface IPendleChild {
-    function depositExactAmount(
-        uint256 _amount
-    )
-        external
-        returns (
-            uint256,
-            uint256
-        );
-
-    function withdrawExactShares(
-        uint256 _shares
-    )
-        external
-        returns (uint256);
 }
 
 interface IPendleRouter {

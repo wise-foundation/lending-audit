@@ -3,7 +3,7 @@
 pragma solidity =0.8.24;
 
 interface ICustomOracle {
-        function setRoundData(
+    function setRoundData(
         uint80 _roundId,
         uint256 _updateTime
     )

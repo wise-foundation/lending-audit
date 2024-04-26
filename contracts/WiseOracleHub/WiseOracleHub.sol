@@ -9,6 +9,7 @@ pragma solidity =0.8.24;
  */
 
 import "./OracleHelper.sol";
+import "../InterfaceHub/IPendle.sol";
 
 /**
  * @dev WiseOracleHub is an onchain extension for price feeds (chainLink or others).
@@ -41,6 +42,39 @@ contract WiseOracleHub is OracleHelper {
             _uniswapFactoryV3
         )
     {
+        ETH_USD_PLACEHOLDER = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            "ETH_USD_PLACEHOLDER"
+                        )
+                    )
+                )
+            )
+        );
+
+        priceFeed[ETH_USD_PLACEHOLDER] = ETH_PRICE_FEED;
+        _tokenDecimals[ETH_USD_PLACEHOLDER] = _decimalsETH;
+        underlyingFeedTokens[ETH_USD_PLACEHOLDER] = new address[](0);
+
+        heartBeat[ETH_USD_PLACEHOLDER] = _recalibratePreview(
+            ETH_USD_PLACEHOLDER
+        );
+    }
+
+    function overWriteWithSyDecimals(
+        address _tokenAddress
+    )
+        external
+        onlyMaster
+    {
+        (
+            address sy,
+            ,
+        ) = IPendleMarket(_tokenAddress).readTokens();
+
+        _tokenDecimals[_tokenAddress] = IERC20(sy).decimals();
     }
 
     /**
@@ -58,66 +92,9 @@ contract WiseOracleHub is OracleHelper {
             revert OracleIsDead();
         }
 
-        UniTwapPoolInfo memory uniTwapPoolInfoStruct = uniTwapPoolInfo[
-            _tokenAddress
-        ];
-
-        uint256 fetchTwapValue;
-
-        if (uniTwapPoolInfoStruct.oracle > ZERO_ADDRESS) {
-            fetchTwapValue = latestResolverTwap(
-                _tokenAddress
-            );
-        }
-
-        uint256 answer = _getChainlinkAnswer(
+        return _validateAnswer(
             _tokenAddress
         );
-
-        if (fetchTwapValue > 0) {
-
-            uint256 relativeDifference = _getRelativeDifference(
-                answer,
-                fetchTwapValue
-            );
-
-            _compareDifference(
-                relativeDifference
-            );
-        }
-
-        return answer;
-    }
-
-    /**
-     * @dev Returns Twaps latest USD value
-     * by passing the underlying token address.
-     */
-    function latestResolverTwap(
-        address _tokenAddress
-    )
-        public
-        view
-        returns (uint256)
-    {
-        UniTwapPoolInfo memory uniTwapPoolInfoStruct = uniTwapPoolInfo[
-            _tokenAddress
-        ];
-
-        if (uniTwapPoolInfoStruct.isUniPool == true) {
-
-            return _getTwapPrice(
-                _tokenAddress,
-                uniTwapPoolInfoStruct.oracle
-            )
-                / 10 ** (_decimalsWETH - decimals(_tokenAddress));
-        }
-
-        return _getTwapDerivatePrice(
-            _tokenAddress,
-            uniTwapPoolInfoStruct
-        )
-            / 10 ** (_decimalsWETH - decimals(_tokenAddress));
     }
 
     function getTokenDecimals(
@@ -438,6 +415,80 @@ contract WiseOracleHub is OracleHelper {
         }
     }
 
+    function overwriteAggregator(
+        address _tokenAddress
+    )
+        external
+    {
+        if (tokenAggregatorFromTokenAddress[_tokenAddress] == ZERO_AGGREGATOR) {
+            revert AggregatorDoesntExist();
+        }
+
+        IAggregator tokenAggregator = IAggregator(
+            priceFeed[_tokenAddress].aggregator()
+        );
+
+        if (tokenAggregator == tokenAggregatorFromTokenAddress[_tokenAddress]) {
+            revert AddressNotChanged();
+        }
+
+        tokenAggregatorFromTokenAddress[_tokenAddress] = tokenAggregator;
+    }
+
+    function addAggregator(
+        address _tokenAddress
+    )
+        external
+        onlyMaster
+    {
+        _addAggregator(
+            _tokenAddress
+        );
+    }
+
+    function revokeAggregator(
+        address _tokenAddress
+    )
+        external
+        onlyMaster
+    {
+        if (tokenAggregatorFromTokenAddress[_tokenAddress] == ZERO_AGGREGATOR) {
+            revert NotNecessary();
+        }
+
+        tokenAggregatorFromTokenAddress[_tokenAddress] = ZERO_AGGREGATOR;
+    }
+
+    function changeAllowedDifference(
+        uint256 _newDifference
+    )
+        external
+    {
+        if (allowedDifferenceChanger[msg.sender] == false) {
+            revert roleNotApproved();
+        }
+
+        if (_newDifference > MAX_ALLOWED_DIFFERENCE) {
+            revert TooBig();
+        }
+
+        if (_newDifference < MIN_ALLOWED_DIFFERENCE) {
+            revert TooSmall();
+        }
+
+        ALLOWED_DIFFERENCE = _newDifference;
+    }
+
+    function changeAllowedDifferenceChangerRole(
+        address _user,
+        bool _state
+    )
+        external
+        onlyMaster
+    {
+        allowedDifferenceChanger[_user] = _state;
+    }
+
     /**
      * @dev Looks at the maximal last 50 rounds and
      * takes second highest value to avoid counting
@@ -488,6 +539,10 @@ contract WiseOracleHub is OracleHelper {
         while (i < length) {
 
             state = _chainLinkIsDead(
+                underlyingFeedTokens[_tokenAddress][i]
+            );
+
+            _validateAnswer(
                 underlyingFeedTokens[_tokenAddress][i]
             );
 

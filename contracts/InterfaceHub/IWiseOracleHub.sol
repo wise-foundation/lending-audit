@@ -27,6 +27,13 @@ interface IWiseOracleHub {
         view
         returns (uint256);
 
+    function latestResolverTwap(
+        address _tokenAddress
+    )
+        external
+        view
+        returns (uint256);
+
     function getTokensFromUSD(
         address _tokenAddress,
         uint256 _usdValue

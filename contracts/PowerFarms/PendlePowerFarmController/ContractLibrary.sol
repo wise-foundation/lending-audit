@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.24;
 
 library AddressLibrary {
     address constant VE_PENDLE_CONTRACT = 0x4f30A9D41B80ecC5B94306AB4364951AE3170210; // ETH Mainnet
@@ -39,6 +39,10 @@ library AddressLibrary {
     address constant crvUsdMar2024LP_WHALE = 0x577eBC5De943e35cdf9ECb5BbE1f7D7CB6c7C647; // ETH Mainnet
     address constant CRV_WHALE = 0xF977814e90dA44bFA03b6295A0616a897441aceC; // ETH Mainnet
     address constant PENDLE_SY_ST_ETH_PENDLE_25DEC_2025 = 0xcbC72d92b2dc8187414F6734718563898740C0BC; // ETH Mainnet
+    address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F; // ETH Mainnet
+    address constant ADAI = 0x028171bCA77440897B824Ca71D1c56caC55b68A3; // ETH Mainnet
+    address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // ETH Mainnet
+    address constant AUSDT = 0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a; // ETH Mainnet
 
     uint256 constant NINTY_NINE_POINT_NINE = 1 ether - 0.999 ether;
     uint256 constant NINTY_NINE_POINT_SIX = 1 ether - 0.996 ether;
@@ -92,6 +96,10 @@ contract ContractLibrary {
     address constant CURVE_POOL_STETH_ETH = 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022; // ETH Mainnet
     address constant AWETH = 0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8; // ETH Mainnet
     address constant AAVE_HUB = 0xCd87EDBb1eCF759162f4F0462CfdD2A913A96C7d; // ETH Mainnet
+    address constant DAI = AddressLibrary.DAI; // ETH Mainnet
+    address constant ADAI = AddressLibrary.ADAI; // ETH Mainnet
+    address constant USDT = AddressLibrary.USDT; // ETH Mainnet
+    address constant AUSDT = AddressLibrary.AUSDT; // ETH Mainnet
 
     uint256 constant NINTY_NINE_POINT_NINE = AddressLibrary.NINTY_NINE_POINT_NINE;
     uint256 constant NINTY_NINE_POINT_SIX = AddressLibrary.NINTY_NINE_POINT_SIX;
@@ -106,14 +114,15 @@ contract ContractLibrary {
 
     // ARB MAIN
     address public constant ARB_PENDLE = 0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;
+    address public constant ARB_PENDLE_USD_ORACLE = 0x66853E19d73c0F9301fe099c324A1E9726953433;
     address public constant ARB_WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address public constant ARB_WSTETH = 0x5979D7b546E38E414F7E9822514be443A4800529;
     address public constant ARB_AWETH = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
-    address public constant ARB_WISE_ORACLE_ADD = 0x6b8c00c840E8DB20BabAa81D8cb86BB89fa8dcA6;
-    address public constant ARB_WISE_LENDING_ADD = 0xc5C6c9b8b9f2831a3134571cBf89651AEEec00fb;
-    address public constant ARB_WISE_SECURITY_ADD = 0x62819F430fd51a1BA2634b9c95623072030b668B;
-    address public constant ARB_AAVE_HUB_ADD = 0x925a0ED2625EF1d1bE75D7561Ce05fd2F2Dbf1b1;
-    address public constant ARB_NFT_ADD = 0x54389BC38845334e82CB67Aaf2c29a66fa2dc80C;
+    address public constant ARB_WISE_ORACLE_ADD = 0x8eA137f85B19823dF0a6949CA3E7E7DB9dB7aA3f;// 0x702a2CE346d34d7719f48A4D6d0b4F6846E6198e; //0x6b8c00c840E8DB20BabAa81D8cb86BB89fa8dcA6;
+    address public constant ARB_WISE_LENDING_ADD = 0x90Aa86183EEFCa0864dc54cB0194eb9592355895;//0xfD1F4C75780641b0b0B2A822F78e4e31420443F2; //0xc5C6c9b8b9f2831a3134571cBf89651AEEec00fb;
+    address public constant ARB_WISE_SECURITY_ADD = 0x75A86Bb1F6E54195550c5976c7413269FEf2D927;//0x62819F430fd51a1BA2634b9c95623072030b668B;
+    address public constant ARB_AAVE_HUB_ADD = 0x99B1337B3348f063616ed4e332d787C1Dd5D6Eb3;//0xa51f4C17bb902fF996Ccd766cE072C7CE30E95F4; //0x925a0ED2625EF1d1bE75D7561Ce05fd2F2Dbf1b1;
+    address public constant ARB_NFT_ADD = 0xf8114ab41f2178029957f1D88eD2a71731fEAF49;//0xc1686Dda2119fcF3E7fEdA81B015C67C5D6AaeCD; //0x54389BC38845334e82CB67Aaf2c29a66fa2dc80C;
     address public constant ARB_AAVE_ADD = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address public constant ARB_UNISWAP_V3_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address public constant ARB_ROUTER_STATIC = 0xAdB09F65bd90d19e3148D9ccb693F3161C6DB3E8;
@@ -127,5 +136,29 @@ contract ContractLibrary {
     address public constant ARB_UNI_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     uint8 public constant ARB_DECIMALS_PENDLE_CUSTOM_ORACLE = 18;
     uint24 public constant ARB_UNI_V3_FEE_PENDLE_UNI_POOL = 3000;
-
+    address public constant ARB_USDC_USD_FEED = 0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3;
+    address public constant ARB_ETH_USD_FEED = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
+    address public constant ARB_USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+    address public constant ARB_AUSDC = 0x724dc807b04555b71ed48a6896b6F41593b8C637;
+    address public constant ARB_USDC_WHALE = 0xf89d7b9c864f589bbF53a82105107622B35EaA40;
+    address public constant ARB_USDC_PENDLE_MARKET = 0xBa4A858d664Ddb052158168DB04AFA3cFF5CFCC8;
+    address public constant ARB_USDC_PENDLE_MARKET_SY = 0x50288c30c37FA1Ec6167a31E575EA8632645dE20;
+    address public constant ARB_ETHER_FI_PENDLE_MARET = 0xE11f9786B06438456b044B3E21712228ADcAA0D1;
+    address public constant ARB_ETHER_FI_PENDLE_MARET_SY = 0xa6C895EB332E91c5b3D00B7baeEAae478cc502DA;
+    address public constant ARB_WEETH = 0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe;
+    address public constant ARB_ETHER_FI_REDSTONE_ORACLE = 0x119A190b510c9c0D5Ec301b60B2fE70A50356aE9;
+    address public constant ARB_KELP_PENDLE_MARKET = 0x6F02C88650837C8dfe89F66723c4743E9cF833cd;
+    address public constant ARB_KELP_PENDLE_MARKET_SY = 0xf176fB51F4eB826136a54FDc71C50fCd2202E272;
+    address public constant ARB_RS_ETH = 0x4186BFC76E2E237523CBC30FD220FE055156b41F;
+    address public constant AUSDC_LP_WHALE = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81;
+    address public constant ARB_ETHERFI_WHALE = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81;
+    address public constant ARB_KELP_WHALE = 0x6DB96BBEB081d2a85E0954C252f2c1dC108b3f81;
+    address public constant ARB_DAI = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;
+    address public constant ARB_ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
+    address public constant ARB_DAI_WHALE = 0x489ee077994B6658eAfA855C308275EAd8097C4A;
+    address public constant ARB_USDT_WHALE = 0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D;
+    address public constant ARB_KELP_UNI_POOL = 0x48b0aB72c2591849e678e7d6f272b75eF9b863F7;
+    address public constant ARB_USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address public constant ARB_AUSDT = 0x6ab707Aca953eDAeFBc4fD23bA73294241490620;
+    address constant ARB_ETHERFI_UNI_POOL = 0x14353445c8329Df76e6f15e9EAD18fA2D45A8BB6;
 }

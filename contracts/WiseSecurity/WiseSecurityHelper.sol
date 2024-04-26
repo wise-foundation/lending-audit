@@ -207,6 +207,10 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             return ethCollateral;
         }
 
+        if (WISE_LENDING.getPositionLendingShares(_nftId, _poolToken) == 0) {
+            return ethCollateral;
+        }
+
         ethCollateral += getETHCollateral(
             _nftId,
             _poolToken
@@ -778,9 +782,7 @@ abstract contract WiseSecurityHelper is WiseSecurityDeclarations {
             _receiveToken
         );
 
-        return numerator % denominator == 0
-            ? numerator / denominator
-            : numerator / denominator + 1;
+        return numerator / denominator + 1;
     }
 
     /**

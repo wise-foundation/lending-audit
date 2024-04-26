@@ -40,10 +40,8 @@ abstract contract MainHelper is WiseLowLevelHelper {
         returns (uint256)
     {
         return _maxSharePrice == true
-            ? _product % _pseudo == 0
-                ? _product / _pseudo
-                : _product / _pseudo + 1
-            : _product / _pseudo;
+            ? _product / _pseudo + 1
+            : _product / _pseudo - 1;
     }
 
     /**
@@ -102,7 +100,7 @@ abstract contract MainHelper is WiseLowLevelHelper {
     {
         return _shares
             * lendingPoolData[_poolToken].pseudoTotalPool
-            / lendingPoolData[_poolToken].totalDepositShares;
+            / lendingPoolData[_poolToken].totalDepositShares - 1;
     }
 
     /**
@@ -126,9 +124,7 @@ abstract contract MainHelper is WiseLowLevelHelper {
 
         uint256 totalBorrowShares = borrowPoolData[_poolToken].totalBorrowShares;
 
-        return product % totalBorrowShares == 0
-            ? product / totalBorrowShares
-            : product / totalBorrowShares + 1;
+        return product / totalBorrowShares + 1;
     }
 
     /**
@@ -254,7 +250,7 @@ abstract contract MainHelper is WiseLowLevelHelper {
             _nftIdLiquidator
         );
 
-        if (POSITION_NFT.getOwner(_nftId) != _caller) {
+        if (POSITION_NFT.isOwner(_nftId, _caller) == false) {
             revert InvalidCaller();
         }
     }
@@ -271,6 +267,10 @@ abstract contract MainHelper is WiseLowLevelHelper {
         }
 
         if (_nftIdLiquidator == _nftId) {
+            revert InvalidLiquidator();
+        }
+
+        if (_nftIdLiquidator >= POSITION_NFT.getNextExpectedId()) {
             revert InvalidLiquidator();
         }
     }
@@ -630,13 +630,13 @@ abstract contract MainHelper is WiseLowLevelHelper {
 
         hashMap[hashData] = true;
 
-        if (userTokenData[_nftId].length > MAX_TOTAL_TOKEN_NUMBER) {
-            revert TooManyTokens();
-        }
-
         userTokenData[_nftId].push(
             _poolToken
         );
+
+        if (userTokenData[_nftId].length > MAX_TOTAL_TOKEN_NUMBER) {
+            revert TooManyTokens();
+        }
     }
 
     /**
@@ -679,6 +679,25 @@ abstract contract MainHelper is WiseLowLevelHelper {
         );
 
         if (length == 1) {
+
+            bool exists = isLending == true
+                ? hashMapPositionLending[
+                        _getHash(
+                            _nftId,
+                            _poolToken
+                        )
+                    ]
+                : hashMapPositionBorrow[
+                    _getHash(
+                            _nftId,
+                            _poolToken
+                        )
+                ];
+
+            if (exists == false) {
+                revert TokenNotPresent();
+            }
+
             _deleteLastPositionData(
                 _nftId,
                 _poolToken
